@@ -780,6 +780,7 @@ void RAPP::_DrawFrame(PMVU pmvu)
                rgsuB[4], rgsuB[5], rgsuB[6], rgsuB[7], rgsuB[8], rgsuB[9], rgsuB[10]);
         _Event("actor Z deciles %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld", rgsuA[0], rgsuA[1], rgsuA[2], rgsuA[3],
                rgsuA[4], rgsuA[5], rgsuA[6], rgsuA[7], rgsuA[8], rgsuA[9], rgsuA[10]);
+        pbwld->LogDepthCalibration(_pfileEvents);
         _snprintf(szPath, MAX_PATH, "%s\\depth-%06ld-bkgd.pgm", _stnOutDir.Psz(), _cfrmOut);
         pbwld->FDumpDepth(szPath, fFalse);
         _snprintf(szPath, MAX_PATH, "%s\\depth-%06ld-work.pgm", _stnOutDir.Psz(), _cfrmOut);

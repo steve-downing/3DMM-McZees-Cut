@@ -1122,3 +1122,63 @@ void BWLD::GetDepthStats(bool fActorsOnly, long *prgsuPercentile, long cpercenti
     }
     FreePpv((void **)&prgc);
 }
+
+/***************************************************************************
+    Depth calibration samples: for each actor in the world, its distance
+    from the camera (from BRender's own transforms), where its origin
+    lands on screen, and the Z-buffer value there. Also the camera's
+    screen matrix. Used to pin down how Z-buffer values map to distance.
+***************************************************************************/
+static void _LogActorTree(FILE *pfile, BACT *pbactRoot, BACT *pbactCamera, PZBMP pzbmp, long dxp, long dyp, long cdepth)
+{
+    BACT *pbact;
+    br_matrix34 bmat34;
+    br_matrix4 bmat4;
+    double x, y, z, w, xs, ys;
+    long xp, yp, suZ;
+
+    for (pbact = pbactRoot->children; pvNil != pbact; pbact = pbact->next)
+    {
+        if (pbact == pbactCamera)
+            continue;
+        if (pbact->type == BR_ACTOR_MODEL && pbact->model != pvNil)
+        {
+            BrActorToActorMatrix34(&bmat34, pbact, pbactCamera);
+            BrActorToScreenMatrix4(&bmat4, pbact, pbactCamera);
+            // origin through the screen matrix (row vector [0 0 0 1])
+            x = BrScalarToFloat(bmat4.m[3][0]);
+            y = BrScalarToFloat(bmat4.m[3][1]);
+            z = BrScalarToFloat(bmat4.m[3][2]);
+            w = BrScalarToFloat(bmat4.m[3][3]);
+            xs = (w != 0) ? x / w : 0;
+            ys = (w != 0) ? y / w : 0;
+            xp = (long)(xs + dxp / 2.0);
+            yp = (long)(dyp / 2.0 - ys);
+            suZ = -1;
+            if (xp >= 0 && xp < dxp && yp >= 0 && yp < dyp)
+                suZ = ((ushort *)(pzbmp->Prgb() + yp * pzbmp->CbRow()))[xp];
+            fprintf(pfile,
+                    "calib actor depth=%d viewz=%.4f screen x=%.1f y=%.1f z/w=%.4f w=%.4f pixel=(%ld,%ld) Z=%ld\n",
+                    (int)cdepth, BrScalarToFloat(bmat34.m[3][2]), xs, ys, (w != 0) ? z / w : 0, w, xp, yp, suZ);
+        }
+        if (pvNil != pbact->children && cdepth < 3)
+            _LogActorTree(pfile, pbact, pbactCamera, pzbmp, dxp, dyp, cdepth + 1);
+    }
+}
+
+void BWLD::LogDepthCalibration(FILE *pfile)
+{
+    br_matrix4 bmat4;
+    long i;
+
+    if (pvNil == pfile || pvNil == _pzbmpWorking)
+        return;
+    BrActorToScreenMatrix4(&bmat4, &_bactCamera, &_bactCamera);
+    for (i = 0; i < 4; i++)
+    {
+        fprintf(pfile, "calib camera-to-screen row%ld %.5f %.5f %.5f %.5f\n", i, BrScalarToFloat(bmat4.m[i][0]),
+                BrScalarToFloat(bmat4.m[i][1]), BrScalarToFloat(bmat4.m[i][2]), BrScalarToFloat(bmat4.m[i][3]));
+    }
+    _LogActorTree(pfile, &_bactWorld, &_bactCamera, _pzbmpWorking, _rcBuffer.Dxp(), _rcBuffer.Dyp(), 0);
+    fflush(pfile);
+}

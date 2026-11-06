@@ -47,7 +47,8 @@ if (-not $fluid -and $env:GH_TOKEN) {
     $fluid = Get-ChildItem -Recurse $tools -Filter fluidsynth.exe | Select-Object -First 1
 }
 $fluidPath = if ($fluid) { $fluid.FullName } else { "fluidsynth" }
-Write-Host "fluidsynth: $fluidPath"
+"fluidsynth: $fluidPath`nsoundfont: $soundFont $((Get-Item $soundFont -ErrorAction SilentlyContinue).Length)" |
+    Tee-Object -FilePath (Join-Path $OutDir "tools.txt") | Write-Host
 
 $work = Join-Path $env:RUNNER_TEMP "render-work"
 if (-not $env:RUNNER_TEMP) { $work = Join-Path $build "render-work" }
@@ -89,7 +90,10 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
         $look = if ($mode -eq "stereo") { "stereo3d=sbsl:arcd," } else { "" }
         $fmts = if ($mode -eq "stereo") { @("anaglyph") } else { @("2d") }
         & "$PSScriptRoot/encode-movie.ps1" -RenderDir $rawMode -OutBase (Join-Path $keepMode "preview") `
-            -Formats $fmts -SoundFont $soundFont -FluidSynth $fluidPath -Scale 1 -Crf 28
+            -Formats $fmts -SoundFont $soundFont -FluidSynth $fluidPath -Scale 1 -Crf 28 *>&1 |
+            Out-File (Join-Path $keepMode "encode.txt")
+        Get-ChildItem "$rawMode/sounds" -ErrorAction SilentlyContinue | Select-Object Name, Length |
+            Out-File (Join-Path $keepMode "sounds.txt")
         foreach ($f in "audio.ffscript") {
             if (Test-Path "$rawMode/$f") { Copy-Item "$rawMode/$f" $keepMode }
         }

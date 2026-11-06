@@ -140,6 +140,7 @@ class BWLD : public BWLD_PAR
     void GetCameraParams(double *pdzrHither, double *pdzrYon, double *pradFov);
     bool FDumpDepth(PSZ pszFile, bool fWorking);
     void GetDepthStats(bool fActorsOnly, long *prgsuPercentile, long cpercentile);
+    void LogDepthCalibration(FILE *pfile);
 
   protected:
     byte *_prgbStereo;     // reprojected background RGB for one eye
