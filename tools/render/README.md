@@ -46,13 +46,61 @@ text uses 3DMM's own fonts and is never affected.
 | `-Formats` | all | any of `sbs`, `anaglyph`, `2d` |
 | `-Scale` | 2 | nearest-neighbor upscale (2 gives 1088×612 per eye) |
 | `-SoundFont` | GeneralUser GS | MIDI instruments: any `.sf2`/`.sf3`/`.dls`, or `windows` for the Windows GS Wavetable Synth's `gm.dls` |
-| `-MidiGain` | 0.6 | MIDI loudness (FluidSynth gain) relative to sound effects |
+| `-MidiGain` | 0.6 | MIDI synth gain (before leveling) |
+| `-AudioLevel` | auto | `auto`: smart leveling (below); `original`: the raw mix |
+| `-Channels` | both | `both`: 5.1 Dolby Digital (dialogue in center) + stereo AAC; or `stereo`, `5.1` |
+| `-CRT` | off | also write `.crt.mp4`: 4K with CRT effects (below) |
+| `-CrtPreset` | pc | `pc`, `trinitron`, `tv`, `hdr` |
+| `-CrtMask`, `-CrtScanlines`, `-CrtGlow`, `-CrtCurvature` | per preset | override one aspect of the preset |
+| `-CrtChroma` | 420 | `444` keeps the phosphor colors crisp, but fewer players handle it |
 | `-ClickPause` | 3 | seconds to hold "wait for mouse click" pauses (set with the pause buttons in the studio's Sounds tools) |
 | `-EndHold` | 3 | seconds to hold the final frame (3DMM leaves it on screen) |
 | `-Fonts` | none | folder of extra font files (`.ttf`, `.otf`, `.fon`...) loaded just for rendering, not installed |
 | `-Root` | auto | folder containing `3D Movie Maker` (to use another install's content) |
 | `-KeepFrames` | off | keep the raw frames and logs |
 | `-Force` | off | redo movies that are already up to date |
+
+## Sound
+
+3DMM tags every sound as speech, sound effect or music, and the renderer
+keeps those tags. With `-AudioLevel auto` (the default):
+
+- **Speech and effects** keep the balance they were made with. Both were
+  WAVs through the same sound card.
+- **Each music track** is measured on its own and set 8 LU below the
+  dialogue. MIDI loudness used to depend on whoever's PC it was.
+- **Music ducks** 6 dB whenever someone is talking.
+- **The whole mix** is normalized to -16 LUFS with peaks under -1 dB, so
+  movies play at similar volumes.
+
+Every measurement and adjustment is written to the movie's `.log`, next
+to the videos.
+
+The 5.1 track puts dialogue in the center channel, effects and music in
+front, music at -6 dB in the surrounds, and the low end of effects and
+music in the LFE. It's Dolby Digital, so receivers and TVs decode it
+natively. A stereo AAC track is included for everything else.
+
+## CRT effects
+
+`-CRT` adds a `.crt.mp4`: the movie as it looked on a CRT, at 4K. The
+picture is scaled 6× (544×306 becomes 3264×1836) and centered.
+
+- **Scanlines:** each line is drawn as an electron beam whose width grows
+  with brightness. Bright lines fill in; dark lines leave gaps.
+- **Phosphor mask:** applied after the beam, in screen pixels.
+- **Glow:** a little light around bright areas.
+- **Brightness:** boosted to make up for what the mask and gaps take away.
+
+| Preset | Look |
+|---|---|
+| `pc` (default) | mid-90s PC monitor (where most 3DMM movies were watched): fine shadow mask, light scanlines, mild glow, flat |
+| `trinitron` | aperture grille, stronger scanlines, slight curvature |
+| `tv` | consumer TV: slot mask, heavy scanlines, softer focus, curvature with rounded corners |
+| `hdr` | `pc` written as 10-bit HDR10. The OLED's headroom makes up the mask's lost light, so the mask can be stronger. |
+
+Stereo renders use the left eye for `.crt.mp4`. CRT effects are not
+applied to side-by-side or anaglyph output.
 
 ## Running the renderer directly
 
@@ -65,7 +113,7 @@ The output folder contains:
 
 - `frames\*.bmp`: every distinct frame
 - `timeline.ffconcat`: exact frame timings
-- `sounds\` and `audio.ffscript`: the extracted sounds and an ffmpeg mix script
+- `sounds\`, `audio-cues.tsv` and `audio.ffscript`: the extracted sounds, a cue sheet (category, timing, volume) and the raw mix
 - `events.txt`: transitions, pauses, sounds and stereo choices
 - `render.log`: diagnostics
 

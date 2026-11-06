@@ -90,10 +90,11 @@ try {
             $n = 0
             foreach ($c in $StemCues) {
                 $vol = $c.volume * $c.gain
-                $lines.Add(("amovie='{0}':loop={1},atrim=start={2}:duration={3},asetpts=PTS-STARTPTS," +
-                        "aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,volume={4}," +
-                        "adelay=delays={5}:all=1[a{6}];") -f $c.file, $c.loops, (F $c.offset), (F $c.duration),
-                    (F $vol 5), [long][Math]::Round($c.start * 1000), $n)
+                $line = ("amovie='{0}':loop={1},atrim=start={2}:duration={3},asetpts=PTS-STARTPTS," +
+                    "aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,volume={4}," +
+                    "adelay=delays={5}:all=1[a{6}];") -f $c.file, $c.loops, (F $c.offset), (F $c.duration),
+                    (F $vol 5), [long][Math]::Round($c.start * 1000), $n
+                $lines.Add($line)
                 $n++
             }
             $ins = "[base]" + ((0..($n - 1) | ForEach-Object { "[a$_]" }) -join "")
