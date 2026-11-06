@@ -120,7 +120,7 @@ try {
         foreach ($file in ($music | Select-Object -ExpandProperty file -Unique)) {
             $m = Measure-Loudness $file
             if ($null -eq $m.Lufs) { Note "  $file : silent"; continue }
-            $gainDb = [Math]::Max(-30, [Math]::Min(20, $target - $m.Lufs))
+            $gainDb = [Math]::Max(-30.0, [Math]::Min(20.0, $target - $m.Lufs))
             foreach ($c in ($music | Where-Object { $_.file -eq $file })) { $c.gain = [Math]::Pow(10, $gainDb / 20) }
             Note ("  {0} : measured {1} LUFS, applied {2} dB" -f $file, (F $m.Lufs 1), (F $gainDb 1))
         }
@@ -190,7 +190,7 @@ try {
         Write-Mix 0 $false $false "mix-measure.ffscript"
         Invoke-Graph "mix-measure.ffscript" @("-map", "[st]", "-c:a", "pcm_f32le", "mix-measure.wav")
         $m = Measure-Loudness "mix-measure.wav"
-        if ($null -ne $m.Lufs) { $gain = [Math]::Max(-30, [Math]::Min(30, $TargetLufs - $m.Lufs)) }
+        if ($null -ne $m.Lufs) { $gain = [Math]::Max(-30.0, [Math]::Min(30.0, $TargetLufs - $m.Lufs)) }
         Note ("mix: measured {0} LUFS, applied {1} dB toward {2} LUFS" -f $(if ($null -ne $m.Lufs) { F $m.Lufs 1 } else { "silent" }),
             (F $gain 1), (F $TargetLufs 1))
         Remove-Item mix-measure.wav
