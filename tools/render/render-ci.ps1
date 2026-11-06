@@ -73,6 +73,7 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
     $proc = Start-Process -FilePath $exe.FullName -PassThru -NoNewWindow -ArgumentList $rargs `
         -RedirectStandardOutput (Join-Path $keepMode "stdout.txt") `
         -RedirectStandardError (Join-Path $keepMode "stderr.txt")
+    $null = $proc.Handle   # without this, ExitCode can come back empty
     if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {
         $proc.Kill()
         $code = "timeout"

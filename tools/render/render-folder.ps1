@@ -113,6 +113,7 @@ foreach ($movie in $movies) {
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $proc = Start-Process -FilePath $Renderer -ArgumentList $rargs -PassThru -NoNewWindow `
         -RedirectStandardOutput (Join-Path $work "stdout.txt") -RedirectStandardError (Join-Path $work "stderr.txt")
+    $null = $proc.Handle   # without this, ExitCode can come back empty
     if (-not $proc.WaitForExit($TimeoutMinutes * 60 * 1000)) {
         $proc.Kill()
         $row.status = "timeout"
