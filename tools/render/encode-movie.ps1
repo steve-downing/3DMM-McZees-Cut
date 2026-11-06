@@ -19,6 +19,8 @@ param(
     [int]$Crf = 18
 )
 $ErrorActionPreference = "Stop"
+# "-Formats a,b" arrives as one string when run with powershell -File
+if ($Formats) { $Formats = @($Formats | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
 $RenderDir = (Resolve-Path $RenderDir).Path
 $stereo = (Select-String -Path (Join-Path $RenderDir "render.log") -Pattern "^stereo:" -Quiet)
 if (-not $Formats) { $Formats = if ($stereo) { @("sbs", "anaglyph", "2d") } else { @("2d") } }

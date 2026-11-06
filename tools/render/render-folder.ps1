@@ -31,6 +31,8 @@ param(
     [switch]$Force
 )
 $ErrorActionPreference = "Stop"
+# "-Formats a,b" arrives as one string when run with powershell -File
+if ($Formats) { $Formats = @($Formats | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
 
 if (-not $Renderer) {
     $candidates = @(
