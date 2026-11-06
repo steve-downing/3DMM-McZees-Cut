@@ -66,6 +66,20 @@ jobs:
           Get-ChildItem -Recurse ci-out/batch -Filter *.mp4 | Remove-Item
           Remove-Item -Recurse -Force package/3dmm-render/tools -ErrorAction SilentlyContinue
 
+      - name: Full-quality renders on request
+        if: steps.package.outcome == 'success' && hashFiles('ci-render-requests.txt') != ''
+        shell: pwsh
+        run: |
+          # one test-movies file name per line; outputs land in ci-results
+          $req = Join-Path $env:RUNNER_TEMP "requested"
+          New-Item -ItemType Directory -Force $req | Out-Null
+          Get-Content ci-render-requests.txt | Where-Object { $_.Trim() } |
+            ForEach-Object { Copy-Item -LiteralPath (Join-Path test-movies $_.Trim()) $req }
+          if (Test-Path build/tools) { Copy-Item -Recurse build/tools package/3dmm-render/tools -ErrorAction SilentlyContinue }
+          powershell -NoProfile -ExecutionPolicy Bypass -File package/3dmm-render/render-folder.ps1 `
+            -InputDir $req -OutputDir ci-out/full -Formats 2d *>&1 | Tee-Object -FilePath ci-out/full.log
+          Remove-Item -Recurse -Force package/3dmm-render/tools -ErrorAction SilentlyContinue
+
       - name: Publish results to ci-results branch
         if: always()
         shell: pwsh
