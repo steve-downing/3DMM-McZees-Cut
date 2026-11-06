@@ -161,6 +161,7 @@ class RAPP : public RAPP_PAR
     long _lwExit;
     double _dzrConvergeLast;
     bool _fStereoValid;
+    ulong _luTboxSig;
     BMAT34 _bmat34Stereo;
     double _dxrEye;
     double _dxpFocal;
@@ -188,6 +189,7 @@ class RAPP : public RAPP_PAR
     void _PlaceEye(byte *prgbEye, byte *prgbFrame, long ieye, long dxpShift);
     void _DrawFrame(PMVU pmvu);
     void _DrawFlatStereo(PMVU pmvu);
+    void _LogTextBoxes(void);
     void _DumpStereoDebug(PBWLD pbwld);
     long _DxpOut(void)
     {

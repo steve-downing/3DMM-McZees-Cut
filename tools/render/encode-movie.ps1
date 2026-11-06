@@ -5,6 +5,12 @@
 # Builds the soundtrack first (MIDI rendered with FluidSynth if it and a
 # SoundFont are available; otherwise music is left silent and a warning
 # printed), then encodes each requested format from timeline.ffconcat:
+#
+# -SoundFont takes a .sf2/.sf3 SoundFont or a .dls file (e.g. an SC-55
+# SoundFont), or the word "windows" for the Microsoft GS Wavetable Synth's
+# own instruments (%WINDIR%\System32\drivers\gm.dls). DLS needs a FluidSynth
+# build with native DLS support (the "cpp11" Windows builds have it).
+#
 #   2d        mono render as-is, or the left eye of a stereo render
 #   sbs       full side-by-side (left | right), for 3D TVs / players in SBS mode
 #   anaglyph  red/cyan
@@ -15,6 +21,7 @@ param(
     [string[]]$Formats,
     [string]$SoundFont = $env:SOUNDFONT,
     [string]$FluidSynth = "fluidsynth",
+    [double]$MidiGain = 0.6,
     [int]$Scale = 2,
     [int]$Crf = 18
 )
@@ -22,6 +29,9 @@ $ErrorActionPreference = "Stop"
 # "-Formats a,b" arrives as one string when run with powershell -File
 if ($Formats) { $Formats = @($Formats | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
 $RenderDir = (Resolve-Path $RenderDir).Path
+if ($SoundFont -eq "windows") { $SoundFont = Join-Path $env:WINDIR "System32\drivers\gm.dls" }
+if ($SoundFont -and -not (Test-Path $SoundFont)) { Write-Warning "SoundFont not found: $SoundFont" }
+if ($SoundFont) { $SoundFont = (Resolve-Path $SoundFont -ErrorAction SilentlyContinue).Path }
 $stereo = (Select-String -Path (Join-Path $RenderDir "render.log") -Pattern "^stereo:" -Quiet)
 if (-not $Formats) { $Formats = if ($stereo) { @("sbs", "anaglyph", "2d") } else { @("2d") } }
 $outDir = Split-Path -Parent $OutBase
@@ -35,9 +45,13 @@ try {
     $haveSynth = $SoundFont -and (Test-Path $SoundFont) -and (Get-Command $FluidSynth -ErrorAction SilentlyContinue)
     foreach ($mid in Get-ChildItem sounds -Filter *.mid -ErrorAction SilentlyContinue) {
         $wav = "$($mid.FullName).wav"
-        if (Test-Path $wav) { continue }
+        if (Test-Path $wav) { Remove-Item $wav }   # always re-render: the SoundFont may have changed
         if ($haveSynth) {
-            & $FluidSynth -ni -q -g 0.6 -r 44100 -F $wav $SoundFont $mid.FullName | Out-Null
+            & $FluidSynth -ni -q -g $MidiGain -r 44100 -F $wav $SoundFont $mid.FullName | Out-Null
+            if (-not (Test-Path $wav)) {
+                $hint = if ($SoundFont -like "*.dls") { " (DLS needs a FluidSynth build with DLS support, e.g. the cpp11 one)" } else { "" }
+                Write-Warning "FluidSynth couldn't render $($mid.Name) with $SoundFont$hint"
+            }
         }
         if (-not (Test-Path $wav)) {
             if (-not $haveSynth) { Write-Warning "no FluidSynth/SoundFont: $($mid.Name) will be silent" }

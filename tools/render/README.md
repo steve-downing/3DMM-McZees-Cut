@@ -39,7 +39,9 @@ are named. Re-running the script skips anything already up to date.
 | `-Depth` | 2.5 | how far behind the screen the scene can go (% of width) |
 | `-Formats` | all | any of `sbs`, `anaglyph`, `2d` |
 | `-Scale` | 2 | nearest-neighbor upscale (2 gives 1088×612 per eye) |
-| `-ClickPause` | 3 | seconds to hold "wait for a click" pauses |
+| `-SoundFont` | GeneralUser GS | MIDI instruments: any `.sf2`/`.sf3`/`.dls`, or `windows` for the Windows GS Wavetable Synth's `gm.dls` |
+| `-MidiGain` | 0.6 | MIDI loudness (FluidSynth gain) relative to sound effects |
+| `-ClickPause` | 3 | seconds to hold "wait for mouse click" pauses (set with the pause buttons in the studio's Sounds tools) |
 | `-Root` | auto | folder containing `3D Movie Maker` (to use another install's content) |
 | `-KeepFrames` | off | keep the raw frames and logs |
 | `-Force` | off | redo movies that are already up to date |

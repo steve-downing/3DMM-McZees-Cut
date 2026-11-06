@@ -68,6 +68,7 @@ RAPP::RAPP(void)
     _pctPop = 1.5;
     _fDebug = fFalse;
     _fStereoValid = fFalse;
+    _luTboxSig = 0;
     _prgbEye = pvNil;
     _pglsndf = pvNil;
     _pglcue = pvNil;
@@ -869,6 +870,7 @@ void RAPP::_Capture(void)
 
     _UpdatePalette();
     _DrawFrame(pmvu);
+    _LogTextBoxes();
     if (trans == transBlack)
         ClearPb(_prgbCur, cb);
 
@@ -1444,4 +1446,43 @@ void RAPP::_WriteAudioScript(ulong dtsEnd)
     fprintf(pfile, "[aout]\n");
     fclose(pfile);
     _Log("audio: %ld sounds, %ld cues", _pglsndf->IvMac(), ccue);
+}
+
+/***************************************************************************
+    Note when the set of visible 2-D text boxes changes, with a snippet of
+    each one's text, so they can be found on the timeline.
+***************************************************************************/
+void RAPP::_LogTextBoxes(void)
+{
+    PSCEN pscen = _pmvie->Pscen();
+    PTBOX ptbox;
+    long itbox, ccp, ich;
+    ulong luSig = 0;
+    achar rgch[41];
+
+    if (pvNil == pscen)
+        return;
+    for (itbox = 0; pvNil != (ptbox = pscen->PtboxFromItbox(itbox)); itbox++)
+    {
+        if (ptbox->FIsVisible())
+            luSig = luSig * 31 + (ulong)ptbox + 1;
+    }
+    if (luSig == _luTboxSig)
+        return;
+    _luTboxSig = luSig;
+
+    for (itbox = 0; pvNil != (ptbox = pscen->PtboxFromItbox(itbox)); itbox++)
+    {
+        if (!ptbox->FIsVisible())
+            continue;
+        ccp = LwMin(ptbox->CpMac(), 40);
+        ptbox->FetchRgch(0, ccp, rgch);
+        for (ich = 0; ich < ccp; ich++)
+        {
+            if ((byte)rgch[ich] < ' ')
+                rgch[ich] = ' ';
+        }
+        rgch[ccp] = 0;
+        _Event("textbox %s \"%s\"", ptbox->FStory() ? "story" : "credits", rgch);
+    }
 }

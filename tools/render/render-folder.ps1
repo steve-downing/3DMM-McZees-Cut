@@ -24,6 +24,7 @@ param(
     [string[]]$Formats,
     [string]$SoundFont = $env:SOUNDFONT,
     [string]$FluidSynth,
+    [double]$MidiGain = 0.6,
     [double]$ClickPause = 3,
     [int]$TimeoutMinutes = 30,
     [int]$Scale = 2,
@@ -61,6 +62,8 @@ if (-not $FluidSynth) {
     $fs = Get-ChildItem -Recurse $toolsDir -Filter fluidsynth.exe -ErrorAction SilentlyContinue | Select-Object -First 1
     $FluidSynth = if ($fs) { $fs.FullName } else { "fluidsynth" }
 }
+if ($SoundFont -eq "windows") { $SoundFont = Join-Path $env:WINDIR "System32\drivers\gm.dls" }
+if ($SoundFont -and -not (Test-Path $SoundFont)) { throw "SoundFont not found: $SoundFont" }
 if (-not $SoundFont -and (Test-Path (Join-Path $toolsDir "GeneralUser-GS.sf2"))) {
     $SoundFont = Join-Path $toolsDir "GeneralUser-GS.sf2"
 }
@@ -91,7 +94,7 @@ $n = 0
 foreach ($movie in $movies) {
     $n++
     $rel = $movie.FullName.Substring($InputDir.Length + 1)
-    $relBase = [IO.Path]::ChangeExtension($rel, $null).TrimEnd('.')
+    $relBase = $rel.Substring(0, $rel.Length - $movie.Extension.Length)
     $outBase = Join-Path $OutputDir $relBase
     $outputs = $Formats | ForEach-Object { "$outBase.$_.mp4" }
     $row = [ordered]@{ movie = $rel; status = ""; exit = ""; frames = ""; seconds = ""; missing = ""; outputs = "" }
@@ -135,7 +138,7 @@ foreach ($movie in $movies) {
     if ($row.status -eq "ok") {
         New-Item -ItemType Directory -Force (Split-Path -Parent $outBase) | Out-Null
         & $encoder -RenderDir $work -OutBase $outBase -Formats $Formats -SoundFont $SoundFont `
-            -FluidSynth $FluidSynth -Scale $Scale
+            -FluidSynth $FluidSynth -MidiGain $MidiGain -Scale $Scale
         if ($LASTEXITCODE -ne 0) { $row.status = "encode-failed" }
         $row.outputs = ($outputs | Where-Object { Test-Path $_ } | ForEach-Object { Split-Path -Leaf $_ }) -join "; "
     } else {

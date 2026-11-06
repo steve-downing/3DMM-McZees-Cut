@@ -42,7 +42,7 @@ if (-not (Test-Path $soundFont)) {
 }
 $fluid = Get-ChildItem -Recurse $tools -Filter fluidsynth.exe -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $fluid -and $env:GH_TOKEN) {
-    gh release download --repo FluidSynth/fluidsynth --pattern "*win10-x64*.zip" --dir $tools --clobber
+    gh release download --repo FluidSynth/fluidsynth --pattern "*win10-x64-cpp11*.zip" --dir $tools --clobber
     Get-ChildItem $tools -Filter *.zip | ForEach-Object { Expand-Archive -Force $_.FullName (Join-Path $tools "fluidsynth") }
     $fluid = Get-ChildItem -Recurse $tools -Filter fluidsynth.exe | Select-Object -First 1
 }
@@ -122,6 +122,17 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
         seconds = [Math]::Round($sw.Elapsed.TotalSeconds, 1)
     }
     }
+}
+
+# the Windows GS synth's instruments, through FluidSynth's DLS loader
+$gmdls = Join-Path $env:WINDIR "System32\drivers\gm.dls"
+$first = Get-ChildItem $work -Directory | Select-Object -First 1
+if ((Test-Path $gmdls) -and $first) {
+    & "$PSScriptRoot/encode-movie.ps1" -RenderDir (Join-Path $first.FullName "mono") `
+        -OutBase (Join-Path $OutDir "gm-dls-check") -Formats 2d -SoundFont windows -FluidSynth $fluidPath -Scale 1 -Crf 30 *>&1 |
+        Out-File (Join-Path $OutDir "gm-dls-check.txt")
+} else {
+    "no gm.dls on this machine" | Out-File (Join-Path $OutDir "gm-dls-check.txt")
 }
 
 $summary | Export-Csv -NoTypeInformation (Join-Path $OutDir "summary.csv")
