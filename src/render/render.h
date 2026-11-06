@@ -127,6 +127,7 @@ class RAPP : public RAPP_PAR
     STN _stnMovie;
     STN _stnOutDir;
     STN _stnRoot;
+    STN _stnFonts;
     ulong _dtsClickPause;
     ulong _dtsEndHold;
     long _cfrmLimit;
@@ -163,6 +164,7 @@ class RAPP : public RAPP_PAR
     double _dzrConvergeLast;
     bool _fStereoValid;
     ulong _luTboxSig;
+    PGST _pgstMissingFonts;
     BMAT34 _bmat34Stereo;
     double _dxrEye;
     double _dxpFocal;
@@ -210,6 +212,8 @@ class RAPP : public RAPP_PAR
     void _Event(PSZ pszFormat, ...);
 
     static bool _FInsertCD(PSTN pstnTitle);
+    static void _MissingFont(PSTN pstn);
+    void _LoadFonts(void);
 
     virtual bool _FInit(ulong grfapp, ulong grfgob, long ginDef);
     virtual bool _FInitOS(void);

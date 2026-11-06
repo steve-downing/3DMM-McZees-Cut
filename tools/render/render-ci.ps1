@@ -135,5 +135,33 @@ if ((Test-Path $gmdls) -and $first) {
     "no gm.dls on this machine" | Out-File (Join-Path $OutDir "gm-dls-check.txt")
 }
 
+# font handling: a copy of a movie whose text box asks for "Courier Prime"
+# (not installed on Windows), rendered without and then with -fonts
+$src = Join-Path $MovieDir "Tamer 4 - Jeff Tamer, Ph.D..3mm"
+if (Test-Path $src) {
+    $ft = Join-Path $work "fonttest"
+    $fontDir = Join-Path $ft "fonts"
+    New-Item -ItemType Directory -Force $fontDir | Out-Null
+    $latin1 = [Text.Encoding]::GetEncoding(28591)
+    $text = $latin1.GetString([IO.File]::ReadAllBytes((Resolve-Path $src).Path)).Replace("Comic Sans MS", "Courier Prime")
+    $movie = Join-Path $ft "FontTest.3mm"
+    [IO.File]::WriteAllBytes($movie, $latin1.GetBytes($text))
+    Invoke-WebRequest -UseBasicParsing -OutFile (Join-Path $fontDir "CourierPrime-Regular.ttf") `
+        "https://raw.githubusercontent.com/google/fonts/main/ofl/courierprime/CourierPrime-Regular.ttf"
+    $report = @()
+    foreach ($case in "without", "with") {
+        $out = Join-Path $ft $case
+        $fargs = @("`"$movie`"", "`"$out`"", "--root", "`"$stage`"")
+        if ($case -eq "with") { $fargs += @("--fonts", "`"$fontDir`"") }
+        $p = Start-Process -FilePath $exe.FullName -ArgumentList $fargs -PassThru -NoNewWindow -Wait
+        $report += "== $case -fonts (exit $($p.ExitCode))"
+        $report += @(Select-String -Path "$out/events.txt" -Pattern "missing-font|textbox" | ForEach-Object { $_.Line })
+        $report += @(Select-String -Path "$out/render.log" -Pattern "^fonts:|loaded .* font|missing font" | ForEach-Object { $_.Line })
+        $last = Get-ChildItem "$out/frames" -Filter *.bmp | Sort-Object Name | Select-Object -Last 1
+        if ($last) { ffmpeg -hide_banner -loglevel error -y -i $last.FullName (Join-Path $OutDir "font-$case.png") }
+    }
+    $report | Out-File (Join-Path $OutDir "font-check.txt")
+}
+
 $summary | Export-Csv -NoTypeInformation (Join-Path $OutDir "summary.csv")
 $summary | Format-Table | Out-String | Write-Host

@@ -18,6 +18,7 @@ APT vaptLtGray = {0x22, 0x88, 0x44, 0x11, 0x22, 0x88, 0x44, 0x11};
 APT vaptDkGray = {0xDD, 0x77, 0xBB, 0xEE, 0xDD, 0x77, 0xBB, 0xEE};
 
 NTL vntl;
+FNMISSINGFONT *vpfnMissingFont = pvNil;
 
 RTCLASS(GNV)
 RTCLASS(GPT)
@@ -2218,7 +2219,11 @@ long NTL::OnnMapStn(PSTN pstn, short osk)
     long onn;
 
     if (!FGetOnn(pstn, &onn))
+    {
         onn = _onnSystem;
+        if (pvNil != vpfnMissingFont)
+            vpfnMissingFont(pstn);
+    }
     return onn;
 }
 

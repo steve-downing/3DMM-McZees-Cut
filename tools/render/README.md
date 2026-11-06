@@ -31,6 +31,12 @@ every movie with its status. Movies that need content you don't have, such
 as the Nickelodeon pack, are marked `missing-content` and the needed packs
 are named. Re-running the script skips anything already up to date.
 
+Text boxes store their fonts by name. If a font isn't installed (or in
+the `-Fonts` folder), 3DMM falls back to the Windows system font, as it
+did in the 90s. The renderer reports every such font in `events.txt`,
+in the report's `missingFonts` column, and in a summary at the end. 3-D
+text uses 3DMM's own fonts and is never affected.
+
 ## Useful options
 
 | Option | Default | What it does |
@@ -43,6 +49,7 @@ are named. Re-running the script skips anything already up to date.
 | `-MidiGain` | 0.6 | MIDI loudness (FluidSynth gain) relative to sound effects |
 | `-ClickPause` | 3 | seconds to hold "wait for mouse click" pauses (set with the pause buttons in the studio's Sounds tools) |
 | `-EndHold` | 3 | seconds to hold the final frame (3DMM leaves it on screen) |
+| `-Fonts` | none | folder of extra font files (`.ttf`, `.otf`, `.fon`...) loaded just for rendering, not installed |
 | `-Root` | auto | folder containing `3D Movie Maker` (to use another install's content) |
 | `-KeepFrames` | off | keep the raw frames and logs |
 | `-Force` | off | redo movies that are already up to date |
@@ -51,7 +58,7 @@ are named. Re-running the script skips anything already up to date.
 
 ```
 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--stereo] [--depth <pct>]
-            [--pop <pct>] [--click-pause <sec>] [--end-hold <sec>] [--max-frames <n>] [--debug]
+            [--pop <pct>] [--fonts <dir>] [--click-pause <sec>] [--end-hold <sec>] [--max-frames <n>] [--debug]
 ```
 
 The output folder contains:

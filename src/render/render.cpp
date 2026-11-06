@@ -69,6 +69,7 @@ RAPP::RAPP(void)
     _fDebug = fFalse;
     _fStereoValid = fFalse;
     _luTboxSig = 0;
+    _pgstMissingFonts = pvNil;
     _prgbEye = pvNil;
     _pglsndf = pvNil;
     _pglcue = pvNil;
@@ -189,11 +190,24 @@ bool RAPP::_FInit(ulong grfapp, ulong grfgob, long ginDef)
         _lwExit = klwExitUsage;
         return fFalse;
     }
+    _LoadFonts();
+    vpfnMissingFont = RAPP::_MissingFont;
     if (!RAPP_PAR::_FInit(grfapp, grfgob, ginDef))
     {
         _Log("framework init failed");
         _lwExit = klwExitInit;
         return fFalse;
+    }
+    _Log("fonts: %ld TrueType faces available", vntl.OnnMac());
+    if (_fDebug)
+    {
+        long onn;
+        STN stn;
+        for (onn = 0; onn < vntl.OnnMac(); onn++)
+        {
+            vntl.GetStn(onn, &stn);
+            _Log("font: %s", stn.Psz());
+        }
     }
     if (!_FInitContent())
     {
@@ -231,6 +245,8 @@ bool RAPP::_FParseCommandLine(void)
             _stnRoot.SetSz(__argv[++iarg]);
         else if (0 == strcmp(psz, "--click-pause") && iarg + 1 < __argc)
             _dtsClickPause = (ulong)(atof(__argv[++iarg]) * kdtsSecond);
+        else if (0 == strcmp(psz, "--fonts") && iarg + 1 < __argc)
+            _stnFonts.SetSz(__argv[++iarg]);
         else if (0 == strcmp(psz, "--end-hold") && iarg + 1 < __argc)
             _dtsEndHold = (ulong)(atof(__argv[++iarg]) * kdtsSecond);
         else if (0 == strcmp(psz, "--max-frames") && iarg + 1 < __argc)
@@ -262,9 +278,9 @@ bool RAPP::_FParseCommandLine(void)
 
     if (carg != 2)
     {
-        fprintf(stderr,
-                "usage: 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>] "
-                "[--end-hold <sec>] [--max-frames <n>] [--stereo] [--depth <percent>] [--pop <percent>] [--debug]\n");
+        fprintf(stderr, "usage: 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>] "
+                        "[--fonts <dir>] [--end-hold <sec>] [--max-frames <n>] [--stereo] [--depth <percent>] [--pop "
+                        "<percent>] [--debug]\n");
         return fFalse;
     }
     return fTrue;
@@ -1488,4 +1504,53 @@ void RAPP::_LogTextBoxes(void)
         rgch[ccp] = 0;
         _Event("textbox %s \"%s\"", ptbox->FStory() ? "story" : "credits", rgch);
     }
+}
+
+/***************************************************************************
+    --fonts: make every font file in a folder available to this process
+    only (nothing gets installed), before the font list is built.
+***************************************************************************/
+void RAPP::_LoadFonts(void)
+{
+    static const char *const rgszPattern[] = {"*.ttf", "*.ttc", "*.otf", "*.fon", "*.fnt"};
+    char szPattern[MAX_PATH], szFile[MAX_PATH];
+    WIN32_FIND_DATAA wfd;
+    HANDLE hfind;
+    long isz, cfont = 0;
+
+    if (_stnFonts.Cch() == 0)
+        return;
+    for (isz = 0; isz < (long)(sizeof(rgszPattern) / sizeof(rgszPattern[0])); isz++)
+    {
+        _snprintf(szPattern, MAX_PATH, "%s\\%s", _stnFonts.Psz(), rgszPattern[isz]);
+        if (INVALID_HANDLE_VALUE == (hfind = FindFirstFileA(szPattern, &wfd)))
+            continue;
+        do
+        {
+            _snprintf(szFile, MAX_PATH, "%s\\%s", _stnFonts.Psz(), wfd.cFileName);
+            if (AddFontResourceExA(szFile, FR_PRIVATE, 0) > 0)
+                cfont++;
+            else
+                _Log("couldn't load font file %s", szFile);
+        } while (FindNextFileA(hfind, &wfd));
+        FindClose(hfind);
+    }
+    _Log("loaded %ld font files from %s", cfont, _stnFonts.Psz());
+}
+
+/***************************************************************************
+    A text box asked for a font that isn't available; the system font is
+    being used instead. Report each name once.
+***************************************************************************/
+void RAPP::_MissingFont(PSTN pstn)
+{
+    long istn;
+
+    if (pvNil == vrapp._pgstMissingFonts && pvNil == (vrapp._pgstMissingFonts = GST::PgstNew(0)))
+        return;
+    if (vrapp._pgstMissingFonts->FFindStn(pstn, &istn))
+        return;
+    vrapp._pgstMissingFonts->FAddStn(pstn);
+    vrapp._Log("missing font: %s (text will use the system font)", pstn->Psz());
+    vrapp._Event("missing-font %s", pstn->Psz());
 }

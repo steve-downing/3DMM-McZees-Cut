@@ -27,6 +27,7 @@ param(
     [double]$MidiGain = 0.6,
     [double]$ClickPause = 3,
     [double]$EndHold = 3,
+    [string]$Fonts,
     [int]$TimeoutMinutes = 30,
     [int]$Scale = 2,
     [switch]$KeepFrames,
@@ -78,6 +79,7 @@ if (-not $Root -or -not (Test-Path (Join-Path $Root "3D Movie Maker"))) {
 if (-not $Formats) { $Formats = if ($Stereo) { @("sbs", "anaglyph", "2d") } else { @("2d") } }
 
 $InputDir = (Resolve-Path $InputDir).Path.TrimEnd('\')
+if ($Fonts) { $Fonts = (Resolve-Path $Fonts).Path.TrimEnd('\') }
 New-Item -ItemType Directory -Force $OutputDir | Out-Null
 $OutputDir = (Resolve-Path $OutputDir).Path
 $scratch = Join-Path $OutputDir ".render-scratch"
@@ -98,7 +100,7 @@ foreach ($movie in $movies) {
     $relBase = $rel.Substring(0, $rel.Length - $movie.Extension.Length)
     $outBase = Join-Path $OutputDir $relBase
     $outputs = $Formats | ForEach-Object { "$outBase.$_.mp4" }
-    $row = [ordered]@{ movie = $rel; status = ""; exit = ""; frames = ""; seconds = ""; missing = ""; outputs = "" }
+    $row = [ordered]@{ movie = $rel; status = ""; exit = ""; frames = ""; seconds = ""; missing = ""; missingFonts = ""; outputs = "" }
 
     $upToDate = -not $Force -and @($outputs | Where-Object {
             -not (Test-Path $_) -or (Get-Item $_).LastWriteTime -lt $movie.LastWriteTime }).Count -eq 0
@@ -116,6 +118,7 @@ foreach ($movie in $movies) {
 
     $rargs = @("`"$($movie.FullName)`"", "`"$work`"", "--root", "`"$Root`"", "--click-pause", "$ClickPause", "--end-hold", "$EndHold")
     if ($Stereo) { $rargs += @("--stereo", "--depth", "$Depth") }
+    if ($Fonts) { $rargs += @("--fonts", "`"$Fonts`"") }
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $proc = Start-Process -FilePath $Renderer -ArgumentList $rargs -PassThru -NoNewWindow `
         -RedirectStandardOutput (Join-Path $work "stdout.txt") -RedirectStandardError (Join-Path $work "stderr.txt")
@@ -133,6 +136,8 @@ foreach ($movie in $movies) {
     $events = Join-Path $work "events.txt"
     if (Test-Path $events) {
         $row.missing = (Select-String -Path $events -Pattern "missing-content (.*)$" |
+                ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique) -join "; "
+        $row.missingFonts = (Select-String -Path $events -Pattern "missing-font (.*)$" |
                 ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique) -join "; "
     }
 
@@ -162,5 +167,12 @@ $missing = $rows | Where-Object { $_.missing } | ForEach-Object { $_.missing -sp
 if ($missing) {
     Write-Host "`nContent packs that would unlock more movies:"
     $missing | ForEach-Object { Write-Host ("  {0,4}  {1}" -f $_.Count, $_.Name) }
+}
+$missingFonts = $rows | Where-Object { $_.missingFonts } | ForEach-Object { $_.missingFonts -split "; " } |
+    Group-Object | Sort-Object Count -Descending
+if ($missingFonts) {
+    Write-Host "`nFonts that weren't available (text fell back to the system font):"
+    $missingFonts | ForEach-Object { Write-Host ("  {0,4}  {1}" -f $_.Count, $_.Name) }
+    Write-Host "Put the font files in a folder and pass -Fonts <folder>."
 }
 Write-Host "`nReport: $report"

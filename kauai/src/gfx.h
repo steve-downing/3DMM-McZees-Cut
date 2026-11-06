@@ -113,6 +113,11 @@ class NTL : public NTL_PAR
 };
 extern NTL vntl;
 
+// Optional hook: called when a saved font name isn't installed and the
+// system font is substituted (used by the headless renderer to report it)
+typedef void FNMISSINGFONT(PSTN pstn);
+extern FNMISSINGFONT *vpfnMissingFont;
+
 /****************************************
     Color and pattern
 ****************************************/
