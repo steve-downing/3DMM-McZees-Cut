@@ -791,11 +791,15 @@ void RAPP::_DrawFrame(PMVU pmvu)
             _dxpShift = (long)(_dxrEye * _dxpFocal / (2 * dzrConverge) + 0.5);
             _Event("stereo view: converge=%.1f near=%.1f far=%.1f focal=%.0fpx eye=%.3f shift=%ldpx", dzrConverge,
                    dzrNear, dzrFar >= 1e8 ? -1.0 : dzrFar, _dxpFocal, _dxrEye, _dxpShift);
+            if (_fDebug)
+                _DumpStereoDebug(pbwld);
         }
         else
-            _Event("stereo view: no depth, flat");
-        if (_fDebug)
-            _DumpStereoDebug(pbwld);
+        {
+            // nothing with depth in view yet (e.g. 3-D text still to come);
+            // stay flat and look again next frame
+            _fStereoValid = fFalse;
+        }
     }
 
     if (_dxrEye <= 0)

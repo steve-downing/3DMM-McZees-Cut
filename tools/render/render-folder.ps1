@@ -17,13 +17,13 @@
 param(
     [Parameter(Mandatory)] [string]$InputDir,
     [Parameter(Mandatory)] [string]$OutputDir,
-    [string]$Root = "C:\Program Files (x86)\Microsoft Kids",
+    [string]$Root,
     [string]$Renderer,
     [switch]$Stereo,
     [double]$Depth = 2.5,
     [string[]]$Formats,
     [string]$SoundFont = $env:SOUNDFONT,
-    [string]$FluidSynth = "fluidsynth",
+    [string]$FluidSynth,
     [double]$ClickPause = 3,
     [int]$TimeoutMinutes = 30,
     [int]$Scale = 2,
@@ -44,8 +44,31 @@ if (-not $Renderer) {
     }
 }
 if (-not $Renderer -or -not (Test-Path $Renderer)) { throw "can't find 3dmm-render.exe; pass -Renderer" }
+
+# content: the package ships its own "3D Movie Maker" folder next to the
+# renderer; otherwise fall back to a regular 3DMM install
+if (-not $Root) {
+    $Root = @((Split-Path -Parent (Resolve-Path $Renderer)), "C:\Program Files (x86)\Microsoft Kids",
+        "C:\Program Files\Microsoft Kids") | Where-Object { Test-Path (Join-Path $_ "3D Movie Maker") } |
+        Select-Object -First 1
+}
+
+# music tools: get-tools.ps1 puts them in .\tools
+$toolsDir = Join-Path $PSScriptRoot "tools"
+if (-not $FluidSynth) {
+    $fs = Get-ChildItem -Recurse $toolsDir -Filter fluidsynth.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    $FluidSynth = if ($fs) { $fs.FullName } else { "fluidsynth" }
+}
+if (-not $SoundFont -and (Test-Path (Join-Path $toolsDir "GeneralUser-GS.sf2"))) {
+    $SoundFont = Join-Path $toolsDir "GeneralUser-GS.sf2"
+}
+if (-not $SoundFont -or -not (Get-Command $FluidSynth -ErrorAction SilentlyContinue)) {
+    Write-Warning "No FluidSynth/SoundFont: MIDI music will be silent. Run get-tools.ps1 to fetch them."
+}
 if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { throw "ffmpeg isn't on PATH" }
-if (-not (Test-Path (Join-Path $Root "3D Movie Maker"))) { throw "no '3D Movie Maker' folder under $Root; pass -Root" }
+if (-not $Root -or -not (Test-Path (Join-Path $Root "3D Movie Maker"))) {
+    throw "can't find a '3D Movie Maker' content folder; pass -Root (the folder that contains it)"
+}
 if (-not $Formats) { $Formats = if ($Stereo) { @("sbs", "anaglyph", "2d") } else { @("2d") } }
 
 $InputDir = (Resolve-Path $InputDir).Path.TrimEnd('\')

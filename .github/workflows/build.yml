@@ -80,6 +80,25 @@ jobs:
           }
           Pop-Location
 
+      - name: Package the renderer
+        id: package
+        if: steps.compile.outcome == 'success'
+        shell: pwsh
+        run: |
+          $pkg = "package/3dmm-render"
+          New-Item -ItemType Directory -Force "$pkg/3D Movie Maker" | Out-Null
+          Copy-Item (Get-ChildItem -Recurse build -Filter 3dmm-render.exe | Select-Object -First 1).FullName $pkg
+          Copy-Item tools/render/render-folder.ps1, tools/render/encode-movie.ps1, tools/render/get-tools.ps1, tools/render/README.md $pkg
+          Copy-Item content-files/*.3cn, content-files/*.3th "$pkg/3D Movie Maker"
+          Copy-Item (Get-ChildItem -Recurse build/chomp/studio -Filter utest.chk | Select-Object -First 1).FullName "$pkg/3D Movie Maker/3DMovie.chk"
+
+      - name: Upload renderer package
+        if: steps.package.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: 3dmm-render
+          path: package/
+
       - name: Upload build
         if: steps.compile.outcome == 'success'
         uses: actions/upload-artifact@v4
