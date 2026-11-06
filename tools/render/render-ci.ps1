@@ -5,7 +5,9 @@ param(
     [string]$BuildDir = "build",
     [string]$MovieDir = "test-movies",
     [string]$OutDir = "ci-out/render",
-    [int]$TimeoutSeconds = 900
+    [int]$TimeoutSeconds = 900,
+    # stereo pass is capped so CI stays quick; 0 = whole movie
+    [int]$StereoMaxFrames = 300
 )
 $ErrorActionPreference = "Stop"
 
@@ -38,13 +40,21 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
     $name = $movie.BaseName -replace '[^A-Za-z0-9]+', '-'
     $raw = Join-Path $work $name
     $keep = Join-Path $OutDir $name
-    New-Item -ItemType Directory -Force $raw, $keep | Out-Null
+
+    foreach ($mode in "mono", "stereo") {
+    $rawMode = Join-Path $raw $mode
+    $keepMode = Join-Path $keep $mode
+    New-Item -ItemType Directory -Force $rawMode, $keepMode | Out-Null
+    $rargs = @("`"$($movie.FullName)`"", "`"$rawMode`"", "--root", "`"$stage`"")
+    if ($mode -eq "stereo") {
+        $rargs += "--stereo"
+        if ($StereoMaxFrames -gt 0) { $rargs += @("--max-frames", "$StereoMaxFrames") }
+    }
 
     $sw = [Diagnostics.Stopwatch]::StartNew()
-    $proc = Start-Process -FilePath $exe.FullName -PassThru -NoNewWindow `
-        -ArgumentList @("`"$($movie.FullName)`"", "`"$raw`"", "--root", "`"$stage`"") `
-        -RedirectStandardOutput (Join-Path $keep "stdout.txt") `
-        -RedirectStandardError (Join-Path $keep "stderr.txt")
+    $proc = Start-Process -FilePath $exe.FullName -PassThru -NoNewWindow -ArgumentList $rargs `
+        -RedirectStandardOutput (Join-Path $keepMode "stdout.txt") `
+        -RedirectStandardError (Join-Path $keepMode "stderr.txt")
     if (-not $proc.WaitForExit($TimeoutSeconds * 1000)) {
         $proc.Kill()
         $code = "timeout"
@@ -54,32 +64,36 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
     $sw.Stop()
 
     foreach ($f in "render.log", "events.txt", "timeline.ffconcat") {
-        if (Test-Path "$raw/$f") { Copy-Item "$raw/$f" $keep }
+        if (Test-Path "$rawMode/$f") { Copy-Item "$rawMode/$f" $keepMode }
     }
-    $frames = @(Get-ChildItem "$raw/frames" -Filter *.bmp -ErrorAction SilentlyContinue)
+    $frames = @(Get-ChildItem "$rawMode/frames" -Filter *.bmp -ErrorAction SilentlyContinue)
 
-    if ($frames.Count -gt 0 -and (Test-Path "$raw/timeline.ffconcat")) {
-        Push-Location $raw
+    if ($frames.Count -gt 0 -and (Test-Path "$rawMode/timeline.ffconcat")) {
+        # stereo frames are side-by-side; preview them as red/cyan anaglyph
+        $look = if ($mode -eq "stereo") { "stereo3d=sbsl:arcd," } else { "" }
+        $tile = if ($mode -eq "stereo") { "272:153" } else { "272:153" }
+        Push-Location $rawMode
         ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i timeline.ffconcat `
-            -vf "fps=30,format=yuv420p" -c:v libx264 -crf 26 -preset veryfast (Join-Path $keep "preview.mp4")
+            -vf "${look}fps=30,format=yuv420p" -c:v libx264 -crf 26 -preset veryfast (Join-Path $keepMode "preview.mp4")
         Pop-Location
-        # contact sheet of 16 evenly spaced distinct frames, plus 3 full-size samples
-        $step = [Math]::Max(1, [Math]::Floor($frames.Count / 16))
+        $step = [int][Math]::Max(1, [Math]::Floor($frames.Count / 16))
         $pick = for ($i = 0; $i -lt 16 -and $i * $step -lt $frames.Count; $i++) { $frames[$i * $step] }
-        $list = Join-Path $raw "contact.txt"
+        $list = Join-Path $rawMode "contact.txt"
         ($pick | ForEach-Object { "file '$($_.FullName -replace '\\','/')'" }) | Set-Content $list
         ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i $list `
-            -vf "scale=272:153,tile=4x4" -frames:v 1 (Join-Path $keep "contact.png")
-        foreach ($i in 0, [Math]::Floor($frames.Count / 2), ($frames.Count - 1)) {
-            ffmpeg -hide_banner -loglevel error -y -i $frames[$i].FullName (Join-Path $keep ("frame-{0:D6}.png" -f $i))
+            -vf "${look}scale=${tile},tile=4x4" -frames:v 1 (Join-Path $keepMode "contact.png")
+        foreach ($i in @(0, [int][Math]::Floor($frames.Count / 2), ($frames.Count - 1))) {
+            ffmpeg -hide_banner -loglevel error -y -i $frames[$i].FullName (Join-Path $keepMode ("frame-{0:D6}.png" -f $i))
         }
     }
 
     $summary += [pscustomobject]@{
         movie = $movie.Name
+        mode = $mode
         exit = $code
         frames = $frames.Count
         seconds = [Math]::Round($sw.Elapsed.TotalSeconds, 1)
+    }
     }
 }
 

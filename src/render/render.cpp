@@ -3,7 +3,12 @@
 
     Usage:
         3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>]
-                    [--max-frames <n>]
+                    [--max-frames <n>] [--stereo] [--depth <percent>]
+
+    --stereo renders each frame twice, from a left and a right eye, and
+    writes them side by side (left | right) at double width. --depth sets
+    the parallax at infinity as a percentage of the picture width (default
+    2.5); things at the scene's middle depth sit on the screen plane.
 
     --root is the folder that contains the "3D Movie Maker" content folder
     (normally "C:\Program Files (x86)\Microsoft Kids"); it defaults to the
@@ -54,6 +59,9 @@ RAPP::RAPP(void)
 {
     _dtsClickPause = 3 * kdtsSecond;
     _cfrmLimit = 0;
+    _fStereo = fFalse;
+    _pctDepth = 2.5;
+    _prgbEye = pvNil;
     _pcfl = pvNil;
     _pmvie = pvNil;
     _pgptCapture = pvNil;
@@ -213,6 +221,10 @@ bool RAPP::_FParseCommandLine(void)
             _dtsClickPause = (ulong)(atof(__argv[++iarg]) * kdtsSecond);
         else if (0 == strcmp(psz, "--max-frames") && iarg + 1 < __argc)
             _cfrmLimit = atol(__argv[++iarg]);
+        else if (0 == strcmp(psz, "--stereo"))
+            _fStereo = fTrue;
+        else if (0 == strcmp(psz, "--depth") && iarg + 1 < __argc)
+            _pctDepth = atof(__argv[++iarg]);
         else if (carg == 0)
         {
             _stnMovie.SetSz(psz);
@@ -233,7 +245,7 @@ bool RAPP::_FParseCommandLine(void)
     if (carg != 2)
     {
         fprintf(stderr, "usage: 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>] "
-                        "[--max-frames <n>]\n");
+                        "[--max-frames <n>] [--stereo] [--depth <percent>]\n");
         return fFalse;
     }
     return fTrue;
@@ -268,6 +280,8 @@ bool RAPP::_FOpenOutput(void)
     fprintf(_pfileTimeline, "ffconcat version 1.0\n");
     _Log("movie: %s", _stnMovie.Psz());
     _Log("content root: %s", _stnRoot.Psz());
+    if (_fStereo)
+        _Log("stereo: side-by-side, depth %.2f%%", _pctDepth);
     return fTrue;
 }
 
@@ -408,7 +422,7 @@ bool RAPP::_FLoadMovie(void)
     RC rcAbs(0, 0, kdxpRender, kdypRender);
     RC rcRel(0, 0, 0, 0);
     STN stn = _stnMovie;
-    long cpx = kdxpRender * kdypRender;
+    long cpx = _DxpOut() * kdypRender;
     long ipx;
     ulong luRnd = 0x3D3D3D3D;
 
@@ -453,11 +467,13 @@ bool RAPP::_FLoadMovie(void)
     if (pvNil == (_pgptCapture = GPT::PgptNewOffscreen(&rcAbs, 8)))
         return fFalse;
 
+    _prgbEye = (byte *)malloc(kdxpRender * kdypRender * 3);
     _prgbPrev = (byte *)malloc(cpx * 3);
     _prgbCur = (byte *)malloc(cpx * 3);
     _prgbScratch = (byte *)malloc(cpx * 3);
     _prgsuDissolve = (ushort *)malloc(cpx * size(ushort));
-    if (pvNil == _prgbPrev || pvNil == _prgbCur || pvNil == _prgbScratch || pvNil == _prgsuDissolve)
+    if (pvNil == _prgbEye || pvNil == _prgbPrev || pvNil == _prgbCur || pvNil == _prgbScratch ||
+        pvNil == _prgsuDissolve)
         return fFalse;
 
     // fixed per-pixel dissolve order, so dissolves look the same every run
@@ -657,13 +673,88 @@ void RAPP::_ConvertCapture(byte *prgbDst)
     _pgptCapture->Unlock();
 }
 
+/***************************************************************************
+    Copy a kdxpRender-wide RGB image into one half of a side-by-side
+    frame, moved dxpShift pixels sideways (the stereo window shift that
+    puts the convergence depth on the screen plane). Exposed edges are
+    black.
+***************************************************************************/
+void RAPP::_PlaceEye(byte *prgbEye, byte *prgbFrame, long ieye, long dxpShift)
+{
+    long yp, xpDst, xpSrc;
+    long cbRowFrame = _DxpOut() * 3;
+
+    for (yp = 0; yp < kdypRender; yp++)
+    {
+        byte *pbDst = prgbFrame + yp * cbRowFrame + ieye * kdxpRender * 3;
+        byte *pbSrc = prgbEye + yp * kdxpRender * 3;
+        for (xpDst = 0; xpDst < kdxpRender; xpDst++)
+        {
+            xpSrc = xpDst - dxpShift;
+            if (xpSrc < 0 || xpSrc >= kdxpRender)
+                FillPb(pbDst + xpDst * 3, 3, 0);
+            else
+                CopyPb(pbSrc + xpSrc * 3, pbDst + xpDst * 3, 3);
+        }
+    }
+}
+
+/***************************************************************************
+    Draw the movie view into _prgbCur: once for mono, or once per eye for
+    stereo.
+***************************************************************************/
+void RAPP::_DrawFrame(PMVU pmvu)
+{
+    PBWLD pbwld = _pmvie->Pbwld();
+    double dzrConverge, dxpFocal, dxpInfinity, dxrEye;
+    long dxpShift, ieye;
+
+    if (!_fStereo)
+    {
+        pmvu->DrawTree(_pgptCapture, pvNil, pvNil, fgobNil);
+        _ConvertCapture(_prgbCur);
+        return;
+    }
+
+    dxpInfinity = _pctDepth / 100.0 * kdxpRender;
+    if (pvNil == _pmvie->Pscen() || pvNil == pbwld || !pbwld->FGetStereoGeometry(&dzrConverge, &dxpFocal))
+    {
+        // no 3-D world to speak of (e.g. between scenes): both eyes the same
+        pmvu->DrawTree(_pgptCapture, pvNil, pvNil, fgobNil);
+        _ConvertCapture(_prgbEye);
+        _PlaceEye(_prgbEye, _prgbCur, 0, 0);
+        _PlaceEye(_prgbEye, _prgbCur, 1, 0);
+        return;
+    }
+
+    // eye separation chosen so infinity lands dxpInfinity apart
+    dxrEye = dxpInfinity * dzrConverge / dxpFocal;
+    dxpShift = (long)(dxpInfinity / 2 + 0.5);
+    if (dzrConverge != _dzrConvergeLast)
+    {
+        _Event("stereo converge=%.3f focal=%.1fpx eye-separation=%.4f", dzrConverge, dxpFocal, dxrEye);
+        _dzrConvergeLast = dzrConverge;
+    }
+
+    for (ieye = 0; ieye < 2; ieye++)
+    {
+        double dxr = (ieye == 0) ? -dxrEye / 2 : dxrEye / 2;
+        if (!pbwld->FRenderEye(dxr))
+            _Log("stereo: eye render failed; using mono for this eye");
+        pmvu->DrawTree(_pgptCapture, pvNil, pvNil, fgobNil);
+        _ConvertCapture(_prgbEye);
+        _PlaceEye(_prgbEye, _prgbCur, ieye, (ieye == 0) ? -dxpShift : dxpShift);
+    }
+    pbwld->EndStereo();
+}
+
 void RAPP::_Capture(void)
 {
     PMVU pmvu;
     TRANS trans;
     ulong dtsOut;
     byte *prgbT;
-    long cb = kdxpRender * kdypRender * 3;
+    long cb = _DxpOut() * kdypRender * 3;
 
     if (pvNil == _pmvie || pvNil == _pgptCapture || pvNil == (pmvu = _pmvie->PmvuCur()))
         return;
@@ -675,8 +766,7 @@ void RAPP::_Capture(void)
         _pmvie->SetTrans(transNil);
 
     _UpdatePalette();
-    pmvu->DrawTree(_pgptCapture, pvNil, pvNil, fgobNil);
-    _ConvertCapture(_prgbCur);
+    _DrawFrame(pmvu);
     if (trans == transBlack)
         ClearPb(_prgbCur, cb);
 
@@ -714,7 +804,7 @@ void RAPP::_Capture(void)
 void RAPP::_EmitTransition(long trans, ulong dtsOut)
 {
     long ifrm, ipx;
-    long cpx = kdxpRender * kdypRender;
+    long cpx = _DxpOut() * kdypRender;
     long cfrmHalf = kcfrmTransition / 2;
     byte bFill = (trans == transFadeToWhite) ? 0xFF : 0x00;
 
@@ -819,11 +909,12 @@ bool RAPP::_FWriteBmp(PSTN pstnFile, byte *prgb)
 {
     FILE *pfile;
     byte rgbHeader[54];
-    long cbRow = kdxpRender * 3; // already a multiple of 4
+    long dxp = _DxpOut();
+    long cbRow = dxp * 3; // 544 and 1088 are multiples of 4
     long cbImage = cbRow * kdypRender;
     long cbFile = size(rgbHeader) + cbImage;
     long yp, xp;
-    byte rgbRow[kdxpRender * 3];
+    byte rgbRow[2 * kdxpRender * 3];
 
     ClearPb(rgbHeader, size(rgbHeader));
     rgbHeader[0] = 'B';
@@ -831,7 +922,7 @@ bool RAPP::_FWriteBmp(PSTN pstnFile, byte *prgb)
     *(long *)(rgbHeader + 2) = cbFile;
     *(long *)(rgbHeader + 10) = size(rgbHeader);
     *(long *)(rgbHeader + 14) = 40;
-    *(long *)(rgbHeader + 18) = kdxpRender;
+    *(long *)(rgbHeader + 18) = dxp;
     *(long *)(rgbHeader + 22) = kdypRender; // bottom-up
     *(short *)(rgbHeader + 26) = 1;
     *(short *)(rgbHeader + 28) = 24;
@@ -843,7 +934,7 @@ bool RAPP::_FWriteBmp(PSTN pstnFile, byte *prgb)
     for (yp = kdypRender - 1; yp >= 0; yp--)
     {
         byte *pbSrc = prgb + yp * cbRow;
-        for (xp = 0; xp < kdxpRender; xp++)
+        for (xp = 0; xp < dxp; xp++)
         {
             rgbRow[xp * 3 + 0] = pbSrc[xp * 3 + 2];
             rgbRow[xp * 3 + 1] = pbSrc[xp * 3 + 1];
@@ -867,11 +958,12 @@ void RAPP::_CleanUp(void)
     ReleasePpo(&_pglclrActive);
     ReleasePpo(&_pcfl);
     ReleasePpo(&vptagm);
+    free(_prgbEye);
     free(_prgbPrev);
     free(_prgbCur);
     free(_prgbScratch);
     free(_prgsuDissolve);
-    _prgbPrev = _prgbCur = _prgbScratch = pvNil;
+    _prgbEye = _prgbPrev = _prgbCur = _prgbScratch = pvNil;
     _prgsuDissolve = pvNil;
     if (pvNil != _pfileEvents)
         fclose(_pfileEvents);

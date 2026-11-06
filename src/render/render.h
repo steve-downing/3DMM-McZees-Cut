@@ -29,6 +29,8 @@ class RAPP : public RAPP_PAR
     STN _stnRoot;
     ulong _dtsClickPause;
     long _cfrmLimit;
+    bool _fStereo;
+    double _pctDepth;
 
     // engine objects
     PCFL _pcfl;
@@ -40,6 +42,7 @@ class RAPP : public RAPP_PAR
     FILE *_pfileTimeline;
     FILE *_pfileEvents;
     FILE *_pfileLog;
+    byte *_prgbEye;
     byte *_prgbPrev;
     byte *_prgbCur;
     byte *_prgbScratch;
@@ -54,6 +57,7 @@ class RAPP : public RAPP_PAR
     bool _fInPause;
     ulong _tsPauseStart;
     long _lwExit;
+    double _dzrConvergeLast;
 
     // init
     bool _FParseCommandLine(void);
@@ -68,6 +72,12 @@ class RAPP : public RAPP_PAR
     void _Capture(void);
     void _UpdatePalette(void);
     void _ConvertCapture(byte *prgbDst);
+    void _PlaceEye(byte *prgbEye, byte *prgbFrame, long ieye, long dxpShift);
+    void _DrawFrame(PMVU pmvu);
+    long _DxpOut(void)
+    {
+        return _fStereo ? 2 * 544 : 544;
+    }
     ulong _DtsOut(void);
     bool _FEmitFrame(byte *prgb, ulong dtsOut);
     void _EmitTransition(long trans, ulong dtsOut);
