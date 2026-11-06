@@ -43,7 +43,7 @@ text uses 3DMM's own fonts and is never affected.
 |---|---|---|
 | `-Stereo` | off | render 3D |
 | `-Depth` | 2.5 | how far behind the screen the scene can go (% of width) |
-| `-Formats` | all | any of `sbs`, `anaglyph`, `2d` |
+| `-Formats` | all | any of `sbs`, `anaglyph`, `2d`, `crt`, `win98` |
 | `-Scale` | 2 | nearest-neighbor upscale (2 gives 1088×612 per eye) |
 | `-SoundFont` | GeneralUser GS | MIDI instruments: any `.sf2`/`.sf3`/`.dls`, or `windows` for the Windows GS Wavetable Synth's `gm.dls` |
 | `-MidiGain` | 0.6 | MIDI synth gain (before leveling) |
@@ -53,6 +53,9 @@ text uses 3DMM's own fonts and is never affected.
 | `-CrtPreset` | pc | `pc`, `trinitron`, `tv`, `hdr` |
 | `-CrtMask`, `-CrtScanlines`, `-CrtGlow`, `-CrtCurvature` | per preset | override one aspect of the preset |
 | `-CrtChroma` | 420 | `444` keeps the phosphor colors crisp, but fewer players handle it |
+| `-Win98` | off | also write `.win98.avi`, which plays on Windows 95/98 (below) |
+| `-ExtractSounds` | off | also write `.sounds.zip`: the sounds added to the movie, in order of use (below) |
+| `-IncludeLibrarySounds` | off | with `-ExtractSounds`, also include the 3DMM sounds the movie uses |
 | `-ClickPause` | 3 | seconds to hold "wait for mouse click" pauses (set with the pause buttons in the studio's Sounds tools) |
 | `-EndHold` | 3 | seconds to hold the final frame (3DMM leaves it on screen) |
 | `-Fonts` | none | folder of extra font files (`.ttf`, `.otf`, `.fon`...) loaded just for rendering, not installed |
@@ -99,8 +102,38 @@ picture is scaled 6× (544×306 becomes 3264×1836) and centered.
 | `tv` | consumer TV: slot mask, heavy scanlines, softer focus, curvature with rounded corners |
 | `hdr` | `pc` written as 10-bit HDR10. The OLED's headroom makes up the mask's lost light, so the mask can be stronger. |
 
-Stereo renders use the left eye for `.crt.mp4`. CRT effects are not
-applied to side-by-side or anaglyph output.
+CRT effects are 2-D only. With `-Stereo`, `.crt.mp4` is made from the
+movie's ordinary 2-D view, and the log says so. Side-by-side and anaglyph
+output don't get CRT effects.
+
+## Windows 98
+
+`-Win98` writes `Movie.win98.avi` at the original 544×306: Cinepak video
+and 22 kHz 16-bit sound, which Windows 95 and 98 play with nothing extra
+installed. Only frames that change are stored, so files are small
+(roughly 10 MB a minute). Cinepak needs a height divisible
+by 4, so the picture has a black line above and below. Cinepak is slow to
+encode: allow a few minutes per movie.
+
+## Extracting sounds
+
+`-ExtractSounds` writes `Movie.sounds.zip` with every sound that was
+imported or recorded into the movie, in the order they're first played:
+
+```
+S01F001-music-Theme.mid
+S03F014-speech-What-a-beautiful-day.wav
+S03F022-sfx-Boing.wav
+unused-speech-Take-2.wav
+sounds.csv
+```
+
+`S03F014` is scene 3, frame 14 (counting from the scene's first frame).
+Sounds that are stored in the movie but never played come last, as
+`unused-`. WAVs are exactly as stored in the movie. MIDI is rebuilt from
+3DMM's internal format as a standard `.mid`. `sounds.csv` lists each
+file's time in the movie, scene, frame, kind and original name.
+`-IncludeLibrarySounds` adds the 3DMM sounds the movie uses as well.
 
 ## Running the renderer directly
 
@@ -111,9 +144,11 @@ applied to side-by-side or anaglyph output.
 
 The output folder contains:
 
-- `frames\*.bmp`: every distinct frame
+- `frames\*.bmp`: every distinct frame (stereo: left eye, right eye and
+  the 2-D view, side by side)
 - `timeline.ffconcat`: exact frame timings
 - `sounds\`, `audio-cues.tsv` and `audio.ffscript`: the extracted sounds, a cue sheet (category, timing, volume) and the raw mix
+- `sounds\index.tsv`: each sound's name, kind, source (movie or 3DMM) and where it's first played
 - `events.txt`: transitions, pauses, sounds and stereo choices
 - `render.log`: diagnostics
 
@@ -142,6 +177,13 @@ Exit codes:
   played, when, how loud and for how long. Stopping, queueing, looping
   and the end-of-movie fade are all included in the mix.
 - **Transitions.** Fades and dissolves are synthesized with the same
-  pixel-dissolve approach 3DMM uses, over the same four seconds.
+  pixel-dissolve approach 3DMM uses, over the same four seconds. As in
+  3DMM, the transition plays as soon as the scene changes, and the new
+  scene's first sounds start after it.
+- **Screen updates.** 3DMM draws a frame as soon as the movie advances
+  to it, and starts that frame's sounds with the next frame command, about
+  1/6 second later. Scrolling credits move one pixel every 1/12 second
+  while the movie waits for them. The renderer runs the same update loop,
+  so all of this matches.
 - **Music.** MIDI is rendered with FluidSynth, so it will sound different
   from the Windows 95 wavetable synth you remember.

@@ -745,6 +745,10 @@ class MVIE : public MVIE_PAR
     bool FCopySndFileToMvie(PFIL pfil, long sty, CNO *pcno, PSTN pstn = pvNil);
     bool FVerifyVersion(PCFL pcfl, CNO *pcno = pvNil);
     bool FEnsureAutosave(PCRF *pcrf = pvNil);
+    PCRF PcrfAutoSave(void) // the movie's own working file (no side effects)
+    {
+        return _pcrfAutoSave;
+    }
     bool FCopyMsndFromPcfl(PCFL pcfl, CNO cnoSrc, CNO *pcnoDest);
     bool FResolveSndTag(PTAG ptag, CHID chid, CNO cnoScen = cnoNil, PCRF pcrf = pvNil);
     bool FChidFromUserSndCno(CNO cno, CHID *pchid);

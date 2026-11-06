@@ -39,6 +39,9 @@ param(
     [double]$CrtGlow = -1,
     [double]$CrtCurvature = -1,
     [ValidateSet("420", "444")] [string]$CrtChroma = "420",
+    [switch]$Win98,
+    [switch]$ExtractSounds,
+    [switch]$IncludeLibrarySounds,
     [switch]$KeepFrames,
     [switch]$Force
 )
@@ -87,6 +90,10 @@ if (-not $Root -or -not (Test-Path (Join-Path $Root "3D Movie Maker"))) {
 }
 if (-not $Formats) { $Formats = if ($Stereo) { @("sbs", "anaglyph", "2d") } else { @("2d") } }
 if ($CRT -and $Formats -notcontains "crt") { $Formats += "crt" }
+if ($Win98 -and $Formats -notcontains "win98") { $Formats += "win98" }
+if ($Stereo -and $Formats -contains "crt") {
+    Write-Host "Note: CRT effects are 2-D only, so .crt.mp4 is made from the movie's ordinary 2-D view."
+}
 
 $InputDir = (Resolve-Path $InputDir).Path.TrimEnd('\')
 if ($Fonts) { $Fonts = (Resolve-Path $Fonts).Path.TrimEnd('\') }
@@ -109,7 +116,8 @@ foreach ($movie in $movies) {
     $rel = $movie.FullName.Substring($InputDir.Length + 1)
     $relBase = $rel.Substring(0, $rel.Length - $movie.Extension.Length)
     $outBase = Join-Path $OutputDir $relBase
-    $outputs = $Formats | ForEach-Object { "$outBase.$_.mp4" }
+    $outputs = @($Formats | ForEach-Object { if ($_ -eq "win98") { "$outBase.win98.avi" } else { "$outBase.$_.mp4" } })
+    if ($ExtractSounds) { $outputs += "$outBase.sounds.zip" }
     $row = [ordered]@{ movie = $rel; status = ""; exit = ""; frames = ""; seconds = ""; missing = ""; missingFonts = ""; outputs = "" }
 
     $upToDate = -not $Force -and @($outputs | Where-Object {
@@ -156,7 +164,8 @@ foreach ($movie in $movies) {
         & $encoder -RenderDir $work -OutBase $outBase -Formats $Formats -SoundFont $SoundFont `
             -FluidSynth $FluidSynth -MidiGain $MidiGain -AudioLevel $AudioLevel -Channels $Channels -Scale $Scale `
             -CrtPreset $CrtPreset -CrtMask $CrtMask -CrtScanlines $CrtScanlines -CrtGlow $CrtGlow `
-            -CrtCurvature $CrtCurvature -CrtChroma $CrtChroma
+            -CrtCurvature $CrtCurvature -CrtChroma $CrtChroma -ExtractSounds:$ExtractSounds `
+            -IncludeLibrarySounds:$IncludeLibrarySounds
         if ($LASTEXITCODE -ne 0) { $row.status = "encode-failed" }
         $row.outputs = ($outputs | Where-Object { Test-Path $_ } | ForEach-Object { Split-Path -Leaf $_ }) -join "; "
     } else {

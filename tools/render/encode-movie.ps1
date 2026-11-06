@@ -17,10 +17,18 @@
 # own instruments (%WINDIR%\System32\drivers\gm.dls). DLS needs a FluidSynth
 # build with native DLS support (the "cpp11" Windows builds have it).
 #
-#   2d        mono render as-is, or the left eye of a stereo render
+#   2d        the movie as 3DMM showed it (from a stereo render too)
 #   sbs       full side-by-side (left | right), for 3D TVs / players in SBS mode
 #   anaglyph  red/cyan
 #   crt       2d with CRT effects, 4K (see -CrtPreset; needs 3dmm-crt.exe)
+#   win98     <name>.win98.avi: Cinepak video at the original 544x306 and
+#             22 kHz PCM sound, which Windows 95/98 play out of the box
+#
+# -ExtractSounds also writes <name>.sounds.zip: the sounds that were added
+# to the movie itself (imported or recorded, plus any that are never
+# played), named in the order the movie first plays them, e.g.
+# S03F014-speech-What-a-beautiful-day.wav. -IncludeLibrarySounds adds the
+# 3DMM sounds the movie uses too.
 # Returns non-zero if any encode failed.
 param(
     [Parameter(Mandatory)] [string]$RenderDir,
@@ -41,7 +49,9 @@ param(
     [double]$CrtCurvature = -1,
     [ValidateSet("420", "444")] [string]$CrtChroma = "420",
     [int]$CrtMaxFrames = 0,
-    [string]$CrtTool
+    [string]$CrtTool,
+    [switch]$ExtractSounds,
+    [switch]$IncludeLibrarySounds
 )
 $ErrorActionPreference = "Stop"
 # "-Formats a,b" arrives as one string when run with powershell -File
@@ -56,6 +66,76 @@ $outDir = Split-Path -Parent $OutBase
 if ($outDir) { New-Item -ItemType Directory -Force $outDir | Out-Null }
 if (-not $outDir) { $outDir = "." }
 $OutBase = Join-Path (Resolve-Path $outDir).Path (Split-Path -Leaf $OutBase)
+
+# Stereo frames are left | right | the plain 2-D view. Renders from older
+# builds are just left | right; their "2d" is the left eye.
+$layout = "mono"
+if ($stereo) {
+    $layout = "pair"
+    $first = Select-String -Path (Join-Path $RenderDir "timeline.ffconcat") -Pattern "^file '(.*)'" | Select-Object -First 1
+    if ($first) {
+        $bmp = [IO.File]::ReadAllBytes((Join-Path $RenderDir $first.Matches[0].Groups[1].Value))
+        if ([BitConverter]::ToInt32($bmp, 18) -ge 4 * [Math]::Abs([BitConverter]::ToInt32($bmp, 22))) { $layout = "triple" }
+    }
+}
+$cropEyes = if ($layout -eq "triple") { "crop=iw*2/3:ih:0:0," } else { "" }
+$crop2d = switch ($layout) { "triple" { "crop=iw/3:ih:iw*2/3:0," } "pair" { "crop=iw/2:ih:0:0," } default { "" } }
+
+# File-name-safe version of a sound's name
+function Get-SafeName([string]$Name) {
+    $t = ($Name -replace "[^A-Za-z0-9]+", "-").Trim("-")
+    if ($t.Length -gt 60) { $t = $t.Substring(0, 60).TrimEnd("-") }
+    if (-not $t) { $t = "sound" }
+    return $t
+}
+
+# <name>.sounds.zip from sounds\index.tsv (written by 3dmm-render)
+function Export-Sounds([string]$Zip) {
+    $index = Join-Path $RenderDir "sounds\index.tsv"
+    if (-not (Test-Path $index)) { Write-Warning "no sounds\index.tsv (render with a newer 3dmm-render); no sounds extracted"; return $false }
+    $rows = @(Get-Content $index | Where-Object { $_ -and -not $_.StartsWith("#") } | ForEach-Object {
+            $c = $_ -split "`t"
+            [pscustomobject]@{ file = $c[0]; first = $c[1]; scene = $c[2]; frame = $c[3]; category = $c[4]; source = $c[5]; name = $c[6] }
+        })
+    if (-not $IncludeLibrarySounds) { $rows = @($rows | Where-Object { $_.source -eq "movie" }) }
+    $stage = Join-Path $RenderDir "sounds-export"
+    if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
+    New-Item -ItemType Directory -Force $stage | Out-Null
+    $used = @($rows | Where-Object { $_.first -ne "" } | Sort-Object { [double]$_.first })
+    $unused = @($rows | Where-Object { $_.first -eq "" })
+    $sw = [Math]::Max(2, ("" + (@($used | ForEach-Object { [int]$_.scene }) + 0 | Measure-Object -Maximum).Maximum).Length)
+    $fw = [Math]::Max(3, ("" + (@($used | ForEach-Object { [int]$_.frame }) + 0 | Measure-Object -Maximum).Maximum).Length)
+    $taken = @{}
+    $list = @()
+    foreach ($r in $used + $unused) {
+        $ext = [IO.Path]::GetExtension($r.file)
+        $stem = if ($r.first -ne "") {
+            "S{0}F{1}-{2}-{3}" -f $r.scene.PadLeft($sw, "0"), $r.frame.PadLeft($fw, "0"), $r.category, (Get-SafeName $r.name)
+        } else {
+            "unused-{0}-{1}" -f $r.category, (Get-SafeName $r.name)
+        }
+        $name = "$stem$ext"
+        for ($k = 2; $taken.ContainsKey($name.ToLower()); $k++) { $name = "$stem-$k$ext" }
+        $taken[$name.ToLower()] = $true
+        Copy-Item (Join-Path $RenderDir "sounds\$($r.file)") (Join-Path $stage $name)
+        $list += [pscustomobject]@{ file = $name; time = $r.first; scene = $r.scene; frame = $r.frame
+            category = $r.category; source = $r.source; name = $r.name }
+    }
+    if ($list.Count -eq 0) {
+        # still write a zip, so batch runs see this movie as done
+        $msg = if ($IncludeLibrarySounds) { "This movie plays no sounds." } else {
+            "No sounds were added to this movie (it only uses 3D Movie Maker's own). -IncludeLibrarySounds extracts those." }
+        Write-Host $msg
+        Set-Content -Path (Join-Path $stage "no-sounds.txt") -Value $msg -Encoding ASCII
+    } else {
+        $list | Export-Csv -NoTypeInformation (Join-Path $stage "sounds.csv")
+    }
+    if (Test-Path $Zip) { Remove-Item $Zip }
+    Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $Zip
+    Remove-Item -Recurse -Force $stage
+    Write-Host "$($list.Count) sounds -> $Zip"
+    return (Test-Path $Zip)
+}
 
 # The "crt" format: 3dmm-crt.exe draws each frame as a 4K CRT image and
 # streams raw video to ffmpeg. Runs through a .cmd file so the binary pipe
@@ -162,15 +242,42 @@ try {
 
     $failed = 0
     foreach ($fmt in $Formats) {
+        if ($fmt -eq "none") { continue }   # e.g. just -ExtractSounds
         $out = "$OutBase.$fmt.mp4"
         if ($fmt -eq "crt") {
+            # CRT effects are 2-D only; a stereo render keeps the 2-D view for this
+            $note = switch ($layout) {
+                "triple" { "crt: CRT effects are 2-D only; made from the 2-D view of this stereo render" }
+                "pair"   { "crt: CRT effects are 2-D only; this stereo render has no 2-D view, so the left eye was used" }
+                default  { $null }
+            }
+            if ($note) { Write-Host $note; Add-Content -Path render.log -Value $note }
             if (-not (Invoke-CrtEncode $out)) { Write-Warning "encode failed: $out"; $failed++ }
             continue
         }
+        if ($fmt -eq "win98") {
+            # Cinepak + 22 kHz PCM in an AVI: plays with what Windows 95/98
+            # shipped. Only frames that change are encoded; the rest are
+            # AVI null frames ("show the last one again"). 306 isn't a
+            # multiple of 4, which Cinepak needs, so a black line is added
+            # above and below.
+            $out = "$OutBase.win98.avi"
+            $w98In = @()
+            $w98Map = @()
+            if ($audioStereo) {
+                $w98In = @("-i", $audioStereo)
+                $w98Map = @("-map", "1:a", "-c:a", "pcm_s16le", "-ar", "22050", "-ac", "2")
+            }
+            ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i timeline.ffconcat @w98In -map 0:v @w98Map `
+                -vf "${crop2d}fps=15,format=yuv444p,mpdecimate=hi=1:lo=1:frac=0:max=15,pad=544:308:0:1,format=rgb24" -fps_mode vfr `
+                -c:v cinepak -max_extra_cb_iterations 0 -min_strips 3 -max_strips 3 $out
+            if ($LASTEXITCODE -ne 0) { Write-Warning "encode failed: $out"; $failed++ }
+            continue
+        }
         $vf = switch ($fmt) {
-            "2d"       { if ($stereo) { "crop=iw/2:ih:0:0" } else { "null" } }
-            "sbs"      { if ($stereo) { "null" } else { $null } }
-            "anaglyph" { if ($stereo) { "stereo3d=sbsl:arcd" } else { $null } }
+            "2d"       { "${crop2d}null" }
+            "sbs"      { if ($stereo) { "${cropEyes}null" } else { $null } }
+            "anaglyph" { if ($stereo) { "${cropEyes}stereo3d=sbsl:arcd" } else { $null } }
             default    { throw "unknown format $fmt" }
         }
         if (-not $vf) { Write-Warning "$fmt needs a --stereo render; skipped"; continue }
@@ -180,6 +287,7 @@ try {
             -movflags +faststart -shortest $out
         if ($LASTEXITCODE -ne 0) { Write-Warning "encode failed: $out"; $failed++ }
     }
+    if ($ExtractSounds -and -not (Export-Sounds "$OutBase.sounds.zip")) { Write-Warning "sound extraction failed"; $failed++ }
     if (Test-Path render.log) { Copy-Item render.log "$OutBase.log" }
 } finally {
     Pop-Location

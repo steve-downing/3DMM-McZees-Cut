@@ -13,7 +13,8 @@
     lines fill in, dark lines leave visible gaps), the result is viewed
     through a phosphor mask, a little glow is added around bright areas,
     and brightness is boosted back up to make up for what the mask and the
-    gaps take away. Stereo (side-by-side) renders use the left eye.
+    gaps take away. CRT effects are 2-D only: for a stereo render this uses
+    the plain 2-D view the renderer keeps alongside the two eyes.
 
     Options:
         --preset pc|trinitron|tv|hdr   starting point (default pc)
@@ -636,16 +637,29 @@ int main(int argc, char **argv)
             fprintf(stderr, "can't read %s\n", entries[idx].file.c_str());
             return false;
         }
-        // side-by-side stereo frames are twice as wide as tall*16/9: use the left eye
-        int eyeW = (frame.w >= frame.h * 3) ? frame.w / 2 : frame.w;
+        // stereo renders are left | right | 2-D (older ones just left | right)
+        int eyeW = frame.w, xOffset = 0;
+        const char *view = "2-D render";
+        if (frame.w >= frame.h * 4)
+        {
+            eyeW = frame.w / 3;
+            xOffset = 2 * eyeW;
+            view = "the 2-D view of a stereo render";
+        }
+        else if (frame.w >= frame.h * 3)
+        {
+            eyeW = frame.w / 2;
+            view = "the left eye (stereo render without a 2-D view)";
+        }
         if (!setup)
         {
             crt.Setup(eyeW, frame.h);
             setup = true;
-            fprintf(stderr, "3dmm-crt: %dx%d -> %dx%d at %dx in a %dx%d frame, mask %s, %s\n", eyeW, frame.h, crt.picW,
-                    crt.picH, crt.s.scale, crt.s.outW, crt.s.outH, crt.s.mask.c_str(), crt.s.hdr ? "HDR10" : "SDR");
+            fprintf(stderr, "3dmm-crt: %dx%d -> %dx%d at %dx in a %dx%d frame, mask %s, %s, from %s\n", eyeW, frame.h,
+                    crt.picW, crt.picH, crt.s.scale, crt.s.outW, crt.s.outH, crt.s.mask.c_str(),
+                    crt.s.hdr ? "HDR10" : "SDR", view);
         }
-        crt.Prepare(frame, 0);
+        crt.Prepare(frame, xOffset);
         crt.Render(out8, out16);
         current = idx;
         return true;

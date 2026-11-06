@@ -597,6 +597,7 @@ bool RAPP::_FRender(void)
     _fCapturing = fFalse;
     _FinishTimeline(_DtsOut() + _dtsEndHold);
     _WriteAudioScript(_DtsOut() + _dtsEndHold);
+    _WriteSoundIndex();
     _Event("end");
     _Log("done: %ld frames, %.2f seconds", _cfrmOut, _DtsOut() / 1000.0);
     return _lwExit == klwExitOk;
@@ -606,6 +607,14 @@ bool RAPP::_FRender(void)
     Run everything that's due: OS messages (the hidden window), then
     the command queue, which is where clock alarms and the movie's
     per-frame render commands are delivered.
+
+    Like APPB::_Loop, marked regions are flushed before every command
+    (APPB::TopOfLoop). Playback depends on this in three ways:
+      - a frame goes on screen as soon as the scene advances to it; its
+        sounds start with the next frame command
+      - a scene transition runs as soon as the scene switches, so the new
+        scene's sounds start after the dissolve, not during it
+      - scrolling credits only redraw this way, between frame commands
 ***************************************************************************/
 void RAPP::_Pump(void)
 {
@@ -619,8 +628,13 @@ void RAPP::_Pump(void)
     }
 
     vpcex->EnqueueCid(cidIdle);
-    for (ccmd = 0; ccmd < kccmdMaxPerTick && vpcex->FDispatchNextCmd(); ccmd++)
-        ;
+    for (ccmd = 0; ccmd < kccmdMaxPerTick; ccmd++)
+    {
+        if (pvNil != _pglmkrgn && _pglmkrgn->IvMac() > 0)
+            UpdateMarked();
+        if (!vpcex->FDispatchNextCmd())
+            break;
+    }
 }
 
 /***************************************************************************
@@ -760,8 +774,9 @@ void RAPP::_PlaceEye(byte *prgbEye, byte *prgbFrame, long ieye, long dxpShift)
 }
 
 /***************************************************************************
-    Draw the movie view into _prgbCur: once for mono, or once per eye for
-    stereo.
+    Draw the movie view into _prgbCur: once for mono; for stereo, once per
+    eye plus once more from the real camera, so 2-D output made from a
+    stereo render is exactly what 3DMM showed.
 ***************************************************************************/
 void RAPP::_DrawFrame(PMVU pmvu)
 {
@@ -782,9 +797,14 @@ void RAPP::_DrawFrame(PMVU pmvu)
         return;
     }
 
+    // the plain 2-D view
+    pbwld->Render();
+    pmvu->DrawTree(_pgptCapture, pvNil, pvNil, fgobNil);
+    _ConvertCapture(_prgbEye);
+    _PlaceEye(_prgbEye, _prgbCur, 2, 0);
+
     // Stereo parameters are chosen once per camera view, from its first
     // frame, so depth doesn't "breathe" as actors move around.
-    pbwld->Render();
     pbwld->GetCamera(&bmat34);
     if (!_fStereoValid || !FEqualRgb(&bmat34, &_bmat34Stereo, size(BMAT34)))
     {
@@ -847,6 +867,7 @@ void RAPP::_DrawFlatStereo(PMVU pmvu)
     _ConvertCapture(_prgbEye);
     _PlaceEye(_prgbEye, _prgbCur, 0, 0);
     _PlaceEye(_prgbEye, _prgbCur, 1, 0);
+    _PlaceEye(_prgbEye, _prgbCur, 2, 0);
 }
 
 void RAPP::_DumpStereoDebug(PBWLD pbwld)
@@ -1035,11 +1056,11 @@ bool RAPP::_FWriteBmp(PSTN pstnFile, byte *prgb)
     FILE *pfile;
     byte rgbHeader[54];
     long dxp = _DxpOut();
-    long cbRow = dxp * 3; // 544 and 1088 are multiples of 4
+    long cbRow = dxp * 3; // 544 and 1632 are multiples of 4
     long cbImage = cbRow * kdypRender;
     long cbFile = size(rgbHeader) + cbImage;
     long yp, xp;
-    byte rgbRow[2 * kdxpRender * 3];
+    byte rgbRow[3 * kdxpRender * 3];
 
     ClearPb(rgbHeader, size(rgbHeader));
     rgbHeader[0] = 'B';
@@ -1180,6 +1201,16 @@ long RAPP::SiiPlaySound(CTG ctgDev, PRCA prca, CTG ctg, CNO cno, long sqn, long 
         sndf.ctg = ctg;
         sndf.cno = cno;
         sndf.dtsLen = 0;
+        _DescribeSound(&sndf);
+        sndf.fPlayed = fTrue;
+        sndf.tsFirst = tsNow;
+        sndf.iscen = -1;
+        sndf.nfrm = 0;
+        if (pvNil != _pmvie && pvNil != _pmvie->Pscen())
+        {
+            sndf.iscen = _pmvie->Iscen();
+            sndf.nfrm = _pmvie->Pscen()->Nfrm() - _pmvie->Pscen()->NfrmFirst() + 1;
+        }
         if (!_FWriteSoundFile(&sndf, isndf))
             _Log("couldn't extract sound %ld", cno);
         if (!_pglsndf->FAdd(&sndf))
@@ -1532,6 +1563,127 @@ void RAPP::_WriteAudioCues(ulong dtsEnd)
     {
         _pglvlmev->Get(ivlmev, &vlmev);
         fprintf(pfile, "%.3f\t%.4f\n", vlmev.ts / 1000.0, (double)vlmev.vlm / kvlmFull);
+    }
+    fclose(pfile);
+}
+
+/***************************************************************************
+    Fill in a sound's MSND (for its name and kind) and whether it lives in
+    the movie or in 3DMM's content.
+***************************************************************************/
+void RAPP::_DescribeSound(SNDF *psndf)
+{
+    PCFL pcfl = psndf->pcrf->Pcfl();
+    PCRF pcrfMovie = (pvNil != _pmvie) ? _pmvie->PcrfAutoSave() : pvNil;
+    CKI cki;
+    KID kid;
+    long icki, ikid;
+    bool fInvalid;
+
+    psndf->cnoMsnd = cnoNil;
+    psndf->sty = (psndf->ctg == kctgMidi) ? styMidi : stySfx;
+    psndf->fMovie = pvNil != pcrfMovie && pcfl == pcrfMovie->Pcfl();
+    for (icki = 0; pcfl->FGetCkiCtg(kctgMsnd, icki, &cki); icki++)
+    {
+        for (ikid = 0; pcfl->FGetKid(kctgMsnd, cki.cno, ikid, &kid); ikid++)
+        {
+            if (kid.cki.ctg == psndf->ctg && kid.cki.cno == psndf->cno)
+            {
+                psndf->cnoMsnd = cki.cno;
+                if (!MSND::FGetMsndInfo(pcfl, kctgMsnd, cki.cno, &fInvalid, &psndf->sty))
+                    psndf->sty = (psndf->ctg == kctgMidi) ? styMidi : stySfx;
+                return;
+            }
+        }
+    }
+}
+
+/***************************************************************************
+    sounds\index.tsv: every extracted sound, with its name, kind, where it
+    comes from and where the movie first plays it. Sounds stored in the
+    movie that it never plays are extracted too, so nothing is lost.
+***************************************************************************/
+void RAPP::_WriteSoundIndex(void)
+{
+    PCRF pcrfMovie = (pvNil != _pmvie) ? _pmvie->PcrfAutoSave() : pvNil;
+    char szPath[MAX_PATH];
+    FILE *pfile;
+    SNDF sndf, sndfT;
+    CKI cki;
+    KID kid;
+    STN stn;
+    long icki, ikid, isndf;
+    bool fInvalid;
+    long sty;
+
+    if (pvNil == _pglsndf)
+        return;
+
+    // never-played sounds stored in the movie
+    if (pvNil != pcrfMovie)
+    {
+        PCFL pcfl = pcrfMovie->Pcfl();
+        for (icki = 0; pcfl->FGetCkiCtg(kctgMsnd, icki, &cki); icki++)
+        {
+            if (!MSND::FGetMsndInfo(pcfl, kctgMsnd, cki.cno, &fInvalid, &sty) || fInvalid)
+                continue;
+            for (ikid = 0; pcfl->FGetKid(kctgMsnd, cki.cno, ikid, &kid); ikid++)
+            {
+                if (kid.cki.ctg != kctgWave && kid.cki.ctg != kctgMidi)
+                    continue;
+                for (isndf = 0; isndf < _pglsndf->IvMac(); isndf++)
+                {
+                    _pglsndf->Get(isndf, &sndfT);
+                    if (sndfT.fMovie && sndfT.ctg == kid.cki.ctg && sndfT.cno == kid.cki.cno)
+                        break;
+                }
+                if (isndf < _pglsndf->IvMac())
+                    continue;
+                ClearPb(&sndf, size(sndf));
+                sndf.pcrf = pcrfMovie;
+                sndf.ctg = kid.cki.ctg;
+                sndf.cno = kid.cki.cno;
+                sndf.cnoMsnd = cki.cno;
+                sndf.sty = sty;
+                sndf.fMovie = fTrue;
+                sndf.fPlayed = fFalse;
+                if (_FWriteSoundFile(&sndf, isndf) && _pglsndf->FAdd(&sndf))
+                    _Event("unused-sound s%03ld", isndf);
+            }
+        }
+    }
+
+    _snprintf(szPath, MAX_PATH, "%s\\sounds\\index.tsv", _stnOutDir.Psz());
+    if (pvNil == (pfile = fopen(szPath, "w")))
+        return;
+    fprintf(pfile, "# file\tfirst\tscene\tframe\tcategory\tsource\tname\n");
+    for (isndf = 0; isndf < _pglsndf->IvMac(); isndf++)
+    {
+        PSZ pszCategory;
+        long ich;
+
+        _pglsndf->Get(isndf, &sndf);
+        stn.SetNil();
+        if (cnoNil != sndf.cnoMsnd)
+            sndf.pcrf->Pcfl()->FGetName(kctgMsnd, sndf.cnoMsnd, &stn);
+        for (ich = 0; ich < stn.Cch(); ich++)
+        {
+            if ((byte)stn.Psz()[ich] < ' ')
+                stn.Psz()[ich] = ' ';
+        }
+        if (sndf.ctg == kctgMidi || sndf.sty == styMidi)
+            pszCategory = PszLit("music");
+        else if (sndf.sty == stySpeech)
+            pszCategory = PszLit("speech");
+        else
+            pszCategory = PszLit("sfx");
+        if (sndf.fPlayed)
+            fprintf(pfile, "s%03ld.%s\t%.3f\t%ld\t%ld\t%s\t%s\t%s\n", isndf, sndf.ctg == kctgMidi ? "mid" : "wav",
+                    sndf.tsFirst / 1000.0, sndf.iscen + 1, sndf.nfrm, pszCategory, sndf.fMovie ? "movie" : "library",
+                    stn.Psz());
+        else
+            fprintf(pfile, "s%03ld.%s\t\t\t\t%s\t%s\t%s\n", isndf, sndf.ctg == kctgMidi ? "mid" : "wav", pszCategory,
+                    sndf.fMovie ? "movie" : "library", stn.Psz());
     }
     fclose(pfile);
 }

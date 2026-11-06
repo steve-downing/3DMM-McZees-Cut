@@ -22,6 +22,13 @@ struct SNDF
     CTG ctg;
     CNO cno;
     ulong dtsLen; // length of one play, 0 if unknown
+    CNO cnoMsnd;  // the MSND that owns it (its name is the sound's name), cnoNil if unknown
+    long sty;     // speech, sfx or midi, from the MSND
+    bool fMovie;  // stored in the movie itself (imported or recorded), not 3DMM content
+    bool fPlayed; // fFalse for movie sounds that are never played
+    long iscen;   // where it first plays
+    long nfrm;    //   (frame counted from the scene's first, starting at 1)
+    ulong tsFirst;
 };
 
 // One SiiPlay call: when it started and stopped on the movie timeline
@@ -194,9 +201,10 @@ class RAPP : public RAPP_PAR
     void _DrawFlatStereo(PMVU pmvu);
     void _LogTextBoxes(void);
     void _DumpStereoDebug(PBWLD pbwld);
+    // stereo frames are left eye | right eye | the plain 2-D view
     long _DxpOut(void)
     {
-        return _fStereo ? 2 * 544 : 544;
+        return _fStereo ? 3 * 544 : 544;
     }
     ulong _DtsOut(void);
     bool _FEmitFrame(byte *prgb, ulong dtsOut);
@@ -207,6 +215,8 @@ class RAPP : public RAPP_PAR
     bool _FWriteSoundFile(SNDF *psndf, long isndf);
     void _WriteAudioScript(ulong dtsEnd);
     void _WriteAudioCues(ulong dtsEnd);
+    void _DescribeSound(SNDF *psndf);
+    void _WriteSoundIndex(void);
 
     void _Log(PSZ pszFormat, ...);
     void _LogEngineErrors(PSZ pszContext);

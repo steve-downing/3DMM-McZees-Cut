@@ -99,8 +99,9 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
     $frames = @(Get-ChildItem "$rawMode/frames" -Filter *.bmp -ErrorAction SilentlyContinue)
 
     if ($frames.Count -gt 0 -and (Test-Path "$rawMode/timeline.ffconcat")) {
-        $look = if ($mode -eq "stereo") { "stereo3d=sbsl:arcd," } else { "" }
-        $fmts = if ($mode -eq "stereo") { @("anaglyph") } else { @("2d") }
+        # stereo frames are left | right | 2-D
+        $look = if ($mode -eq "stereo") { "crop=iw*2/3:ih:0:0,stereo3d=sbsl:arcd," } else { "" }
+        $fmts = if ($mode -eq "stereo") { @("anaglyph", "2d") } else { @("2d") }
         & "$PSScriptRoot/encode-movie.ps1" -RenderDir $rawMode -OutBase (Join-Path $keepMode "preview") `
             -Formats $fmts -SoundFont $soundFont -FluidSynth $fluidPath -Scale 1 -Crf 28 *>&1 |
             Out-File (Join-Path $keepMode "encode.txt")
@@ -152,6 +153,40 @@ if ($crtExe -and $firstMono) {
         -SoundFont $soundFont -FluidSynth $fluidPath -CrtTool $crtExe.FullName -CrtMaxFrames 90 -Crf 24 *>&1 |
         Out-File -Append (Join-Path $OutDir "crt-check.txt")
     "crt encode: $([Math]::Round($sw.Elapsed.TotalSeconds, 1)) s for 90 frames" | Out-File -Append (Join-Path $OutDir "crt-check.txt")
+}
+
+# CRT from a stereo render: CRT effects are 2-D only, so it must use the
+# 2-D view (third panel), not an eye
+if ($crtExe -and $firstMono) {
+    $stereoDir = Join-Path $firstMono.FullName "stereo"
+    & $crtExe.FullName $stereoDir --frame 40 (Join-Path $work "crt-stereo.bmp") 2>&1 |
+        Out-File -Append (Join-Path $OutDir "crt-check.txt")
+    ffmpeg -hide_banner -loglevel error -y -i (Join-Path $work "crt-stereo.bmp") -vf scale=1280:-1 (Join-Path $OutDir "crt-stereo.png")
+}
+
+# Windows 98 AVI (Cinepak) and sound extraction
+$extras = Join-Path $OutDir "extras"
+New-Item -ItemType Directory -Force $extras | Out-Null
+$extrasLog = Join-Path $extras "extras.txt"
+foreach ($case in @(@{ dir = "Super-Bag-Man"; formats = "win98" }, @{ dir = "Dueling-Morons"; formats = "none" })) {
+    $src = Join-Path $work "$($case.dir)/mono"
+    if (-not (Test-Path $src)) { continue }
+    $base = Join-Path $extras $case.dir
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    & "$PSScriptRoot/encode-movie.ps1" -RenderDir $src -OutBase $base -Formats $case.formats -ExtractSounds `
+        -SoundFont $soundFont -FluidSynth $fluidPath *>&1 | Out-File -Append $extrasLog
+    "$($case.dir): $([Math]::Round($sw.Elapsed.TotalSeconds, 1)) s" | Out-File -Append $extrasLog
+    if (Test-Path "$base.win98.avi") {
+        ffprobe -v error -count_packets -show_entries stream=codec_name,codec_tag_string,width,height,r_frame_rate,nb_frames,nb_read_packets,sample_rate,channels:format=duration,size `
+            -of compact "$base.win98.avi" 2>&1 | Out-File -Append $extrasLog
+    }
+    Copy-Item (Join-Path $src "sounds/index.tsv") "$base.index.tsv" -ErrorAction SilentlyContinue
+    if (Test-Path "$base.sounds.zip") {
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $zip = [IO.Compression.ZipFile]::OpenRead("$base.sounds.zip")
+        $zip.Entries | ForEach-Object { "  {0,9}  {1}" -f $_.Length, $_.FullName } | Out-File -Append $extrasLog
+        $zip.Dispose()
+    }
 }
 
 # the Windows GS synth's instruments, through FluidSynth's DLS loader
