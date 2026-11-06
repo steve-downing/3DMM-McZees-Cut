@@ -128,6 +128,21 @@ class BWLD : public BWLD_PAR
     void Unprerender(void);
     void Draw(PGNV pgnv, RC *prcClip, long dxp, long dyp);
 
+    // Stereo rendering (used by the headless renderer; the studio never
+    // calls these). RenderEye renders the current frame from a camera
+    // shifted dxrEye world units along its own x axis (negative = left eye)
+    // into the working buffers; the background is reprojected from its
+    // depth map. Call EndStereo when done so the next Render() is mono.
+    bool FGetStereoGeometry(double *pdzrConverge, double *pdxpFocal);
+    bool FRenderEye(double dxrEye);
+    void EndStereo(void);
+    double DzrFromZ(ushort suZ);
+
+  protected:
+    byte *_prgbStereo;     // reprojected background RGB for one eye
+    ushort *_prgsuStereoZ; // reprojected background Z for one eye
+    void _WarpBackground(double dxrEye, double dxpFocal);
+
 #ifdef DEBUG
     bool FWriteBmp(PFNI pfni);
 #endif // DEBUG

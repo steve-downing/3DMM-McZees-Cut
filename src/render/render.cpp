@@ -15,13 +15,13 @@
         events.txt              transitions, pauses, and other playback events
         render.log              diagnostics
 ***************************************************************************/
-#include "soc.h"
-#include "render.h"
-#include "basepal.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include "soc.h"
+#include "render.h"
+#include "basepal.h"
 
 ASSERTNAME
 

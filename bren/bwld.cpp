@@ -17,6 +17,7 @@
     full view resolution.
 
 ***************************************************************************/
+#include <math.h>
 #include "bren.h"
 
 // REVIEW *****: _pgptStretch is completely unused...remove it!
@@ -201,6 +202,8 @@ BWLD::~BWLD(void)
     ReleasePpo(&_pregnDirtyWorking);
     ReleasePpo(&_pregnDirtyScreen);
     ReleasePpo(&_pcrf);
+    FreePpv((void **)&_prgbStereo);
+    FreePpv((void **)&_prgsuStereoZ);
 }
 
 /***************************************************************************
@@ -804,3 +807,242 @@ bool BWLD::FWriteBmp(PFNI pfni)
 }
 
 #endif // DEBUG
+
+/***************************************************************************
+    Stereo rendering.
+
+    Actors are rendered for real from a shifted camera. The background is
+    a pre-rendered picture, so it is reprojected instead: every pixel moves
+    sideways by the parallax its depth implies (dx = -dxrEye * f / d),
+    nearer pixels win collisions, and gaps opened up behind near objects
+    are filled from whichever neighbor is farther away. Prerendered actors
+    live in the background buffers during playback, so they come along.
+
+    Depth convention, from BRender's perspective matrix (camera looks down
+    -z; z_ndc = +1 at hither, -1 at yon, linear in 1/d) with the 16-bit
+    Z-buffer running 0 at hither to 0xFFFF at yon.
+***************************************************************************/
+double BWLD::DzrFromZ(ushort suZ)
+{
+    double dzrHither = BrScalarToFloat(_bcam.hither_z);
+    double dzrYon = BrScalarToFloat(_bcam.yon_z);
+    double rcp = 1.0 / dzrHither + (suZ / 65535.0) * (1.0 / dzrYon - 1.0 / dzrHither);
+
+    return 1.0 / rcp;
+}
+
+/***************************************************************************
+    Focal length in pixels, and a default convergence distance: the
+    median depth of the middle of the background, which is where 3DMM
+    scenes put their action. Things at that depth land on the screen
+    plane; nearer things come out of it.
+***************************************************************************/
+bool BWLD::FGetStereoGeometry(double *pdzrConverge, double *pdxpFocal)
+{
+    AssertThis(0);
+    AssertVarMem(pdzrConverge);
+    AssertVarMem(pdxpFocal);
+
+    const double kpi = 3.14159265358979323846;
+    double radFov = (double)_bcam.field_of_view * 2.0 * kpi / 65536.0;
+    long dxp = _rcBuffer.Dxp();
+    long dyp = _rcBuffer.Dyp();
+    long xp, yp, csample, cmedian;
+    long *prgcZ = pvNil;
+    long iz;
+    ushort *psu;
+
+    if (_fHalfX || _fHalfY || pvNil == _pzbmpBackground || radFov <= 0)
+        return fFalse;
+
+    *pdxpFocal = (dyp / 2.0) / tan(radFov / 2.0);
+
+    // histogram of the background's central region, at 1/256 resolution
+    if (!FAllocPv((void **)&prgcZ, 256 * size(long), fmemClear, mprNormal))
+        return fFalse;
+    csample = 0;
+    for (yp = dyp / 4; yp < dyp * 9 / 10; yp += 2)
+    {
+        psu = (ushort *)(_pzbmpBackground->Prgb() + yp * _pzbmpBackground->CbRow());
+        for (xp = dxp / 4; xp < dxp * 3 / 4; xp += 2)
+        {
+            prgcZ[psu[xp] >> 8]++;
+            csample++;
+        }
+    }
+    cmedian = 0;
+    for (iz = 0; iz < 255; iz++)
+    {
+        cmedian += prgcZ[iz];
+        if (cmedian * 2 >= csample)
+            break;
+    }
+    FreePpv((void **)&prgcZ);
+
+    *pdzrConverge = DzrFromZ((ushort)((iz << 8) + 0x80));
+    return fTrue;
+}
+
+void BWLD::_WarpBackground(double dxrEye, double dxpFocal)
+{
+    long dxp = _rcBuffer.Dxp();
+    long dyp = _rcBuffer.Dyp();
+    long xp, xpDst, yp, xpRun, xpSrc;
+    long cbRowRGB;
+    long *prgdxp = pvNil;
+    byte *prgfFilled = pvNil;
+    byte *pbSrcRow, *pbDstRow;
+    ushort *psuSrcRow, *psuDstRow;
+    byte *prgbBkgd;
+    RC rc;
+    long lw;
+
+    if (pvNil == _prgbStereo && !FAllocPv((void **)&_prgbStereo, dxp * dyp, fmemNil, mprNormal))
+        return;
+    if (pvNil == _prgsuStereoZ && !FAllocPv((void **)&_prgsuStereoZ, dxp * dyp * size(ushort), fmemNil, mprNormal))
+        return;
+    if (!FAllocPv((void **)&prgdxp, 256 * size(long), fmemNil, mprNormal))
+        return;
+    if (!FAllocPv((void **)&prgfFilled, dxp, fmemNil, mprNormal))
+    {
+        FreePpv((void **)&prgdxp);
+        return;
+    }
+
+    // parallax per depth bucket (256 buckets is far finer than a pixel)
+    for (lw = 0; lw < 256; lw++)
+    {
+        double dx = -dxrEye * dxpFocal / DzrFromZ((ushort)((lw << 8) + 0x80));
+        prgdxp[lw] = (long)(dx < 0 ? dx - 0.5 : dx + 0.5);
+    }
+
+    prgbBkgd = _pgptBackground->PrgbLockPixels(&rc);
+    cbRowRGB = _pgptBackground->CbRow();
+
+    for (yp = 0; yp < dyp; yp++)
+    {
+        pbSrcRow = prgbBkgd + yp * cbRowRGB;
+        psuSrcRow = (ushort *)(_pzbmpBackground->Prgb() + yp * _pzbmpBackground->CbRow());
+        pbDstRow = _prgbStereo + yp * dxp;
+        psuDstRow = _prgsuStereoZ + yp * dxp;
+        ClearPb(prgfFilled, dxp);
+
+        // forward splat, nearest wins
+        for (xp = 0; xp < dxp; xp++)
+        {
+            ushort suZ = psuSrcRow[xp];
+            xpDst = xp + prgdxp[suZ >> 8];
+            if (xpDst < 0 || xpDst >= dxp)
+                continue;
+            if (!prgfFilled[xpDst] || suZ < psuDstRow[xpDst])
+            {
+                pbDstRow[xpDst] = pbSrcRow[xp];
+                psuDstRow[xpDst] = suZ;
+                prgfFilled[xpDst] = fTrue;
+            }
+        }
+
+        // fill holes from the farther neighbor (disocclusions show background)
+        for (xp = 0; xp < dxp; xp++)
+        {
+            if (prgfFilled[xp])
+                continue;
+            for (xpRun = xp; xpRun < dxp && !prgfFilled[xpRun]; xpRun++)
+                ;
+            if (xp == 0 && xpRun >= dxp)
+                xpSrc = -1;
+            else if (xp == 0)
+                xpSrc = xpRun;
+            else if (xpRun >= dxp)
+                xpSrc = xp - 1;
+            else
+                xpSrc = (psuDstRow[xp - 1] > psuDstRow[xpRun]) ? xp - 1 : xpRun;
+            for (; xp < xpRun; xp++)
+            {
+                pbDstRow[xp] = (xpSrc < 0) ? pbSrcRow[xp] : pbDstRow[xpSrc];
+                psuDstRow[xp] = (xpSrc < 0) ? psuSrcRow[xp] : psuDstRow[xpSrc];
+            }
+            xp--;
+        }
+    }
+
+    _pgptBackground->Unlock();
+    FreePpv((void **)&prgdxp);
+    FreePpv((void **)&prgfFilled);
+}
+
+bool BWLD::FRenderEye(double dxrEye)
+{
+    AssertThis(0);
+
+    double dzrConverge, dxpFocal;
+    long dxp = _rcBuffer.Dxp();
+    long dyp = _rcBuffer.Dyp();
+    long yp;
+    long cbRowWorking;
+    byte *prgbWorking;
+    BMAT34 bmat34Save;
+    double rgdxr[3], dxrLen;
+    long i;
+    PBACT pbact;
+    RC rc;
+
+    if (!FGetStereoGeometry(&dzrConverge, &dxpFocal))
+        return fFalse;
+
+    _WarpBackground(dxrEye, dxpFocal);
+    if (pvNil == _prgbStereo || pvNil == _prgsuStereoZ)
+        return fFalse;
+
+    // start the working buffers from the reprojected background
+    prgbWorking = (byte *)_bpmpRGB.pixels;
+    cbRowWorking = _bpmpRGB.row_bytes;
+    for (yp = 0; yp < dyp; yp++)
+    {
+        CopyPb(_prgbStereo + yp * dxp, prgbWorking + yp * cbRowWorking, dxp);
+        CopyPb(_prgsuStereoZ + yp * dxp, _pzbmpWorking->Prgb() + yp * _pzbmpWorking->CbRow(), dxp * size(ushort));
+    }
+
+    if (pvNil != _pfnbeginrend)
+    {
+        for (pbact = _bactWorld.children; pvNil != pbact; pbact = pbact->next)
+        {
+            if (pbact->type == BR_ACTOR_NONE)
+                _pfnbeginrend(pbact);
+        }
+    }
+
+    // slide the camera along its own x axis (row 0 of its matrix)
+    bmat34Save = _bactCamera.t.t.mat;
+    dxrLen = 0;
+    for (i = 0; i < 3; i++)
+    {
+        rgdxr[i] = BrScalarToFloat(bmat34Save.m[0][i]);
+        dxrLen += rgdxr[i] * rgdxr[i];
+    }
+    dxrLen = sqrt(dxrLen);
+    if (dxrLen <= 0)
+        return fFalse;
+    for (i = 0; i < 3; i++)
+    {
+        _bactCamera.t.t.mat.m[3][i] = BrFloatToScalar(BrScalarToFloat(bmat34Save.m[3][i]) + dxrEye * rgdxr[i] / dxrLen);
+    }
+
+    BrZbSceneRender(&_bactWorld, &_bactCamera, &_bpmpRGB, &_bpmpZ);
+
+    _bactCamera.t.t.mat = bmat34Save;
+
+    // the working buffers now hold this eye; don't let a mono Render()
+    // overwrite them until EndStereo()
+    _fWorldChanged = fFalse;
+    _pregnDirtyWorking->SetRc(&_rcBuffer);
+    return fTrue;
+}
+
+void BWLD::EndStereo(void)
+{
+    AssertThis(0);
+
+    _pregnDirtyWorking->SetRc(&_rcBuffer);
+    _fWorldChanged = fTrue;
+}
