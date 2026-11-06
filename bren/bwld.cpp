@@ -1166,8 +1166,9 @@ static void _LogActorTree(FILE *pfile, BACT *pbactRoot, BACT *pbactCamera, PZBMP
     }
 }
 
-void BWLD::LogDepthCalibration(FILE *pfile)
+void BWLD::LogDepthCalibration(void *pvFile)
 {
+    FILE *pfile = (FILE *)pvFile;
     br_matrix4 bmat4;
     long i;
 
