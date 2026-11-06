@@ -124,6 +124,25 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
     }
 }
 
+# CRT effects: full-res stills for each preset, and a short encode
+$crtExe = Get-ChildItem -Recurse $build -Filter 3dmm-crt.exe | Select-Object -First 1
+$firstMono = Get-ChildItem $work -Directory | Select-Object -First 1
+if ($crtExe -and $firstMono) {
+    $monoDir = Join-Path $firstMono.FullName "mono"
+    $nframes = @(Get-ChildItem "$monoDir/frames" -Filter *.bmp).Count
+    $pick = [int]($nframes * 0.6)
+    foreach ($preset in "pc", "trinitron", "tv", "hdr") {
+        & $crtExe.FullName $monoDir --preset $preset --frame $pick (Join-Path $work "crt-$preset.bmp") 2>&1 |
+            Out-File -Append (Join-Path $OutDir "crt-check.txt")
+        ffmpeg -hide_banner -loglevel error -y -i (Join-Path $work "crt-$preset.bmp") (Join-Path $OutDir "crt-$preset.png")
+    }
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    & "$PSScriptRoot/encode-movie.ps1" -RenderDir $monoDir -OutBase (Join-Path $OutDir "crt-preview") -Formats crt `
+        -SoundFont $soundFont -FluidSynth $fluidPath -CrtTool $crtExe.FullName -CrtMaxFrames 90 -Crf 24 *>&1 |
+        Out-File -Append (Join-Path $OutDir "crt-check.txt")
+    "crt encode: $([Math]::Round($sw.Elapsed.TotalSeconds, 1)) s for 90 frames" | Out-File -Append (Join-Path $OutDir "crt-check.txt")
+}
+
 # the Windows GS synth's instruments, through FluidSynth's DLS loader
 $gmdls = Join-Path $env:WINDIR "System32\drivers\gm.dls"
 $first = Get-ChildItem $work -Directory | Select-Object -First 1

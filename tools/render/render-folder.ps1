@@ -32,6 +32,13 @@ param(
     [string]$Fonts,
     [int]$TimeoutMinutes = 30,
     [int]$Scale = 2,
+    [switch]$CRT,
+    [ValidateSet("pc", "trinitron", "tv", "hdr")] [string]$CrtPreset = "pc",
+    [ValidateSet("", "shadow", "grille", "slot", "none")] [string]$CrtMask = "",
+    [double]$CrtScanlines = -1,
+    [double]$CrtGlow = -1,
+    [double]$CrtCurvature = -1,
+    [ValidateSet("420", "444")] [string]$CrtChroma = "420",
     [switch]$KeepFrames,
     [switch]$Force
 )
@@ -79,6 +86,7 @@ if (-not $Root -or -not (Test-Path (Join-Path $Root "3D Movie Maker"))) {
     throw "can't find a '3D Movie Maker' content folder; pass -Root (the folder that contains it)"
 }
 if (-not $Formats) { $Formats = if ($Stereo) { @("sbs", "anaglyph", "2d") } else { @("2d") } }
+if ($CRT -and $Formats -notcontains "crt") { $Formats += "crt" }
 
 $InputDir = (Resolve-Path $InputDir).Path.TrimEnd('\')
 if ($Fonts) { $Fonts = (Resolve-Path $Fonts).Path.TrimEnd('\') }
@@ -146,7 +154,9 @@ foreach ($movie in $movies) {
     if ($row.status -eq "ok") {
         New-Item -ItemType Directory -Force (Split-Path -Parent $outBase) | Out-Null
         & $encoder -RenderDir $work -OutBase $outBase -Formats $Formats -SoundFont $SoundFont `
-            -FluidSynth $FluidSynth -MidiGain $MidiGain -AudioLevel $AudioLevel -Channels $Channels -Scale $Scale
+            -FluidSynth $FluidSynth -MidiGain $MidiGain -AudioLevel $AudioLevel -Channels $Channels -Scale $Scale `
+            -CrtPreset $CrtPreset -CrtMask $CrtMask -CrtScanlines $CrtScanlines -CrtGlow $CrtGlow `
+            -CrtCurvature $CrtCurvature -CrtChroma $CrtChroma
         if ($LASTEXITCODE -ne 0) { $row.status = "encode-failed" }
         $row.outputs = ($outputs | Where-Object { Test-Path $_ } | ForEach-Object { Split-Path -Leaf $_ }) -join "; "
     } else {

@@ -389,6 +389,13 @@ target_link_options(render
 add_dependencies(render studio-chomp-chunks)
 install(TARGETS render RUNTIME DESTINATION .)
 
+# CRT look for rendered movies: plain C++, no framework; streams raw 4K
+# frames to ffmpeg (see tools/render/encode-movie.ps1)
+add_executable(crt)
+target_sources(crt PRIVATE "${PROJECT_SOURCE_DIR}/src/render/crt.cpp")
+set_property(TARGET crt PROPERTY OUTPUT_NAME 3dmm-crt)
+install(TARGETS crt RUNTIME DESTINATION .)
+
 # Please pay attention to the ending / in each DIRECTORY declaration. It
 # affects the destination!
 install(TARGETS studio RUNTIME DESTINATION .)
