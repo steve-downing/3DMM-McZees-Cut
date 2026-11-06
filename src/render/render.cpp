@@ -25,12 +25,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "soc.h"
+#include "midi.h"
 #include "render.h"
 #include "basepal.h"
 
 ASSERTNAME
 
 RTCLASS(RAPP)
+RTCLASS(RSDV)
 
 PTAGM vptagm;
 RAPP vrapp;
@@ -62,6 +64,10 @@ RAPP::RAPP(void)
     _fStereo = fFalse;
     _pctDepth = 2.5;
     _prgbEye = pvNil;
+    _pglsndf = pvNil;
+    _pglcue = pvNil;
+    _pglvlmev = pvNil;
+    _vlmMaster = kvlmFull;
     _pcfl = pvNil;
     _pmvie = pvNil;
     _pgptCapture = pvNil;
@@ -278,6 +284,15 @@ bool RAPP::_FOpenOutput(void)
         return fFalse;
     }
     fprintf(_pfileTimeline, "ffconcat version 1.0\n");
+
+    stn = _stnOutDir;
+    stn.FAppendSz(PszLit("\\sounds"));
+    CreateDirectoryA(stn.Psz(), NULL);
+    _pglsndf = GL::PglNew(size(SNDF));
+    _pglcue = GL::PglNew(size(CUE));
+    _pglvlmev = GL::PglNew(size(VLMEV));
+    if (pvNil == _pglsndf || pvNil == _pglcue || pvNil == _pglvlmev)
+        return fFalse;
     _Log("movie: %s", _stnMovie.Psz());
     _Log("content root: %s", _stnRoot.Psz());
     if (_fStereo)
@@ -300,13 +315,28 @@ bool RAPP::_FInitMenu(void)
 }
 
 /***************************************************************************
-    A sound manager with no output devices: the engine can queue sounds
-    freely and nothing comes out of the speakers mid-render.
+    A sound manager whose devices are RSDVs: the engine plays sounds as
+    usual, nothing comes out of the speakers, and every sound becomes a
+    cue in the audio script.
 ***************************************************************************/
 bool RAPP::_FInitSound(long wav)
 {
+    PSNDV psndv;
+
     if (pvNil == vpsndm)
         vpsndm = SNDM::PsndmNew();
+    if (pvNil == vpsndm)
+        return fTrue;
+    if (pvNil != (psndv = NewObj RSDV(kctgWave)))
+    {
+        vpsndm->FAddDevice(kctgWave, psndv);
+        ReleasePpo(&psndv);
+    }
+    if (pvNil != (psndv = NewObj RSDV(kctgMidi)))
+    {
+        vpsndm->FAddDevice(kctgMidi, psndv);
+        ReleasePpo(&psndv);
+    }
     return fTrue;
 }
 
@@ -537,6 +567,7 @@ bool RAPP::_FRender(void)
     _Capture();
     _fCapturing = fFalse;
     _FinishTimeline(_DtsOut() + kdtsEndHold);
+    _WriteAudioScript(_DtsOut() + kdtsEndHold);
     _Event("end");
     _Log("done: %ld frames, %.2f seconds", _cfrmOut, _DtsOut() / 1000.0);
     return _lwExit == klwExitOk;
@@ -605,7 +636,7 @@ void RAPP::UpdateMarked(void)
 
 ulong RAPP::_DtsOut(void)
 {
-    return TsCurrent() - _tsStart + _dtsShift;
+    return TsCurrent() - _tsStart;
 }
 
 /***************************************************************************
@@ -732,8 +763,27 @@ void RAPP::_DrawFrame(PMVU pmvu)
     dxpShift = (long)(dxpInfinity / 2 + 0.5);
     if (dzrConverge != _dzrConvergeLast)
     {
+        double dzrHither, dzrYon, radFov;
+        long rgsuB[11], rgsuA[11];
+        char szPath[MAX_PATH];
+
         _Event("stereo converge=%.3f focal=%.1fpx eye-separation=%.4f", dzrConverge, dxpFocal, dxrEye);
         _dzrConvergeLast = dzrConverge;
+
+        // diagnostics while the depth convention is being confirmed
+        pbwld->Render();
+        pbwld->GetCameraParams(&dzrHither, &dzrYon, &radFov);
+        pbwld->GetDepthStats(fFalse, rgsuB, 10);
+        pbwld->GetDepthStats(fTrue, rgsuA, 10);
+        _Event("camera hither=%.4f yon=%.4f fov=%.2fdeg", dzrHither, dzrYon, radFov * 180 / 3.14159265);
+        _Event("bkgd Z deciles %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld", rgsuB[0], rgsuB[1], rgsuB[2], rgsuB[3],
+               rgsuB[4], rgsuB[5], rgsuB[6], rgsuB[7], rgsuB[8], rgsuB[9], rgsuB[10]);
+        _Event("actor Z deciles %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld", rgsuA[0], rgsuA[1], rgsuA[2], rgsuA[3],
+               rgsuA[4], rgsuA[5], rgsuA[6], rgsuA[7], rgsuA[8], rgsuA[9], rgsuA[10]);
+        _snprintf(szPath, MAX_PATH, "%s\\depth-%06ld-bkgd.pgm", _stnOutDir.Psz(), _cfrmOut);
+        pbwld->FDumpDepth(szPath, fFalse);
+        _snprintf(szPath, MAX_PATH, "%s\\depth-%06ld-work.pgm", _stnOutDir.Psz(), _cfrmOut);
+        pbwld->FDumpDepth(szPath, fTrue);
     }
 
     for (ieye = 0; ieye < 2; ieye++)
@@ -844,7 +894,9 @@ void RAPP::_EmitTransition(long trans, ulong dtsOut)
         }
         _FEmitFrame(_prgbScratch, dts);
     }
-    _dtsShift += kdtsTransition;
+    // the real dissolve blocks for kdtsTransition; let the same amount
+    // of movie time pass so sounds and timers line up with the picture
+    vpusac->Jump(kdtsTransition);
 }
 
 /***************************************************************************
@@ -953,18 +1005,6 @@ void RAPP::_CleanUp(void)
     _fCapturing = fFalse;
     if (pvNil != _pfileTimeline)
         _FinishTimeline(_DtsOut() + kdtsEndHold);
-    ReleasePpo(&_pmvie);
-    ReleasePpo(&_pgptCapture);
-    ReleasePpo(&_pglclrActive);
-    ReleasePpo(&_pcfl);
-    ReleasePpo(&vptagm);
-    free(_prgbEye);
-    free(_prgbPrev);
-    free(_prgbCur);
-    free(_prgbScratch);
-    free(_prgsuDissolve);
-    _prgbEye = _prgbPrev = _prgbCur = _prgbScratch = pvNil;
-    _prgsuDissolve = pvNil;
     if (pvNil != _pfileEvents)
         fclose(_pfileEvents);
     _pfileEvents = pvNil;
@@ -972,5 +1012,384 @@ void RAPP::_CleanUp(void)
     if (pvNil != _pfileLog)
         fclose(_pfileLog);
     _pfileLog = pvNil;
-    RAPP_PAR::_CleanUp();
+
+    // Everything we produce is on disk. Tearing down the engine, gob tree
+    // and BRender in the right order buys nothing for a one-shot process
+    // (and the default order crashes), so let the OS reclaim it all.
+    fflush(stdout);
+    ExitProcess((UINT)_lwExit);
+}
+
+/***************************************************************************
+    Sound bookkeeping.
+***************************************************************************/
+void RSDV::SetVlm(long vlm)
+{
+    vrapp.SetMasterVlm(vlm);
+}
+
+long RSDV::VlmCur(void)
+{
+    return vrapp.VlmMaster();
+}
+
+long RSDV::SiiPlay(PRCA prca, CTG ctg, CNO cno, long sqn, long vlm, long cactPlay, ulong dtsStart, long spr, long scl)
+{
+    return vrapp.SiiPlaySound(_ctg, prca, ctg, cno, sqn, vlm, cactPlay, dtsStart, scl);
+}
+
+void RSDV::Stop(long sii)
+{
+    vrapp.StopSounds(_ctg, sii, sqnNil, sclNil);
+}
+
+void RSDV::StopAll(long sqn, long scl)
+{
+    vrapp.StopSounds(_ctg, siiNil, sqn, scl);
+}
+
+bool RSDV::FPlaying(long sii)
+{
+    return vrapp.FSoundsPlaying(_ctg, sii, sqnNil, sclNil);
+}
+
+bool RSDV::FPlayingAll(long sqn, long scl)
+{
+    return vrapp.FSoundsPlaying(_ctg, siiNil, sqn, scl);
+}
+
+const long kcactLoopForever = 1000; // MSND loops with klwMax
+
+void RAPP::SetMasterVlm(long vlm)
+{
+    VLMEV vlmev;
+
+    if (vlm == _vlmMaster)
+        return; // SNDM tells every device; record each change once
+    _vlmMaster = vlm;
+    if (pvNil == _pglvlmev || !_fCapturing)
+        return;
+    vlmev.ts = _DtsOut();
+    vlmev.vlm = vlm;
+    _pglvlmev->FAdd(&vlmev);
+}
+
+/***************************************************************************
+    Register a sound (extracting it the first time we see it) and add a
+    cue. Queued sounds start when the queue's previous sound ends.
+***************************************************************************/
+long RAPP::SiiPlaySound(CTG ctgDev, PRCA prca, CTG ctg, CNO cno, long sqn, long vlm, long cactPlay, ulong dtsStart,
+                        long scl)
+{
+    PCRF pcrf;
+    SNDF sndf;
+    CUE cue, cueT;
+    long isndf, icue;
+    ulong tsNow = _DtsOut();
+
+    if (pvNil == _pglsndf || pvNil == _pglcue || pvNil == prca)
+        return siiNil;
+    if (pvNil == (pcrf = prca->PcrfFindChunk(ctg, cno)))
+    {
+        _Event("sound-missing %c%c%c%c %ld", (char)(ctg >> 24), (char)(ctg >> 16), (char)(ctg >> 8), (char)ctg, cno);
+        return siiNil;
+    }
+
+    for (isndf = 0; isndf < _pglsndf->IvMac(); isndf++)
+    {
+        _pglsndf->Get(isndf, &sndf);
+        if (sndf.pcrf == pcrf && sndf.ctg == ctg && sndf.cno == cno)
+            break;
+    }
+    if (isndf == _pglsndf->IvMac())
+    {
+        sndf.pcrf = pcrf;
+        sndf.ctg = ctg;
+        sndf.cno = cno;
+        sndf.dtsLen = 0;
+        if (!_FWriteSoundFile(&sndf, isndf))
+            _Log("couldn't extract sound %ld", cno);
+        if (!_pglsndf->FAdd(&sndf))
+            return siiNil;
+    }
+
+    ClearPb(&cue, size(cue));
+    cue.sii = RSDV::SiiNew();
+    cue.isndf = isndf;
+    cue.ctgDev = ctgDev;
+    cue.sqn = sqn;
+    cue.scl = scl;
+    cue.vlm = vlm;
+    cue.cactPlay = cactPlay;
+    cue.dtsOffset = dtsStart;
+    cue.tsStart = tsNow;
+    if (sqn != ksqnNone)
+    {
+        for (icue = 0; icue < _pglcue->IvMac(); icue++)
+        {
+            _pglcue->Get(icue, &cueT);
+            if (cueT.ctgDev == ctgDev && cueT.sqn == sqn && cueT.tsEnd > cue.tsStart && cueT.tsEnd != kluMax)
+                cue.tsStart = cueT.tsEnd;
+        }
+    }
+    if (cactPlay <= 0 || cactPlay >= kcactLoopForever || sndf.dtsLen == 0)
+        cue.tsEnd = (sndf.dtsLen == 0 && cactPlay > 0 && cactPlay < kcactLoopForever) ? cue.tsStart : kluMax;
+    else
+        cue.tsEnd = cue.tsStart + LwMax(0, (long)(sndf.dtsLen * cactPlay) - (long)dtsStart);
+    if (!_pglcue->FAdd(&cue))
+        return siiNil;
+    _Event("sound s%03ld vlm=%ld loops=%ld offset=%lu", isndf, vlm, cactPlay, dtsStart);
+    return cue.sii;
+}
+
+void RAPP::StopSounds(CTG ctgDev, long sii, long sqn, long scl)
+{
+    CUE cue;
+    long icue;
+    ulong tsNow = _DtsOut();
+
+    if (pvNil == _pglcue)
+        return;
+    for (icue = 0; icue < _pglcue->IvMac(); icue++)
+    {
+        _pglcue->Get(icue, &cue);
+        if (cue.ctgDev != ctgDev || cue.tsEnd <= tsNow)
+            continue;
+        if (sii != siiNil && cue.sii != sii)
+            continue;
+        if (sqn != sqnNil && cue.sqn != sqn)
+            continue;
+        if (scl != sclNil && cue.scl != scl)
+            continue;
+        cue.tsEnd = LwMax(cue.tsStart, tsNow);
+        _pglcue->Put(icue, &cue);
+    }
+}
+
+bool RAPP::FSoundsPlaying(CTG ctgDev, long sii, long sqn, long scl)
+{
+    CUE cue;
+    long icue;
+    ulong tsNow = _DtsOut();
+
+    if (pvNil == _pglcue)
+        return fFalse;
+    for (icue = 0; icue < _pglcue->IvMac(); icue++)
+    {
+        _pglcue->Get(icue, &cue);
+        if (cue.ctgDev != ctgDev || cue.tsEnd <= tsNow)
+            continue;
+        if (sii != siiNil && cue.sii != sii)
+            continue;
+        if (sqn != sqnNil && cue.sqn != sqn)
+            continue;
+        if (scl != sclNil && cue.scl != scl)
+            continue;
+        return fTrue;
+    }
+    return fFalse;
+}
+
+/***************************************************************************
+    Write a sound chunk out as a standard file: WAVE chunks already are
+    RIFF files; MIDS chunks are re-encoded as a type-0 MIDI file with one
+    tick per millisecond.
+***************************************************************************/
+static void _PutBe(FILE *pfile, ulong lu, long cb)
+{
+    while (cb-- > 0)
+        fputc((int)((lu >> (8 * cb)) & 0xFF), pfile);
+}
+
+static void _PutVar(FILE *pfile, ulong lu)
+{
+    byte rgb[5];
+    long cb = 0;
+
+    rgb[cb++] = (byte)(lu & 0x7F);
+    while ((lu >>= 7) != 0)
+        rgb[cb++] = (byte)((lu & 0x7F) | 0x80);
+    while (cb-- > 0)
+        fputc(rgb[cb], pfile);
+}
+
+bool RAPP::_FWriteSoundFile(SNDF *psndf, long isndf)
+{
+    char szPath[MAX_PATH];
+    FILE *pfile;
+    BLCK blck;
+    long cb;
+    byte *prgb;
+
+    if (psndf->ctg == kctgWave)
+    {
+        _snprintf(szPath, MAX_PATH, "%s\\sounds\\s%03ld.wav", _stnOutDir.Psz(), isndf);
+        if (!psndf->pcrf->Pcfl()->FFind(psndf->ctg, psndf->cno, &blck) || !blck.FUnpackData())
+            return fFalse;
+        cb = blck.Cb();
+        if (cb <= 0 || pvNil == (prgb = (byte *)malloc(cb)))
+            return fFalse;
+        if (!blck.FReadRgb(prgb, cb, 0) || pvNil == (pfile = fopen(szPath, "wb")))
+        {
+            free(prgb);
+            return fFalse;
+        }
+        fwrite(prgb, 1, cb, pfile);
+        fclose(pfile);
+
+        // length: walk the RIFF chunks for fmt (byte rate) and data (size)
+        if (cb > 12 && 0 == memcmp(prgb, "RIFF", 4) && 0 == memcmp(prgb + 8, "WAVE", 4))
+        {
+            long ib = 12;
+            ulong cbPerSec = 0, cbData = 0;
+            while (ib + 8 <= cb)
+            {
+                ulong cbChunk = *(ulong *)(prgb + ib + 4);
+                if (0 == memcmp(prgb + ib, "fmt ", 4) && ib + 16 <= cb)
+                    cbPerSec = *(ulong *)(prgb + ib + 8 + 8);
+                else if (0 == memcmp(prgb + ib, "data", 4))
+                    cbData = cbChunk;
+                ib += 8 + cbChunk + (cbChunk & 1);
+            }
+            if (cbPerSec > 0)
+                psndf->dtsLen = (ulong)((double)cbData * 1000.0 / cbPerSec);
+        }
+        free(prgb);
+        return fTrue;
+    }
+
+    if (psndf->ctg == kctgMidi)
+    {
+        PMIDS pmids;
+        MSTP mstp;
+        MIDEV midev;
+        ulong tsLast = 0;
+        long lwTrackLenPos, lwTrackStart, lwEnd;
+
+        _snprintf(szPath, MAX_PATH, "%s\\sounds\\s%03ld.mid", _stnOutDir.Psz(), isndf);
+        pmids = (PMIDS)psndf->pcrf->PbacoFetch(psndf->ctg, psndf->cno, MIDS::FReadMids);
+        if (pvNil == pmids)
+            return fFalse;
+        if (pvNil == (pfile = fopen(szPath, "wb")))
+        {
+            ReleasePpo(&pmids);
+            return fFalse;
+        }
+        fwrite("MThd", 1, 4, pfile);
+        _PutBe(pfile, 6, 4);
+        _PutBe(pfile, 0, 2);    // format 0
+        _PutBe(pfile, 1, 2);    // one track
+        _PutBe(pfile, 1000, 2); // 1000 ticks per quarter...
+        fwrite("MTrk", 1, 4, pfile);
+        lwTrackLenPos = ftell(pfile);
+        _PutBe(pfile, 0, 4);
+        lwTrackStart = ftell(pfile);
+        // ...at one quarter per second, so a tick is a millisecond
+        _PutVar(pfile, 0);
+        fputc(0xFF, pfile);
+        fputc(0x51, pfile);
+        fputc(0x03, pfile);
+        _PutBe(pfile, 1000000, 3);
+
+        mstp.Init(pmids, 0, 500000);
+        while (mstp.FGetEvent(&midev))
+        {
+            if (midev.cb <= 0 || midev.rgbSend[0] < 0x80 || midev.rgbSend[0] >= 0xF0)
+                continue; // tempo marker, or nothing a synth needs
+            _PutVar(pfile, midev.ts - tsLast);
+            fwrite(midev.rgbSend, 1, midev.cb, pfile);
+            tsLast = midev.ts;
+        }
+        _PutVar(pfile, 0);
+        fputc(0xFF, pfile);
+        fputc(0x2F, pfile);
+        fputc(0x00, pfile);
+        lwEnd = ftell(pfile);
+        fseek(pfile, lwTrackLenPos, SEEK_SET);
+        _PutBe(pfile, lwEnd - lwTrackStart, 4);
+        fclose(pfile);
+        ReleasePpo(&pmids);
+        psndf->dtsLen = tsLast;
+        return fTrue;
+    }
+    return fFalse;
+}
+
+/***************************************************************************
+    Write audio.ffscript: an ffmpeg filtergraph that rebuilds the
+    soundtrack from the extracted sounds (MIDI files are expected to have
+    been rendered to sNNN.mid.wav first). Run from the output folder:
+        ffmpeg -filter_complex_script audio.ffscript -map [aout] audio.wav
+***************************************************************************/
+void RAPP::_WriteAudioScript(ulong dtsEnd)
+{
+    char szPath[MAX_PATH];
+    FILE *pfile;
+    CUE cue;
+    SNDF sndf;
+    VLMEV vlmev;
+    long icue, ccue = 0, ivlmev;
+
+    if (pvNil == _pglcue || pvNil == _pglsndf)
+        return;
+
+    _snprintf(szPath, MAX_PATH, "%s\\audio.ffscript", _stnOutDir.Psz());
+    if (pvNil == (pfile = fopen(szPath, "w")))
+        return;
+
+    // a silent bed exactly as long as the movie anchors the mix at t=0
+    fprintf(pfile, "anullsrc=r=44100:cl=stereo,atrim=duration=%.3f,aformat=sample_fmts=fltp[base];\n", dtsEnd / 1000.0);
+
+    for (icue = 0; icue < _pglcue->IvMac(); icue++)
+    {
+        ulong tsEnd, dtsPlay;
+        long cloop;
+
+        _pglcue->Get(icue, &cue);
+        _pglsndf->Get(cue.isndf, &sndf);
+        tsEnd = LwMin(cue.tsEnd, dtsEnd);
+        if (tsEnd <= cue.tsStart || cue.tsStart >= dtsEnd)
+            continue;
+        dtsPlay = tsEnd - cue.tsStart;
+
+        // ffmpeg can't trim an endless loop, so ask for just enough loops
+        if (cue.cactPlay > 0 && cue.cactPlay < kcactLoopForever)
+            cloop = cue.cactPlay;
+        else if (sndf.dtsLen > 0)
+            cloop = (long)((cue.dtsOffset + dtsPlay) / sndf.dtsLen) + 1;
+        else
+            cloop = 1;
+
+        fprintf(pfile,
+                "amovie='sounds/s%03ld.%s':loop=%ld,atrim=start=%.3f:duration=%.3f,asetpts=PTS-STARTPTS,"
+                "aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,volume=%.4f,"
+                "adelay=delays=%lu:all=1[a%ld];\n",
+                cue.isndf, sndf.ctg == kctgMidi ? "mid.wav" : "wav", cloop, cue.dtsOffset / 1000.0, dtsPlay / 1000.0,
+                (double)cue.vlm / kvlmFull, cue.tsStart, ccue);
+        ccue++;
+    }
+
+    fprintf(pfile, "[base]");
+    for (icue = 0; icue < ccue; icue++)
+        fprintf(pfile, "[a%ld]", icue);
+    fprintf(pfile, "amix=inputs=%ld:normalize=0:duration=first", ccue + 1);
+
+    // master volume envelope (the end-of-movie fade)
+    if (_pglvlmev->IvMac() > 0)
+    {
+        fprintf(pfile, ",volume='");
+        for (ivlmev = 0; ivlmev < _pglvlmev->IvMac(); ivlmev++)
+        {
+            _pglvlmev->Get(ivlmev, &vlmev);
+            fprintf(pfile, "if(lt(t,%.3f),%.4f,", vlmev.ts / 1000.0,
+                    ivlmev == 0 ? 1.0 : (double)((VLMEV *)_pglvlmev->QvGet(ivlmev - 1))->vlm / kvlmFull);
+        }
+        fprintf(pfile, "%.4f", (double)vlmev.vlm / kvlmFull);
+        for (ivlmev = 0; ivlmev < _pglvlmev->IvMac(); ivlmev++)
+            fputc(')', pfile);
+        fprintf(pfile, "':eval=frame");
+    }
+    fprintf(pfile, "[aout]\n");
+    fclose(pfile);
+    _Log("audio: %ld sounds, %ld cues", _pglsndf->IvMac(), ccue);
 }

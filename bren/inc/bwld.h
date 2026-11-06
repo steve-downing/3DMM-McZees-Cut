@@ -137,6 +137,9 @@ class BWLD : public BWLD_PAR
     bool FRenderEye(double dxrEye);
     void EndStereo(void);
     double DzrFromZ(ushort suZ);
+    void GetCameraParams(double *pdzrHither, double *pdzrYon, double *pradFov);
+    bool FDumpDepth(PSZ pszFile, bool fWorking);
+    void GetDepthStats(bool fActorsOnly, long *prgsuPercentile, long cpercentile);
 
   protected:
     byte *_prgbStereo;     // reprojected background RGB for one eye

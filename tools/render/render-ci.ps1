@@ -32,6 +32,23 @@ if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
     $env:PATH = "C:\ProgramData\chocolatey\bin;$env:PATH"
 }
 
+# FluidSynth + a General MIDI SoundFont, for the music
+$tools = Join-Path $build "tools"
+New-Item -ItemType Directory -Force $tools | Out-Null
+$soundFont = Join-Path $tools "GeneralUser-GS.sf2"
+if (-not (Test-Path $soundFont)) {
+    Invoke-WebRequest -UseBasicParsing -OutFile $soundFont `
+        "https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/main/GeneralUser-GS.sf2"
+}
+$fluid = Get-ChildItem -Recurse $tools -Filter fluidsynth.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $fluid -and $env:GH_TOKEN) {
+    gh release download --repo FluidSynth/fluidsynth --pattern "*win10-x64*.zip" --dir $tools --clobber
+    Get-ChildItem $tools -Filter *.zip | ForEach-Object { Expand-Archive -Force $_.FullName (Join-Path $tools "fluidsynth") }
+    $fluid = Get-ChildItem -Recurse $tools -Filter fluidsynth.exe | Select-Object -First 1
+}
+$fluidPath = if ($fluid) { $fluid.FullName } else { "fluidsynth" }
+Write-Host "fluidsynth: $fluidPath"
+
 $work = Join-Path $env:RUNNER_TEMP "render-work"
 if (-not $env:RUNNER_TEMP) { $work = Join-Path $build "render-work" }
 $summary = @()
@@ -69,21 +86,26 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
     $frames = @(Get-ChildItem "$rawMode/frames" -Filter *.bmp -ErrorAction SilentlyContinue)
 
     if ($frames.Count -gt 0 -and (Test-Path "$rawMode/timeline.ffconcat")) {
-        # stereo frames are side-by-side; preview them as red/cyan anaglyph
         $look = if ($mode -eq "stereo") { "stereo3d=sbsl:arcd," } else { "" }
-        $tile = if ($mode -eq "stereo") { "272:153" } else { "272:153" }
-        Push-Location $rawMode
-        ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i timeline.ffconcat `
-            -vf "${look}fps=30,format=yuv420p" -c:v libx264 -crf 26 -preset veryfast (Join-Path $keepMode "preview.mp4")
-        Pop-Location
+        $fmts = if ($mode -eq "stereo") { @("anaglyph") } else { @("2d") }
+        & "$PSScriptRoot/encode-movie.ps1" -RenderDir $rawMode -OutBase (Join-Path $keepMode "preview") `
+            -Formats $fmts -SoundFont $soundFont -FluidSynth $fluidPath -Scale 1 -Crf 28
+        foreach ($f in "audio.ffscript") {
+            if (Test-Path "$rawMode/$f") { Copy-Item "$rawMode/$f" $keepMode }
+        }
+        # contact sheet of 16 evenly spaced distinct frames, plus 3 full-size samples
         $step = [int][Math]::Max(1, [Math]::Floor($frames.Count / 16))
         $pick = for ($i = 0; $i -lt 16 -and $i * $step -lt $frames.Count; $i++) { $frames[$i * $step] }
         $list = Join-Path $rawMode "contact.txt"
         ($pick | ForEach-Object { "file '$($_.FullName -replace '\\','/')'" }) | Set-Content $list
         ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i $list `
-            -vf "${look}scale=${tile},tile=4x4" -frames:v 1 (Join-Path $keepMode "contact.png")
+            -vf "${look}scale=272:153,tile=4x4" -frames:v 1 (Join-Path $keepMode "contact.png")
         foreach ($i in @(0, [int][Math]::Floor($frames.Count / 2), ($frames.Count - 1))) {
             ffmpeg -hide_banner -loglevel error -y -i $frames[$i].FullName (Join-Path $keepMode ("frame-{0:D6}.png" -f $i))
+        }
+        # stereo depth diagnostics (16-bit PGM -> PNG)
+        foreach ($pgm in Get-ChildItem $rawMode -Filter "depth-*.pgm" -ErrorAction SilentlyContinue) {
+            ffmpeg -hide_banner -loglevel error -y -i $pgm.FullName (Join-Path $keepMode ($pgm.BaseName + ".png"))
         }
     }
 

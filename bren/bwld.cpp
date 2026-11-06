@@ -18,6 +18,7 @@
 
 ***************************************************************************/
 #include <math.h>
+#include <stdio.h>
 #include "bren.h"
 
 // REVIEW *****: _pgptStretch is completely unused...remove it!
@@ -1045,4 +1046,79 @@ void BWLD::EndStereo(void)
 
     _pregnDirtyWorking->SetRc(&_rcBuffer);
     _fWorldChanged = fTrue;
+}
+
+/***************************************************************************
+    Stereo diagnostics.
+***************************************************************************/
+void BWLD::GetCameraParams(double *pdzrHither, double *pdzrYon, double *pradFov)
+{
+    *pdzrHither = BrScalarToFloat(_bcam.hither_z);
+    *pdzrYon = BrScalarToFloat(_bcam.yon_z);
+    *pradFov = (double)_bcam.field_of_view * 2.0 * 3.14159265358979323846 / 65536.0;
+}
+
+// 16-bit binary PGM of the background (or working) depth buffer
+bool BWLD::FDumpDepth(PSZ pszFile, bool fWorking)
+{
+    PZBMP pzbmp = fWorking ? _pzbmpWorking : _pzbmpBackground;
+    long dxp = _rcBuffer.Dxp();
+    long dyp = _rcBuffer.Dyp();
+    long xp, yp;
+    FILE *pfile;
+
+    if (pvNil == pzbmp || pvNil == (pfile = fopen(pszFile, "wb")))
+        return fFalse;
+    fprintf(pfile, "P5\n%ld %ld\n65535\n", dxp, dyp);
+    for (yp = 0; yp < dyp; yp++)
+    {
+        ushort *psu = (ushort *)(pzbmp->Prgb() + yp * pzbmp->CbRow());
+        for (xp = 0; xp < dxp; xp++)
+        {
+            fputc(psu[xp] >> 8, pfile);
+            fputc(psu[xp] & 0xFF, pfile);
+        }
+    }
+    fclose(pfile);
+    return fTrue;
+}
+
+// Percentiles (in 1/cpercentile steps) of background Z, or of the Z of
+// pixels where the working buffer differs from the background (actors)
+void BWLD::GetDepthStats(bool fActorsOnly, long *prgsuPercentile, long cpercentile)
+{
+    long dxp = _rcBuffer.Dxp();
+    long dyp = _rcBuffer.Dyp();
+    long xp, yp, ip, csample = 0, ccum, iz;
+    long *prgc = pvNil;
+
+    for (ip = 0; ip <= cpercentile; ip++)
+        prgsuPercentile[ip] = -1;
+    if (pvNil == _pzbmpBackground || pvNil == _pzbmpWorking ||
+        !FAllocPv((void **)&prgc, 65536 * size(long), fmemClear, mprNormal))
+        return;
+    for (yp = 0; yp < dyp; yp++)
+    {
+        ushort *psuB = (ushort *)(_pzbmpBackground->Prgb() + yp * _pzbmpBackground->CbRow());
+        ushort *psuW = (ushort *)(_pzbmpWorking->Prgb() + yp * _pzbmpWorking->CbRow());
+        for (xp = 0; xp < dxp; xp++)
+        {
+            if (fActorsOnly && psuB[xp] == psuW[xp])
+                continue;
+            prgc[fActorsOnly ? psuW[xp] : psuB[xp]]++;
+            csample++;
+        }
+    }
+    if (csample > 0)
+    {
+        ccum = 0;
+        ip = 0;
+        for (iz = 0; iz < 65536 && ip <= cpercentile; iz++)
+        {
+            ccum += prgc[iz];
+            while (ip <= cpercentile && ccum * cpercentile >= ip * csample && ccum > 0)
+                prgsuPercentile[ip++] = iz;
+        }
+    }
+    FreePpv((void **)&prgc);
 }

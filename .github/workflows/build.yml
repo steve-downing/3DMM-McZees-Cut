@@ -37,6 +37,8 @@ jobs:
       - name: Render test movies
         if: steps.compile.outcome == 'success' && hashFiles('tools/render/render-ci.ps1') != ''
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: ./tools/render/render-ci.ps1 -BuildDir build -MovieDir test-movies -OutDir ci-out/render
 
       - name: Publish results to ci-results branch

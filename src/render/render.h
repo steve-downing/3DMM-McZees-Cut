@@ -15,6 +15,106 @@
 #ifndef RENDER_H
 #define RENDER_H
 
+// A sound the movie used, extracted to <outdir>\sounds
+struct SNDF
+{
+    PCRF pcrf;
+    CTG ctg;
+    CNO cno;
+    ulong dtsLen; // length of one play, 0 if unknown
+};
+
+// One SiiPlay call: when it started and stopped on the movie timeline
+struct CUE
+{
+    long sii;
+    long isndf;
+    CTG ctgDev;
+    long sqn;
+    long scl;
+    long vlm;
+    long cactPlay;
+    ulong dtsOffset;
+    ulong tsStart;
+    ulong tsEnd;
+};
+
+// Master volume change (the engine fades the master volume at the end)
+struct VLMEV
+{
+    ulong ts;
+    long vlm;
+};
+
+/***************************************************************************
+    Render sound device: plays nothing, keeps time. Every sound the
+    engine plays is extracted once and logged as a cue on the movie
+    timeline; "is it still playing?" is answered from the sound's real
+    length, so wait-for-sound pauses behave as they do in 3DMM.
+***************************************************************************/
+typedef class RSDV *PRSDV;
+#define RSDV_PAR SNDV
+#define kclsRSDV 'RSDV'
+class RSDV : public RSDV_PAR
+{
+    RTCLASS_DEC
+
+  protected:
+    CTG _ctg;
+
+  public:
+    RSDV(CTG ctg)
+    {
+        _ctg = ctg;
+    }
+
+    virtual bool FActive(void)
+    {
+        return fTrue;
+    }
+    virtual void Activate(bool fActive)
+    {
+    }
+    virtual void Suspend(bool fSuspend)
+    {
+    }
+    virtual void SetVlm(long vlm);
+    virtual long VlmCur(void);
+
+    virtual long SiiPlay(PRCA prca, CTG ctg, CNO cno, long sqn = ksqnNone, long vlm = kvlmFull, long cactPlay = 1,
+                         ulong dtsStart = 0, long spr = 0, long scl = sclNil);
+
+    virtual void Stop(long sii);
+    virtual void StopAll(long sqn = sqnNil, long scl = sclNil);
+
+    virtual void Pause(long sii)
+    {
+        Stop(sii);
+    }
+    virtual void PauseAll(long sqn = sqnNil, long scl = sclNil)
+    {
+        StopAll(sqn, scl);
+    }
+    virtual void Resume(long sii)
+    {
+    }
+    virtual void ResumeAll(long sqn = sqnNil, long scl = sclNil)
+    {
+    }
+
+    virtual bool FPlaying(long sii);
+    virtual bool FPlayingAll(long sqn = sqnNil, long scl = sclNil);
+
+    virtual void Flush(void)
+    {
+    }
+
+    static long SiiNew(void)
+    {
+        return _SiiAlloc();
+    }
+};
+
 typedef class RAPP *PRAPP;
 #define RAPP_PAR APPB
 #define kclsRAPP 'RAPP'
@@ -59,6 +159,12 @@ class RAPP : public RAPP_PAR
     long _lwExit;
     double _dzrConvergeLast;
 
+    // audio
+    PGL _pglsndf;
+    PGL _pglcue;
+    PGL _pglvlmev;
+    long _vlmMaster;
+
     // init
     bool _FParseCommandLine(void);
     bool _FOpenOutput(void);
@@ -84,6 +190,8 @@ class RAPP : public RAPP_PAR
     void _FlushPendingFrame(ulong dtsOutNext);
     void _FinishTimeline(ulong dtsOutEnd);
     bool _FWriteBmp(PSTN pstnFile, byte *prgb);
+    bool _FWriteSoundFile(SNDF *psndf, long isndf);
+    void _WriteAudioScript(ulong dtsEnd);
 
     void _Log(PSZ pszFormat, ...);
     void _LogEngineErrors(PSZ pszContext);
@@ -104,6 +212,17 @@ class RAPP : public RAPP_PAR
     virtual void GetStnAppName(PSTN pstn);
     virtual void UpdateMarked(void);
     virtual tribool TGiveAlertSz(PSZ psz, long bk, long cok);
+
+    // sound bookkeeping, called by RSDV
+    long SiiPlaySound(CTG ctgDev, PRCA prca, CTG ctg, CNO cno, long sqn, long vlm, long cactPlay, ulong dtsStart,
+                      long scl);
+    void StopSounds(CTG ctgDev, long sii, long sqn, long scl);
+    bool FSoundsPlaying(CTG ctgDev, long sii, long sqn, long scl);
+    void SetMasterVlm(long vlm);
+    long VlmMaster(void)
+    {
+        return _vlmMaster;
+    }
 
     long LwExitCode(void)
     {
