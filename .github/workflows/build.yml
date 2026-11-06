@@ -20,12 +20,15 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x86
+          # SDK 10.0.26100 breaks kauai/src/appbwin.cpp (_mm_prefetch C2733)
+          sdk: 10.0.22621.0
 
       - name: Compile
         id: compile
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force ci-out | Out-Null
+          Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\Include' | Select-Object -ExpandProperty Name | Set-Content ci-out/sdks.txt
           cmake --preset x86:msvc:relwithdebinfo 2>&1 | Tee-Object -FilePath ci-out/configure.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           cmake --build build 2>&1 | Tee-Object -FilePath ci-out/build.log
