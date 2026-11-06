@@ -6,6 +6,12 @@
 # SoundFont are available; otherwise music is left silent and a warning
 # printed), then encodes each requested format from timeline.ffconcat:
 #
+# -AudioLevel auto (default) levels each music track against the dialogue,
+# ducks music under speech and normalizes loudness; "original" keeps the
+# raw mix. -Channels both (default) writes a 5.1 Dolby Digital track
+# (dialogue in the center) plus a stereo AAC track. Levels go in render.log,
+# which is copied next to the videos as <name>.log.
+#
 # -SoundFont takes a .sf2/.sf3 SoundFont or a .dls file (e.g. an SC-55
 # SoundFont), or the word "windows" for the Microsoft GS Wavetable Synth's
 # own instruments (%WINDIR%\System32\drivers\gm.dls). DLS needs a FluidSynth
@@ -22,6 +28,8 @@ param(
     [string]$SoundFont = $env:SOUNDFONT,
     [string]$FluidSynth = "fluidsynth",
     [double]$MidiGain = 0.6,
+    [ValidateSet("auto", "original")] [string]$AudioLevel = "auto",
+    [ValidateSet("both", "stereo", "5.1")] [string]$Channels = "both",
     [int]$Scale = 2,
     [int]$Crf = 18
 )
@@ -58,16 +66,30 @@ try {
             ffmpeg -hide_banner -loglevel error -y -f lavfi -i "anullsrc=r=44100:cl=stereo" -t 1 $wav
         }
     }
-    $audio = $null
-    if (Test-Path audio.ffscript) {
-        # ffmpeg 7 reads filtergraphs from files with -/filter_complex;
-        # older builds use -filter_complex_script
-        ffmpeg -hide_banner -loglevel error -y -/filter_complex audio.ffscript -map "[aout]" -c:a pcm_s16le audio.wav 2>$null
-        if ($LASTEXITCODE -ne 0) {
-            ffmpeg -hide_banner -loglevel error -y -filter_complex_script audio.ffscript -map "[aout]" -c:a pcm_s16le audio.wav
+    $audio51 = $null
+    $audioStereo = $null
+    if (Test-Path audio-cues.tsv) {
+        # leveled stems -> stereo + 5.1 (see mix-audio.ps1)
+        try {
+            $levels = & "$PSScriptRoot/mix-audio.ps1" -RenderDir $RenderDir -AudioLevel $AudioLevel
+            $levels | ForEach-Object { Write-Host $_ }
+            Add-Content -Path render.log -Value $levels
+            $audioStereo = "audio-stereo.wav"
+            $audio51 = "audio-51.wav"
+        } catch {
+            Write-Warning "soundtrack mix failed; encoding silent: $_"
+            Add-Content -Path render.log -Value "audio: mix failed: $_"
         }
-        if ($LASTEXITCODE -eq 0) { $audio = "audio.wav" } else { Write-Warning "soundtrack mix failed; encoding silent" }
+    } elseif (Test-Path audio.ffscript) {
+        # renders from before audio-cues.tsv existed: the raw stereo mix
+        ffmpeg -hide_banner -loglevel error -y -/filter_complex audio.ffscript -map "[aout]" -c:a pcm_s16le audio-stereo.wav 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            ffmpeg -hide_banner -loglevel error -y -filter_complex_script audio.ffscript -map "[aout]" -c:a pcm_s16le audio-stereo.wav
+        }
+        if ($LASTEXITCODE -eq 0) { $audioStereo = "audio-stereo.wav" } else { Write-Warning "soundtrack mix failed; encoding silent" }
     }
+    if ($Channels -eq "stereo") { $audio51 = $null }
+    if ($Channels -eq "5.1" -and $audio51) { $audioStereo = $null }
 
     # --- video ------------------------------------------------------------
     $failed = 0
@@ -83,11 +105,25 @@ try {
         $out = "$OutBase.$fmt.mp4"
         $inputs = @("-f", "concat", "-safe", "0", "-i", "timeline.ffconcat")
         $maps = @("-map", "0:v")
-        if ($audio) { $inputs += @("-i", $audio); $maps += @("-map", "1:a", "-c:a", "aac", "-b:a", "192k") }
+        $ia = 0
+        # 5.1 (Dolby Digital, dialogue in the center) first and default, then stereo AAC
+        if ($audio51) {
+            $inputs += @("-i", $audio51)
+            $maps += @("-map", "$($ia + 1):a", "-c:a:$ia", "ac3", "-b:a:$ia", "448k",
+                "-metadata:s:a:$ia", "title=5.1 (dialogue in center)", "-disposition:a:$ia", "default")
+            $ia++
+        }
+        if ($audioStereo) {
+            $inputs += @("-i", $audioStereo)
+            $maps += @("-map", "$($ia + 1):a", "-c:a:$ia", "aac", "-b:a:$ia", "192k", "-metadata:s:a:$ia", "title=Stereo")
+            if ($ia -gt 0) { $maps += @("-disposition:a:$ia", "0") }
+            $ia++
+        }
         ffmpeg -hide_banner -loglevel error -y @inputs -vf $vf @maps -c:v libx264 -crf $Crf -preset medium `
             -movflags +faststart -shortest $out
         if ($LASTEXITCODE -ne 0) { Write-Warning "encode failed: $out"; $failed++ }
     }
+    if (Test-Path render.log) { Copy-Item render.log "$OutBase.log" }
 } finally {
     Pop-Location
 }

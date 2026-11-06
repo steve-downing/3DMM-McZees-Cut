@@ -206,6 +206,7 @@ class RAPP : public RAPP_PAR
     bool _FWriteBmp(PSTN pstnFile, byte *prgb);
     bool _FWriteSoundFile(SNDF *psndf, long isndf);
     void _WriteAudioScript(ulong dtsEnd);
+    void _WriteAudioCues(ulong dtsEnd);
 
     void _Log(PSZ pszFormat, ...);
     void _LogEngineErrors(PSZ pszContext);

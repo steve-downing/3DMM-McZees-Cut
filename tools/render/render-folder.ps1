@@ -25,6 +25,8 @@ param(
     [string]$SoundFont = $env:SOUNDFONT,
     [string]$FluidSynth,
     [double]$MidiGain = 0.6,
+    [ValidateSet("auto", "original")] [string]$AudioLevel = "auto",
+    [ValidateSet("both", "stereo", "5.1")] [string]$Channels = "both",
     [double]$ClickPause = 3,
     [double]$EndHold = 3,
     [string]$Fonts,
@@ -144,7 +146,7 @@ foreach ($movie in $movies) {
     if ($row.status -eq "ok") {
         New-Item -ItemType Directory -Force (Split-Path -Parent $outBase) | Out-Null
         & $encoder -RenderDir $work -OutBase $outBase -Formats $Formats -SoundFont $SoundFont `
-            -FluidSynth $FluidSynth -MidiGain $MidiGain -Scale $Scale
+            -FluidSynth $FluidSynth -MidiGain $MidiGain -AudioLevel $AudioLevel -Channels $Channels -Scale $Scale
         if ($LASTEXITCODE -ne 0) { $row.status = "encode-failed" }
         $row.outputs = ($outputs | Where-Object { Test-Path $_ } | ForEach-Object { Split-Path -Leaf $_ }) -join "; "
     } else {

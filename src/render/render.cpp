@@ -1465,6 +1465,75 @@ void RAPP::_WriteAudioScript(ulong dtsEnd)
     fprintf(pfile, "[aout]\n");
     fclose(pfile);
     _Log("audio: %ld sounds, %ld cues", _pglsndf->IvMac(), ccue);
+    _WriteAudioCues(dtsEnd);
+}
+
+/***************************************************************************
+    audio-cues.tsv: the same cues as audio.ffscript, with each sound's
+    category (from the queue number MSND gives it: speech, effects,
+    music) and owner, so the encoder can level and route them.
+    audio-master.tsv: master volume changes.
+***************************************************************************/
+void RAPP::_WriteAudioCues(ulong dtsEnd)
+{
+    char szPath[MAX_PATH];
+    FILE *pfile;
+    CUE cue;
+    SNDF sndf;
+    VLMEV vlmev;
+    long icue, ivlmev;
+
+    _snprintf(szPath, MAX_PATH, "%s\\audio-cues.tsv", _stnOutDir.Psz());
+    if (pvNil == (pfile = fopen(szPath, "w")))
+        return;
+    fprintf(pfile, "# duration\t%.3f\n", dtsEnd / 1000.0);
+    fprintf(pfile, "file\tcategory\towner\tobject\tstart\tduration\toffset\tloops\tvolume\tlength\n");
+    for (icue = 0; icue < _pglcue->IvMac(); icue++)
+    {
+        ulong tsEnd, dtsPlay;
+        long cloop, sty, grfOwner;
+        PSZ pszCategory, pszOwner;
+
+        _pglcue->Get(icue, &cue);
+        _pglsndf->Get(cue.isndf, &sndf);
+        tsEnd = LwMin(cue.tsEnd, dtsEnd);
+        if (tsEnd <= cue.tsStart || cue.tsStart >= dtsEnd)
+            continue;
+        dtsPlay = tsEnd - cue.tsStart;
+        if (cue.cactPlay > 0 && cue.cactPlay < kcactLoopForever)
+            cloop = cue.cactPlay;
+        else if (sndf.dtsLen > 0)
+            cloop = (long)((cue.dtsOffset + dtsPlay) / sndf.dtsLen) + 1;
+        else
+            cloop = 1;
+
+        // MSND queue numbers: owner bits | sty << ksqnStyShift | object id
+        sty = (cue.sqn >> 16) & 0xFFF;
+        grfOwner = cue.sqn & 0x30000000;
+        if (sndf.ctg == kctgMidi || sty == styMidi)
+            pszCategory = PszLit("music");
+        else if (sty == stySpeech)
+            pszCategory = PszLit("speech");
+        else
+            pszCategory = PszLit("sfx");
+        pszOwner = (grfOwner == sqnActr) ? PszLit("actor") : (grfOwner == sqnBkgd ? PszLit("scene") : PszLit("none"));
+
+        fprintf(pfile, "sounds/s%03ld.%s\t%s\t%s\t%ld\t%.3f\t%.3f\t%.3f\t%ld\t%.4f\t%.3f\n", cue.isndf,
+                sndf.ctg == kctgMidi ? "mid.wav" : "wav", pszCategory, pszOwner, cue.sqn & 0xFFFF, cue.tsStart / 1000.0,
+                dtsPlay / 1000.0, cue.dtsOffset / 1000.0, cloop, (double)cue.vlm / kvlmFull, sndf.dtsLen / 1000.0);
+    }
+    fclose(pfile);
+
+    _snprintf(szPath, MAX_PATH, "%s\\audio-master.tsv", _stnOutDir.Psz());
+    if (pvNil == (pfile = fopen(szPath, "w")))
+        return;
+    fprintf(pfile, "time\tvolume\n");
+    for (ivlmev = 0; ivlmev < _pglvlmev->IvMac(); ivlmev++)
+    {
+        _pglvlmev->Get(ivlmev, &vlmev);
+        fprintf(pfile, "%.3f\t%.4f\n", vlmev.ts / 1000.0, (double)vlmev.vlm / kvlmFull);
+    }
+    fclose(pfile);
 }
 
 /***************************************************************************
