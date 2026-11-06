@@ -1,23 +1,83 @@
 name: build
-on: push
+on:
+  push:
+    branches-ignore:
+      - ci-results
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
   compile:
     name: Compile project
     runs-on: windows-latest
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v3
-      - name: Install VCVars
-        shell: pwsh
-        run: Install-Module -Name VCVars -Force
+        uses: actions/checkout@v4
+
+      - name: Set up MSVC (x86)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+
       - name: Compile
+        id: compile
         shell: pwsh
         run: |
-          pushvc (invoke-vcvars -TargetArch x86 -HostArch AMD64)
-          cmake --preset x86:msvc:debug
-          cmake --build build
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+          New-Item -ItemType Directory -Force ci-out | Out-Null
+          cmake --preset x86:msvc:relwithdebinfo 2>&1 | Tee-Object -FilePath ci-out/configure.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build 2>&1 | Tee-Object -FilePath ci-out/build.log
+          exit $LASTEXITCODE
+
+      - name: Render test movies
+        if: steps.compile.outcome == 'success' && hashFiles('tools/render/render-ci.ps1') != ''
+        shell: pwsh
+        run: ./tools/render/render-ci.ps1 -BuildDir build -MovieDir test-movies -OutDir ci-out/render
+
+      - name: Publish results to ci-results branch
+        if: always()
+        shell: pwsh
+        env:
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref_name }}
+          OUTCOME: ${{ steps.compile.outcome }}
+        run: |
+          $short = $env:SHA.Substring(0, 7)
+          "commit=$env:SHA`nbranch=$env:REF`ncompile=$env:OUTCOME`nrun=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" |
+            Set-Content ci-out/summary.txt
+          git config user.name "ci-results bot"
+          git config user.email "ci-results@users.noreply.github.com"
+          git fetch origin ci-results --depth 1 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            git worktree add ../results origin/ci-results
+          } else {
+            git worktree add --detach ../results
+            Push-Location ../results
+            git checkout --orphan tmp-results
+            git rm -rfq .
+            Pop-Location
+          }
+          $dest = "../results/runs/$short"
+          if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
+          New-Item -ItemType Directory -Force $dest | Out-Null
+          Copy-Item -Recurse ci-out/* $dest
+          Set-Content ../results/LATEST $short
+          Push-Location ../results
+          git add -A
+          git commit -qm "Results for $short ($env:REF, compile $env:OUTCOME)"
+          for ($i = 0; $i -lt 5; $i++) {
+            git push origin HEAD:ci-results
+            if ($LASTEXITCODE -eq 0) { break }
+            git fetch origin ci-results --depth 1
+            git rebase origin/ci-results
+          }
+          Pop-Location
+
+      - name: Upload build
+        if: steps.compile.outcome == 'success'
+        uses: actions/upload-artifact@v4
         with:
           name: 3D-Movie-Maker
           path: build/
