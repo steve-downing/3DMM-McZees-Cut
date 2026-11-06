@@ -133,8 +133,8 @@ class BWLD : public BWLD_PAR
     // shifted dxrEye world units along its own x axis (negative = left eye)
     // into the working buffers; the background is reprojected from its
     // depth map. Call EndStereo when done so the next Render() is mono.
-    bool FGetStereoGeometry(double *pdzrConverge, double *pdxpFocal);
-    bool FRenderEye(double dxrEye);
+    bool FGetStereoGeometry(double *pdzrConverge, double *pdzrNear, double *pdzrFar, double *pdxpFocal);
+    bool FRenderEye(double dxrEye, double dxpFocal);
     void EndStereo(void);
     double DzrFromZ(ushort suZ);
     void GetCameraParams(double *pdzrHither, double *pdzrYon, double *pradFov);

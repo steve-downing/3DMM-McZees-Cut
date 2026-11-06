@@ -131,6 +131,8 @@ class RAPP : public RAPP_PAR
     long _cfrmLimit;
     bool _fStereo;
     double _pctDepth;
+    double _pctPop;
+    bool _fDebug;
 
     // engine objects
     PCFL _pcfl;
@@ -158,6 +160,11 @@ class RAPP : public RAPP_PAR
     ulong _tsPauseStart;
     long _lwExit;
     double _dzrConvergeLast;
+    bool _fStereoValid;
+    BMAT34 _bmat34Stereo;
+    double _dxrEye;
+    double _dxpFocal;
+    long _dxpShift;
 
     // audio
     PGL _pglsndf;
@@ -180,6 +187,8 @@ class RAPP : public RAPP_PAR
     void _ConvertCapture(byte *prgbDst);
     void _PlaceEye(byte *prgbEye, byte *prgbFrame, long ieye, long dxpShift);
     void _DrawFrame(PMVU pmvu);
+    void _DrawFlatStereo(PMVU pmvu);
+    void _DumpStereoDebug(PBWLD pbwld);
     long _DxpOut(void)
     {
         return _fStereo ? 2 * 544 : 544;

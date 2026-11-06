@@ -44,7 +44,12 @@ try {
     }
     $audio = $null
     if (Test-Path audio.ffscript) {
-        ffmpeg -hide_banner -loglevel error -y -filter_complex_script audio.ffscript -map "[aout]" -c:a pcm_s16le audio.wav
+        # ffmpeg 7 reads filtergraphs from files with -/filter_complex;
+        # older builds use -filter_complex_script
+        ffmpeg -hide_banner -loglevel error -y -/filter_complex audio.ffscript -map "[aout]" -c:a pcm_s16le audio.wav 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            ffmpeg -hide_banner -loglevel error -y -filter_complex_script audio.ffscript -map "[aout]" -c:a pcm_s16le audio.wav
+        }
         if ($LASTEXITCODE -eq 0) { $audio = "audio.wav" } else { Write-Warning "soundtrack mix failed; encoding silent" }
     }
 

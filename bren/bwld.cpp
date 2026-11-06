@@ -819,68 +819,118 @@ bool BWLD::FWriteBmp(PFNI pfni)
     are filled from whichever neighbor is farther away. Prerendered actors
     live in the background buffers during playback, so they come along.
 
-    Depth convention, from BRender's perspective matrix (camera looks down
-    -z; z_ndc = +1 at hither, -1 at yon, linear in 1/d) with the 16-bit
-    Z-buffer running 0 at hither to 0xFFFF at yon.
+    Depth convention (measured against BRender's own actor transforms):
+    the 16-bit Z holds 32768 * z' with z' = -z_ndc = A - B/d, where
+    A = (yon+hither)/(yon-hither) and B = 2*yon*hither/(yon-hither).
+    Values >= 0x8000 are empty/clear (treated as infinitely far).
 ***************************************************************************/
+const double kdzrInfinity = 1e9;
+
 double BWLD::DzrFromZ(ushort suZ)
 {
     double dzrHither = BrScalarToFloat(_bcam.hither_z);
     double dzrYon = BrScalarToFloat(_bcam.yon_z);
-    double rcp = 1.0 / dzrHither + (suZ / 65535.0) * (1.0 / dzrYon - 1.0 / dzrHither);
+    double a = (dzrYon + dzrHither) / (dzrYon - dzrHither);
+    double b = 2.0 * dzrYon * dzrHither / (dzrYon - dzrHither);
+    double denom;
 
-    return 1.0 / rcp;
+    if (suZ >= 0x8000)
+        return kdzrInfinity;
+    denom = a - suZ / 32768.0;
+    if (denom <= 1e-9)
+        return kdzrInfinity;
+    return (b / denom < dzrHither) ? dzrHither : b / denom;
 }
 
 /***************************************************************************
-    Focal length in pixels, and a default convergence distance: the
-    median depth of the middle of the background, which is where 3DMM
-    scenes put their action. Things at that depth land on the screen
-    plane; nearer things come out of it.
+    Depth statistics for choosing stereo parameters, from the current
+    (mono-rendered) working buffers: the focal length in pixels, a
+    convergence distance (median actor depth if any actors are visible,
+    else the median depth of the middle of the scene), and near/far
+    depths (2nd/98th percentiles, far is infinite if any pixel is empty).
 ***************************************************************************/
-bool BWLD::FGetStereoGeometry(double *pdzrConverge, double *pdxpFocal)
+bool BWLD::FGetStereoGeometry(double *pdzrConverge, double *pdzrNear, double *pdzrFar, double *pdxpFocal)
 {
     AssertThis(0);
-    AssertVarMem(pdzrConverge);
-    AssertVarMem(pdxpFocal);
 
     const double kpi = 3.14159265358979323846;
     double radFov = (double)_bcam.field_of_view * 2.0 * kpi / 65536.0;
     long dxp = _rcBuffer.Dxp();
     long dyp = _rcBuffer.Dyp();
-    long xp, yp, csample, cmedian;
-    long *prgcZ = pvNil;
-    long iz;
-    ushort *psu;
+    long xp, yp, iz, ccum;
+    long *prgcAll = pvNil, *prgcActor = pvNil, *prgcMid = pvNil;
+    long cAll = 0, cActor = 0, cMid = 0, cEmpty = 0;
+    long izNear = -1, izFar = -1, izConv = -1;
 
-    if (_fHalfX || _fHalfY || pvNil == _pzbmpBackground || radFov <= 0)
+    if (_fHalfX || _fHalfY || pvNil == _pzbmpBackground || pvNil == _pzbmpWorking || radFov <= 0)
         return fFalse;
 
     *pdxpFocal = (dyp / 2.0) / tan(radFov / 2.0);
 
-    // histogram of the background's central region, at 1/256 resolution
-    if (!FAllocPv((void **)&prgcZ, 256 * size(long), fmemClear, mprNormal))
+    if (!FAllocPv((void **)&prgcAll, 3 * 0x8000 * size(long), fmemClear, mprNormal))
         return fFalse;
-    csample = 0;
-    for (yp = dyp / 4; yp < dyp * 9 / 10; yp += 2)
+    prgcActor = prgcAll + 0x8000;
+    prgcMid = prgcActor + 0x8000;
+
+    for (yp = 0; yp < dyp; yp++)
     {
-        psu = (ushort *)(_pzbmpBackground->Prgb() + yp * _pzbmpBackground->CbRow());
-        for (xp = dxp / 4; xp < dxp * 3 / 4; xp += 2)
+        ushort *psuB = (ushort *)(_pzbmpBackground->Prgb() + yp * _pzbmpBackground->CbRow());
+        ushort *psuW = (ushort *)(_pzbmpWorking->Prgb() + yp * _pzbmpWorking->CbRow());
+        for (xp = 0; xp < dxp; xp++)
         {
-            prgcZ[psu[xp] >> 8]++;
-            csample++;
+            ushort suZ = psuW[xp];
+            if (suZ >= 0x8000)
+            {
+                cEmpty++;
+                continue;
+            }
+            prgcAll[suZ]++;
+            cAll++;
+            if (suZ != psuB[xp])
+            {
+                prgcActor[suZ]++;
+                cActor++;
+            }
+            if (xp >= dxp / 4 && xp < dxp * 3 / 4 && yp >= dyp / 4 && yp < dyp * 9 / 10)
+            {
+                prgcMid[suZ]++;
+                cMid++;
+            }
         }
     }
-    cmedian = 0;
-    for (iz = 0; iz < 255; iz++)
-    {
-        cmedian += prgcZ[iz];
-        if (cmedian * 2 >= csample)
-            break;
-    }
-    FreePpv((void **)&prgcZ);
 
-    *pdzrConverge = DzrFromZ((ushort)((iz << 8) + 0x80));
+    if (cAll == 0)
+    {
+        FreePpv((void **)&prgcAll);
+        return fFalse; // nothing to see in depth
+    }
+
+    for (iz = 0, ccum = 0; iz < 0x8000; iz++)
+    {
+        ccum += prgcAll[iz];
+        if (izNear < 0 && ccum * 50 >= cAll)
+            izNear = iz;
+        if (izFar < 0 && ccum * 50 >= cAll * 49)
+            izFar = iz;
+    }
+    {
+        long *prgc = (cActor > dxp * dyp / 500) ? prgcActor : (cMid > 0 ? prgcMid : prgcAll);
+        long c = (prgc == prgcActor) ? cActor : (prgc == prgcMid ? cMid : cAll);
+        for (iz = 0, ccum = 0; iz < 0x8000; iz++)
+        {
+            ccum += prgc[iz];
+            if (ccum * 2 >= c)
+            {
+                izConv = iz;
+                break;
+            }
+        }
+    }
+    FreePpv((void **)&prgcAll);
+
+    *pdzrNear = DzrFromZ((ushort)izNear);
+    *pdzrConverge = DzrFromZ((ushort)izConv);
+    *pdzrFar = (cEmpty > dxp * dyp / 50) ? kdzrInfinity : DzrFromZ((ushort)izFar);
     return fTrue;
 }
 
@@ -890,7 +940,7 @@ void BWLD::_WarpBackground(double dxrEye, double dxpFocal)
     long dyp = _rcBuffer.Dyp();
     long xp, xpDst, yp, xpRun, xpSrc;
     long cbRowRGB;
-    long *prgdxp = pvNil;
+    short *prgdxp = pvNil;
     byte *prgfFilled = pvNil;
     byte *pbSrcRow, *pbDstRow;
     ushort *psuSrcRow, *psuDstRow;
@@ -902,7 +952,7 @@ void BWLD::_WarpBackground(double dxrEye, double dxpFocal)
         return;
     if (pvNil == _prgsuStereoZ && !FAllocPv((void **)&_prgsuStereoZ, dxp * dyp * size(ushort), fmemNil, mprNormal))
         return;
-    if (!FAllocPv((void **)&prgdxp, 256 * size(long), fmemNil, mprNormal))
+    if (!FAllocPv((void **)&prgdxp, 0x10000 * size(short), fmemNil, mprNormal))
         return;
     if (!FAllocPv((void **)&prgfFilled, dxp, fmemNil, mprNormal))
     {
@@ -910,11 +960,15 @@ void BWLD::_WarpBackground(double dxrEye, double dxpFocal)
         return;
     }
 
-    // parallax per depth bucket (256 buckets is far finer than a pixel)
-    for (lw = 0; lw < 256; lw++)
+    // parallax for every possible Z value
+    for (lw = 0; lw < 0x10000; lw++)
     {
-        double dx = -dxrEye * dxpFocal / DzrFromZ((ushort)((lw << 8) + 0x80));
-        prgdxp[lw] = (long)(dx < 0 ? dx - 0.5 : dx + 0.5);
+        double dx = -dxrEye * dxpFocal / DzrFromZ((ushort)lw);
+        if (dx > 1000)
+            dx = 1000;
+        if (dx < -1000)
+            dx = -1000;
+        prgdxp[lw] = (short)(dx < 0 ? dx - 0.5 : dx + 0.5);
     }
 
     prgbBkgd = _pgptBackground->PrgbLockPixels(&rc);
@@ -928,11 +982,11 @@ void BWLD::_WarpBackground(double dxrEye, double dxpFocal)
         psuDstRow = _prgsuStereoZ + yp * dxp;
         ClearPb(prgfFilled, dxp);
 
-        // forward splat, nearest wins
+        // forward splat, nearest (smallest Z; empty 0x8000+ is farthest) wins
         for (xp = 0; xp < dxp; xp++)
         {
             ushort suZ = psuSrcRow[xp];
-            xpDst = xp + prgdxp[suZ >> 8];
+            xpDst = xp + prgdxp[suZ];
             if (xpDst < 0 || xpDst >= dxp)
                 continue;
             if (!prgfFilled[xpDst] || suZ < psuDstRow[xpDst])
@@ -972,11 +1026,10 @@ void BWLD::_WarpBackground(double dxrEye, double dxpFocal)
     FreePpv((void **)&prgfFilled);
 }
 
-bool BWLD::FRenderEye(double dxrEye)
+bool BWLD::FRenderEye(double dxrEye, double dxpFocal)
 {
     AssertThis(0);
 
-    double dzrConverge, dxpFocal;
     long dxp = _rcBuffer.Dxp();
     long dyp = _rcBuffer.Dyp();
     long yp;
@@ -986,10 +1039,6 @@ bool BWLD::FRenderEye(double dxrEye)
     double rgdxr[3], dxrLen;
     long i;
     PBACT pbact;
-    RC rc;
-
-    if (!FGetStereoGeometry(&dzrConverge, &dxpFocal))
-        return fFalse;
 
     _WarpBackground(dxrEye, dxpFocal);
     if (pvNil == _prgbStereo || pvNil == _prgsuStereoZ)

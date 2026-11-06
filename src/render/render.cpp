@@ -6,9 +6,11 @@
                     [--max-frames <n>] [--stereo] [--depth <percent>]
 
     --stereo renders each frame twice, from a left and a right eye, and
-    writes them side by side (left | right) at double width. --depth sets
-    the parallax at infinity as a percentage of the picture width (default
-    2.5); things at the scene's middle depth sit on the screen plane.
+    writes them side by side (left | right) at double width. The actors
+    (or, with none in view, the middle of the set) sit on the screen
+    plane. --depth caps how far behind the screen the scene goes and --pop
+    how far in front of it things come, as a percentage of picture width
+    (defaults 2.5 and 1.5). --debug writes depth maps and depth stats.
 
     --root is the folder that contains the "3D Movie Maker" content folder
     (normally "C:\Program Files (x86)\Microsoft Kids"); it defaults to the
@@ -63,6 +65,9 @@ RAPP::RAPP(void)
     _cfrmLimit = 0;
     _fStereo = fFalse;
     _pctDepth = 2.5;
+    _pctPop = 1.5;
+    _fDebug = fFalse;
+    _fStereoValid = fFalse;
     _prgbEye = pvNil;
     _pglsndf = pvNil;
     _pglcue = pvNil;
@@ -231,6 +236,10 @@ bool RAPP::_FParseCommandLine(void)
             _fStereo = fTrue;
         else if (0 == strcmp(psz, "--depth") && iarg + 1 < __argc)
             _pctDepth = atof(__argv[++iarg]);
+        else if (0 == strcmp(psz, "--pop") && iarg + 1 < __argc)
+            _pctPop = atof(__argv[++iarg]);
+        else if (0 == strcmp(psz, "--debug"))
+            _fDebug = fTrue;
         else if (carg == 0)
         {
             _stnMovie.SetSz(psz);
@@ -251,7 +260,7 @@ bool RAPP::_FParseCommandLine(void)
     if (carg != 2)
     {
         fprintf(stderr, "usage: 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>] "
-                        "[--max-frames <n>] [--stereo] [--depth <percent>]\n");
+                        "[--max-frames <n>] [--stereo] [--depth <percent>] [--pop <percent>] [--debug]\n");
         return fFalse;
     }
     return fTrue;
@@ -296,7 +305,7 @@ bool RAPP::_FOpenOutput(void)
     _Log("movie: %s", _stnMovie.Psz());
     _Log("content root: %s", _stnRoot.Psz());
     if (_fStereo)
-        _Log("stereo: side-by-side, depth %.2f%%", _pctDepth);
+        _Log("stereo: side-by-side, depth %.2f%%, pop %.2f%%", _pctDepth, _pctPop);
     return fTrue;
 }
 
@@ -737,8 +746,8 @@ void RAPP::_PlaceEye(byte *prgbEye, byte *prgbFrame, long ieye, long dxpShift)
 void RAPP::_DrawFrame(PMVU pmvu)
 {
     PBWLD pbwld = _pmvie->Pbwld();
-    double dzrConverge, dxpFocal, dxpInfinity, dxrEye;
-    long dxpShift, ieye;
+    BMAT34 bmat34;
+    long ieye;
 
     if (!_fStereo)
     {
@@ -747,56 +756,94 @@ void RAPP::_DrawFrame(PMVU pmvu)
         return;
     }
 
-    dxpInfinity = _pctDepth / 100.0 * kdxpRender;
-    if (pvNil == _pmvie->Pscen() || pvNil == pbwld || !pbwld->FGetStereoGeometry(&dzrConverge, &dxpFocal))
+    if (pvNil == _pmvie->Pscen() || pvNil == pbwld)
     {
-        // no 3-D world to speak of (e.g. between scenes): both eyes the same
-        pmvu->DrawTree(_pgptCapture, pvNil, pvNil, fgobNil);
-        _ConvertCapture(_prgbEye);
-        _PlaceEye(_prgbEye, _prgbCur, 0, 0);
-        _PlaceEye(_prgbEye, _prgbCur, 1, 0);
+        _DrawFlatStereo(pmvu);
         return;
     }
 
-    // eye separation chosen so infinity lands dxpInfinity apart
-    dxrEye = dxpInfinity * dzrConverge / dxpFocal;
-    dxpShift = (long)(dxpInfinity / 2 + 0.5);
-    if (dzrConverge != _dzrConvergeLast)
+    // Stereo parameters are chosen once per camera view, from its first
+    // frame, so depth doesn't "breathe" as actors move around.
+    pbwld->Render();
+    pbwld->GetCamera(&bmat34);
+    if (!_fStereoValid || !FEqualRgb(&bmat34, &_bmat34Stereo, size(BMAT34)))
     {
-        double dzrHither, dzrYon, radFov;
-        long rgsuB[11], rgsuA[11];
-        char szPath[MAX_PATH];
+        double dzrConverge, dzrNear, dzrFar, kFar, kNear, dxr;
+        double dxpFar = _pctDepth / 100.0 * kdxpRender;
+        double dxpNear = _pctPop / 100.0 * kdxpRender;
 
-        _Event("stereo converge=%.3f focal=%.1fpx eye-separation=%.4f", dzrConverge, dxpFocal, dxrEye);
-        _dzrConvergeLast = dzrConverge;
+        _bmat34Stereo = bmat34;
+        _fStereoValid = fTrue;
+        _dxrEye = 0;
+        _dxpShift = 0;
+        if (pbwld->FGetStereoGeometry(&dzrConverge, &dzrNear, &dzrFar, &_dxpFocal))
+        {
+            // eye separation: as wide as the far and near budgets allow
+            kFar = 1.0 / dzrConverge - 1.0 / dzrFar;
+            kNear = 1.0 / dzrNear - 1.0 / dzrConverge;
+            _dxrEye = 1e30;
+            if (kFar > 1e-12)
+                _dxrEye = dxpFar / (_dxpFocal * kFar);
+            if (kNear > 1e-12 && (dxr = dxpNear / (_dxpFocal * kNear)) < _dxrEye)
+                _dxrEye = dxr;
+            if (_dxrEye >= 1e29)
+                _dxrEye = 0;
+            _dxpShift = (long)(_dxrEye * _dxpFocal / (2 * dzrConverge) + 0.5);
+            _Event("stereo view: converge=%.1f near=%.1f far=%.1f focal=%.0fpx eye=%.3f shift=%ldpx", dzrConverge,
+                   dzrNear, dzrFar >= 1e8 ? -1.0 : dzrFar, _dxpFocal, _dxrEye, _dxpShift);
+        }
+        else
+            _Event("stereo view: no depth, flat");
+        if (_fDebug)
+            _DumpStereoDebug(pbwld);
+    }
 
-        // diagnostics while the depth convention is being confirmed
-        pbwld->Render();
-        pbwld->GetCameraParams(&dzrHither, &dzrYon, &radFov);
-        pbwld->GetDepthStats(fFalse, rgsuB, 10);
-        pbwld->GetDepthStats(fTrue, rgsuA, 10);
-        _Event("camera hither=%.4f yon=%.4f fov=%.2fdeg", dzrHither, dzrYon, radFov * 180 / 3.14159265);
-        _Event("bkgd Z deciles %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld", rgsuB[0], rgsuB[1], rgsuB[2], rgsuB[3],
-               rgsuB[4], rgsuB[5], rgsuB[6], rgsuB[7], rgsuB[8], rgsuB[9], rgsuB[10]);
-        _Event("actor Z deciles %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld", rgsuA[0], rgsuA[1], rgsuA[2], rgsuA[3],
-               rgsuA[4], rgsuA[5], rgsuA[6], rgsuA[7], rgsuA[8], rgsuA[9], rgsuA[10]);
-        pbwld->LogDepthCalibration(_pfileEvents);
-        _snprintf(szPath, MAX_PATH, "%s\\depth-%06ld-bkgd.pgm", _stnOutDir.Psz(), _cfrmOut);
-        pbwld->FDumpDepth(szPath, fFalse);
-        _snprintf(szPath, MAX_PATH, "%s\\depth-%06ld-work.pgm", _stnOutDir.Psz(), _cfrmOut);
-        pbwld->FDumpDepth(szPath, fTrue);
+    if (_dxrEye <= 0)
+    {
+        _DrawFlatStereo(pmvu);
+        return;
     }
 
     for (ieye = 0; ieye < 2; ieye++)
     {
-        double dxr = (ieye == 0) ? -dxrEye / 2 : dxrEye / 2;
-        if (!pbwld->FRenderEye(dxr))
+        double dxr = (ieye == 0) ? -_dxrEye / 2 : _dxrEye / 2;
+        if (!pbwld->FRenderEye(dxr, _dxpFocal))
             _Log("stereo: eye render failed; using mono for this eye");
         pmvu->DrawTree(_pgptCapture, pvNil, pvNil, fgobNil);
         _ConvertCapture(_prgbEye);
-        _PlaceEye(_prgbEye, _prgbCur, ieye, (ieye == 0) ? -dxpShift : dxpShift);
+        _PlaceEye(_prgbEye, _prgbCur, ieye, (ieye == 0) ? -_dxpShift : _dxpShift);
     }
     pbwld->EndStereo();
+}
+
+// both eyes the same picture (no 3-D world, or no usable depth)
+void RAPP::_DrawFlatStereo(PMVU pmvu)
+{
+    pmvu->DrawTree(_pgptCapture, pvNil, pvNil, fgobNil);
+    _ConvertCapture(_prgbEye);
+    _PlaceEye(_prgbEye, _prgbCur, 0, 0);
+    _PlaceEye(_prgbEye, _prgbCur, 1, 0);
+}
+
+void RAPP::_DumpStereoDebug(PBWLD pbwld)
+{
+    double dzrHither, dzrYon, radFov;
+    long rgsuB[11], rgsuA[11];
+    char szPath[MAX_PATH];
+
+    pbwld->GetCameraParams(&dzrHither, &dzrYon, &radFov);
+    pbwld->GetDepthStats(fFalse, rgsuB, 10);
+    pbwld->GetDepthStats(fTrue, rgsuA, 10);
+    _Event("camera hither=%.4f yon=%.4f fov=%.2fdeg", dzrHither, dzrYon, radFov * 180 / 3.14159265);
+    _Event("bkgd Z deciles %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld", rgsuB[0], rgsuB[1], rgsuB[2], rgsuB[3],
+           rgsuB[4], rgsuB[5], rgsuB[6], rgsuB[7], rgsuB[8], rgsuB[9], rgsuB[10]);
+    _Event("actor Z deciles %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld %ld", rgsuA[0], rgsuA[1], rgsuA[2], rgsuA[3],
+           rgsuA[4], rgsuA[5], rgsuA[6], rgsuA[7], rgsuA[8], rgsuA[9], rgsuA[10]);
+    pbwld->LogDepthCalibration(_pfileEvents);
+    _snprintf(szPath, MAX_PATH, "%s\\depth-%06ld-bkgd.pgm", _stnOutDir.Psz(), _cfrmOut);
+    pbwld->FDumpDepth(szPath, fFalse);
+    _snprintf(szPath, MAX_PATH, "%s\\depth-%06ld-work.pgm", _stnOutDir.Psz(), _cfrmOut);
+    pbwld->FDumpDepth(szPath, fTrue);
 }
 
 void RAPP::_Capture(void)

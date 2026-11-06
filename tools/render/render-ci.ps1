@@ -65,7 +65,7 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
     New-Item -ItemType Directory -Force $rawMode, $keepMode | Out-Null
     $rargs = @("`"$($movie.FullName)`"", "`"$rawMode`"", "--root", "`"$stage`"")
     if ($mode -eq "stereo") {
-        $rargs += "--stereo"
+        $rargs += @("--stereo", "--debug")
         if ($StereoMaxFrames -gt 0) { $rargs += @("--max-frames", "$StereoMaxFrames") }
     }
 
