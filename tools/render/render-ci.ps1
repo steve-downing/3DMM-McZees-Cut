@@ -31,6 +31,17 @@ if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
     choco install ffmpeg -y --no-progress | Out-Null
     $env:PATH = "C:\ProgramData\chocolatey\bin;$env:PATH"
 }
+if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue) -and $env:GH_TOKEN) {
+    # chocolatey is occasionally unavailable; fall back to a static build
+    $ffDir = Join-Path $build "ffmpeg"
+    gh release download latest --repo BtbN/FFmpeg-Builds --pattern "ffmpeg-master-latest-win64-gpl.zip" --dir $ffDir --clobber
+    Expand-Archive -Force (Join-Path $ffDir "ffmpeg-master-latest-win64-gpl.zip") $ffDir
+    $ffBin = (Get-ChildItem -Recurse $ffDir -Filter ffmpeg.exe | Select-Object -First 1).DirectoryName
+    $env:PATH = "$ffBin;$env:PATH"
+    if ($env:GITHUB_PATH) { Add-Content -Path $env:GITHUB_PATH -Value $ffBin }
+}
+if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { throw "no ffmpeg" }
+"ffmpeg: $((Get-Command ffmpeg).Source)" | Write-Host
 
 # FluidSynth + a General MIDI SoundFont, for the music
 $tools = Join-Path $build "tools"
