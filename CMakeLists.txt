@@ -366,6 +366,29 @@ set_property(
     "${PROJECT_SOURCE_DIR}/cd3/SAMPLES/WHERE.3MM"
 )
 
+# Headless movie renderer: plays a .3mm with the real engine against a
+# virtual clock and writes every frame to disk. Console subsystem so it can
+# print progress, but it still enters through Kauai's WinMain.
+add_executable(render)
+target_sources(render
+    PRIVATE
+    "${PROJECT_SOURCE_DIR}/src/render/render.cpp"
+)
+target_include_directories(render
+  PRIVATE $<TARGET_PROPERTY:engine,INCLUDE_DIRECTORIES>
+  "${PROJECT_SOURCE_DIR}/src/render")
+target_link_libraries(render PRIVATE engine)
+set_property(TARGET render PROPERTY OUTPUT_NAME 3dmm-render)
+target_link_options(render
+  BEFORE PRIVATE
+    $<$<LINK_LANG_AND_ID:CXX,MSVC>:/SUBSYSTEM:CONSOLE>
+    $<$<LINK_LANG_AND_ID:CXX,MSVC>:/ENTRY:WinMainCRTStartup>
+    $<$<LINK_LANG_AND_ID:CXX,MSVC>:/MANIFESTUAC:NO>
+    $<$<AND:$<LINK_LANG_AND_ID:CXX,MSVC>,$<CONFIG:DEBUG>>:/NODEFAULTLIB:libcmt.lib>)
+# The renderer needs 3DMovie.chk at runtime, which the studio build chomps
+add_dependencies(render studio-chomp-chunks)
+install(TARGETS render RUNTIME DESTINATION .)
+
 # Please pay attention to the ending / in each DIRECTORY declaration. It
 # affects the destination!
 install(TARGETS studio RUNTIME DESTINATION .)
