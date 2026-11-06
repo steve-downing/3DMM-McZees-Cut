@@ -128,6 +128,7 @@ class RAPP : public RAPP_PAR
     STN _stnOutDir;
     STN _stnRoot;
     ulong _dtsClickPause;
+    ulong _dtsEndHold;
     long _cfrmLimit;
     bool _fStereo;
     double _pctDepth;

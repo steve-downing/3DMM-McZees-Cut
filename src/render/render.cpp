@@ -47,7 +47,6 @@ const ulong kdtsTick = 5;                            // virtual milliseconds per
 const ulong kdtsTransition = 4 * kdtsSecond;         // matches kdtsTrans in movie.cpp
 const long kcfrmTransition = 60;                     // synthesized frames per transition (15 fps)
 const ulong kdtsMaxMovie = 2 * 60 * 60 * kdtsSecond; // give up after 2 hours of movie time
-const ulong kdtsEndHold = kdtsSecond;                // how long to hold the final frame
 const long kccmdMaxPerTick = 2000;                   // runaway guard for the command queue
 
 /***************************************************************************
@@ -62,6 +61,7 @@ void FrameMain(void)
 RAPP::RAPP(void)
 {
     _dtsClickPause = 3 * kdtsSecond;
+    _dtsEndHold = 3 * kdtsSecond; // 3DMM leaves the last frame up; give it time to be read
     _cfrmLimit = 0;
     _fStereo = fFalse;
     _pctDepth = 2.5;
@@ -231,6 +231,8 @@ bool RAPP::_FParseCommandLine(void)
             _stnRoot.SetSz(__argv[++iarg]);
         else if (0 == strcmp(psz, "--click-pause") && iarg + 1 < __argc)
             _dtsClickPause = (ulong)(atof(__argv[++iarg]) * kdtsSecond);
+        else if (0 == strcmp(psz, "--end-hold") && iarg + 1 < __argc)
+            _dtsEndHold = (ulong)(atof(__argv[++iarg]) * kdtsSecond);
         else if (0 == strcmp(psz, "--max-frames") && iarg + 1 < __argc)
             _cfrmLimit = atol(__argv[++iarg]);
         else if (0 == strcmp(psz, "--stereo"))
@@ -260,8 +262,9 @@ bool RAPP::_FParseCommandLine(void)
 
     if (carg != 2)
     {
-        fprintf(stderr, "usage: 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>] "
-                        "[--max-frames <n>] [--stereo] [--depth <percent>] [--pop <percent>] [--debug]\n");
+        fprintf(stderr,
+                "usage: 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>] "
+                "[--end-hold <sec>] [--max-frames <n>] [--stereo] [--depth <percent>] [--pop <percent>] [--debug]\n");
         return fFalse;
     }
     return fTrue;
@@ -576,8 +579,8 @@ bool RAPP::_FRender(void)
     // one last look, in case the final frame never got flushed
     _Capture();
     _fCapturing = fFalse;
-    _FinishTimeline(_DtsOut() + kdtsEndHold);
-    _WriteAudioScript(_DtsOut() + kdtsEndHold);
+    _FinishTimeline(_DtsOut() + _dtsEndHold);
+    _WriteAudioScript(_DtsOut() + _dtsEndHold);
     _Event("end");
     _Log("done: %ld frames, %.2f seconds", _cfrmOut, _DtsOut() / 1000.0);
     return _lwExit == klwExitOk;
@@ -1058,7 +1061,7 @@ void RAPP::_CleanUp(void)
 {
     _fCapturing = fFalse;
     if (pvNil != _pfileTimeline)
-        _FinishTimeline(_DtsOut() + kdtsEndHold);
+        _FinishTimeline(_DtsOut() + _dtsEndHold);
     if (pvNil != _pfileEvents)
         fclose(_pfileEvents);
     _pfileEvents = pvNil;

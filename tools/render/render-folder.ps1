@@ -26,6 +26,7 @@ param(
     [string]$FluidSynth,
     [double]$MidiGain = 0.6,
     [double]$ClickPause = 3,
+    [double]$EndHold = 3,
     [int]$TimeoutMinutes = 30,
     [int]$Scale = 2,
     [switch]$KeepFrames,
@@ -113,7 +114,7 @@ foreach ($movie in $movies) {
     if (Test-Path $work) { Remove-Item -Recurse -Force $work }
     New-Item -ItemType Directory -Force $work | Out-Null
 
-    $rargs = @("`"$($movie.FullName)`"", "`"$work`"", "--root", "`"$Root`"", "--click-pause", "$ClickPause")
+    $rargs = @("`"$($movie.FullName)`"", "`"$work`"", "--root", "`"$Root`"", "--click-pause", "$ClickPause", "--end-hold", "$EndHold")
     if ($Stereo) { $rargs += @("--stereo", "--depth", "$Depth") }
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $proc = Start-Process -FilePath $Renderer -ArgumentList $rargs -PassThru -NoNewWindow `

@@ -42,6 +42,7 @@ are named. Re-running the script skips anything already up to date.
 | `-SoundFont` | GeneralUser GS | MIDI instruments: any `.sf2`/`.sf3`/`.dls`, or `windows` for the Windows GS Wavetable Synth's `gm.dls` |
 | `-MidiGain` | 0.6 | MIDI loudness (FluidSynth gain) relative to sound effects |
 | `-ClickPause` | 3 | seconds to hold "wait for mouse click" pauses (set with the pause buttons in the studio's Sounds tools) |
+| `-EndHold` | 3 | seconds to hold the final frame (3DMM leaves it on screen) |
 | `-Root` | auto | folder containing `3D Movie Maker` (to use another install's content) |
 | `-KeepFrames` | off | keep the raw frames and logs |
 | `-Force` | off | redo movies that are already up to date |
@@ -50,7 +51,7 @@ are named. Re-running the script skips anything already up to date.
 
 ```
 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--stereo] [--depth <pct>]
-            [--pop <pct>] [--click-pause <sec>] [--max-frames <n>] [--debug]
+            [--pop <pct>] [--click-pause <sec>] [--end-hold <sec>] [--max-frames <n>] [--debug]
 ```
 
 The output folder contains:
