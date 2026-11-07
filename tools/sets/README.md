@@ -52,6 +52,27 @@ This uses the measurements already committed in `airplane/data/`.
 `toon.py` is where all of the cabin's shapes, colors and placements live. For
 a change of look, edit it and rebuild.
 
+## Actors
+
+`lib/actor.py` reads 3DMM's actor templates from `content-files/tmpls.3cn`. It
+gives you the body-part tree, every action's cels, and the default costume,
+which is either palette colors or 8-bit textures. It can pose any actor in
+any cel, and `to_meshes` turns the result into textured glTF pieces with
+BRender's smoothing groups. To list an actor's parts and materials:
+
+```sh
+python lib/actor.py Gustave
+```
+
+`python airplane/actors.py` stands Gustave and Bongo in the cabin's aisle
+(`out/actors.glb`), using their 1995 models and textures unchanged. The
+explorer shows them when `build_site.py` finds that file, and has a button
+to hide them. `viewer/shoot.js` takes the actors file as an optional fourth
+argument.
+
+Actors are measured in the same world units as the sets: Gustave is about
+18 units tall, and a cabin seat back is about 12.6.
+
 ## Look at it
 
 ```sh

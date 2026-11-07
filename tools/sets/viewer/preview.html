@@ -26,6 +26,10 @@ g.scene.traverse(o=>{ if(!o.isMesh) return;
                     : addSurfaceTexture(new THREE.MeshStandardMaterial({vertexColors:true, flatShading:false, roughness:0.85, metalness:0, side:THREE.DoubleSide}));
   o.castShadow=!glow && !o.name.startsWith('cabin'); o.receiveShadow=true; });
 scene.add(g.scene);
+// optional actors (their own textured materials), served as actors.glb
+try { const ga=await new GLTFLoader().loadAsync('actors.glb');
+  ga.scene.traverse(o=>{ if(!o.isMesh) return; o.material.side=THREE.DoubleSide; if(o.material.map) o.material.map.colorSpace=THREE.SRGBColorSpace; o.castShadow=true; o.receiveShadow=true; });
+  scene.add(ga.scene); } catch(e) {}
 window.setView=(k)=>{ const v=cams[k]; const r=v.rot;
   const m=new THREE.Matrix4().makeBasis(new THREE.Vector3(...r[0]),new THREE.Vector3(...r[1]),new THREE.Vector3(...r[2]));
   m.setPosition(new THREE.Vector3(...v.pos)); cam.matrixAutoUpdate=false; cam.matrix.copy(m); cam.updateMatrixWorld(true);

@@ -2,8 +2,8 @@
 
     python build_site.py <set dir> <views dir> <site dir>
 
-Takes <set dir>/out/toon.glb and, if present, out/cabin.glb (the photo
-version, compressed with gltfpack). Models ship as base64 .glb.txt files
+Takes <set dir>/out/toon.glb and, if present, out/actors.glb (original actors
+placed in the set) and out/cabin.glb (the photo version, compressed with gltfpack). Models ship as base64 .glb.txt files
 because some static hosts won't serve .glb. index.html loads three.js from a
 CDN; for a local test, serve <site dir> over http (file:// won't load modules)."""
 import sys, os, shutil, base64, subprocess, tempfile
@@ -23,6 +23,8 @@ def main(setdir, views, site):
             glb = packed
         open(os.path.join(site, name + '.glb.txt'), 'w').write(base64.b64encode(open(glb, 'rb').read()).decode())
     ship(os.path.join(setdir, 'out', 'toon.glb'), 'toon', False)
+    actors = os.path.join(setdir, 'out', 'actors.glb')
+    if os.path.exists(actors): ship(actors, 'actors', False)
     photo = os.path.join(setdir, 'out', 'cabin.glb')
     if os.path.exists(photo): ship(photo, 'cabin', True)
     print('site ->', site)

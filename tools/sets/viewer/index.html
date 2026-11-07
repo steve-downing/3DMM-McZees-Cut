@@ -86,7 +86,7 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
 <div id="title" class="hud">
   <div class="tag">3D Movie Maker · AD-Airplane background</div>
   <h1>Airplane interior, in 3D</h1>
-  <p>Rebuilt from parts measured off the nine camera angles and their depth buffers: one cabin cross-section swept end to end, and one seat placed 13 times. Cartoon is a low-poly remake under real lights; Photo keeps the original 1995 renders as textures.</p>
+  <p>Rebuilt from parts measured off the nine camera angles and their depth buffers: one cabin cross-section swept end to end, and one seat placed 13 times. Cartoon is a low-poly remake under real lights; Photo keeps the original 1995 renders as textures. Gustave and Bongo are 3DMM's own actors, models and textures untouched.</p>
 </div>
 
 <div id="help" class="hud">
@@ -112,6 +112,9 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
     <div class="seg" role="group" aria-label="Style">
       <button type="button" id="style-toon" aria-pressed="true">Cartoon</button>
       <button type="button" id="style-photo" aria-pressed="false">Photo</button>
+    </div>
+    <div class="seg" role="group" aria-label="Actors">
+      <button type="button" id="actors" aria-pressed="true" hidden>Actors</button>
     </div>
     <label class="mix" for="mix">Compare with original
       <input id="mix" type="range" min="0" max="100" value="0">
@@ -285,6 +288,27 @@ function setStyle(name) {
 document.getElementById('style-toon').addEventListener('click', () => setStyle('toon'));
 document.getElementById('style-photo').addEventListener('click', () => setStyle('cabin'));
 setStyle('toon');
+
+// original 3DMM actors standing in the set (their own 1995 models and textures), if shipped
+const actorsBtn = document.getElementById('actors');
+fetch('actors.glb.txt').then(r => { if (!r.ok) throw new Error('none'); return r.text(); }).then(b64 => {
+  const bin = atob(b64.trim()); const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return loader.parseAsync(buf.buffer, '');
+}).then(g => {
+  g.scene.traverse(o => {
+    if (!o.isMesh) return;
+    o.material.side = THREE.DoubleSide;
+    if (o.material.map) o.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    o.castShadow = true; o.receiveShadow = true;
+  });
+  scene.add(g.scene); renderer.shadowMap.needsUpdate = true; invalidate();
+  actorsBtn.hidden = false;
+  actorsBtn.addEventListener('click', () => {
+    g.scene.visible = !g.scene.visible; actorsBtn.setAttribute('aria-pressed', String(g.scene.visible));
+    renderer.shadowMap.needsUpdate = true; invalidate();
+  });
+}).catch(() => {});
 
 // start where 3DMM's first camera stood
 { const p = camPose(0); camera.position.copy(p.pos); yaw = p.yaw; pitch = p.pitch; roll = p.roll; camera.fov = p.fov; camera.updateProjectionMatrix(); setCurrent(0); }
