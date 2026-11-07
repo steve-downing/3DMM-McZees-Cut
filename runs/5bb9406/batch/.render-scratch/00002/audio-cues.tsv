@@ -1,0 +1,8 @@
+# duration	132.395
+file	category	owner	object	start	duration	offset	loops	volume	length
+sounds/s000.mid.wav	music	scene	0	0.000	129.395	0.000	2	1.0000	89.739
+sounds/s001.wav	sfx	scene	0	4.195	4.503	0.000	1	0.5000	4.503
+sounds/s002.wav	sfx	scene	0	97.385	1.308	0.000	1	0.5000	1.308
+sounds/s003.wav	sfx	scene	0	98.693	1.146	0.000	1	0.5000	1.146
+sounds/s002.wav	sfx	scene	0	109.890	1.308	0.000	1	0.5000	1.308
+sounds/s003.wav	sfx	scene	0	111.198	1.146	0.000	1	0.5000	1.146

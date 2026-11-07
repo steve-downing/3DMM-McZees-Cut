@@ -1,0 +1,8 @@
+movie: D:\a\_temp\batch-in\Jungle.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\package\3dmm-render\Microsoft Kids
+stereo: side-by-side, depth 2.50%, pop 1.50%
+fonts: 177 TrueType faces available
+scenes: 8
+audio: 4 sounds, 6 cues
+done: 965 frames, 129.40 seconds
+exit code 0

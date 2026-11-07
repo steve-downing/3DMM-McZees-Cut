@@ -1,0 +1,1 @@
+anullsrc=r=44100:cl=stereo,atrim=duration=132.395,aformat=sample_fmts=fltp[aout]
