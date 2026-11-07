@@ -1,0 +1,14 @@
+3dmm-crt: 544x306 -> 3264x1836 at 6x in a 3840x2160 frame, mask shadow, SDR, from 2-D render
+3dmm-crt: 544x306 -> 3264x1836 at 6x in a 3840x2160 frame, mask grille, SDR, from 2-D render
+3dmm-crt: 544x306 -> 3264x1836 at 6x in a 3840x2160 frame, mask slot, SDR, from 2-D render
+3dmm-crt: 544x306 -> 3264x1836 at 6x in a 3840x2160 frame, mask shadow, HDR10, from 2-D render
+audio: 0 speech, 0 effect and 1 music cues; mode auto
+dialogue: none
+effects:  none
+music target: -16.0 LUFS (no dialogue or effects)
+  sounds/s000.mid.wav : measured -18.5 LUFS, applied 2.5 dB
+mix: measured -16.6 LUFS, applied 0.6 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -1.0 dBTP
+3dmm-crt: 544x306 -> 3264x1836 at 6x in a 3840x2160 frame, mask shadow, SDR, from 2-D render
+crt encode: 54 s for 90 frames
+3dmm-crt: 544x306 -> 3264x1836 at 6x in a 3840x2160 frame, mask shadow, SDR, from the 2-D view of a stereo render
