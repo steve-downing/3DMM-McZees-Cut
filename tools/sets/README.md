@@ -64,11 +64,21 @@ BRender's smoothing groups. To list an actor's parts and materials:
 python lib/actor.py Gustave
 ```
 
-`python airplane/actors.py` stands Gustave and Bongo in the cabin's aisle
-(`out/actors.glb`), using their 1995 models and textures unchanged. The
-explorer shows them when `build_site.py` finds that file, and has a button
-to hide them. `viewer/shoot.js` takes the actors file as an optional fourth
-argument.
+The explorer's actor picker uses `viewer/export_actors.py <dir>`. For each of
+the 45 actors in the game's actor browser, it exports two files:
+
+- a `.glb` holding every model that actor's actions use, in the model's own
+  space, wearing the default costume
+- a `.json` with the body-part tree and every action's cels: which model
+  each part shows, and its transform relative to its parent part (float16)
+
+`rig()` in `lib/actor.py` documents the format. Pass that folder as the fourth
+argument to `build_site.py`. The page loads one actor at a time on demand, and
+poses each frame by swapping models and setting part matrices, as 3DMM does.
+
+`python airplane/actors.py` writes a static pose of two actors standing in the
+aisle (`out/actors.glb`). `viewer/shoot.js` accepts it as an optional fourth
+argument, for test renders.
 
 Actors are measured in the same world units as the sets: Gustave is about
 18 units tall, and a cabin seat back is about 12.6.
@@ -78,7 +88,8 @@ Actors are measured in the same world units as the sets: Gustave is about
 ```sh
 python viewer/export_views.py 10 views        # the 9 original pictures + cams.json
 python viewer/compare.py airplane/out/toon.glb views compare.png
-python viewer/build_site.py airplane views site
+python viewer/export_actors.py build              # all 45 actors -> build/actors (~42 MB)
+python viewer/build_site.py airplane views site build
 ```
 
 - `compare.py` renders every original camera angle, putting ours on the left

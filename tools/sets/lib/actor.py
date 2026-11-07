@@ -90,7 +90,7 @@ class Template:
         _, _, brc, ka, kd, ks, base, rng, power = struct.unpack('<hhIHHHBBi', d[:20])
         mkids = s.B.c.chunks[ref]['kids']
         tm = s._kid('TMAP', 0, mkids)
-        out = dict(base=base, range=rng, brc=brc, ka=ka / 65536, kd=kd / 65536, ks=ks / 65536)
+        out = dict(ref=ref, base=base, range=rng, brc=brc, ka=ka / 65536, kd=kd / 65536, ks=ks / 65536)
         if tm:
             _, _, cbRow, typ, grf, xl, yt, dxp, dyp, xo, yo = struct.unpack('<hhhBBhhhhhh', tm[:20])
             px = np.frombuffer(tm[20:20 + cbRow * dyp], np.uint8).reshape(dyp, cbRow)[:, :dxp]
@@ -129,7 +129,8 @@ class Template:
             return world[i]
         out = []
         for i, (chid, M) in enumerate(cel):
-            ref = acc[i] if acc[i] else (s._kidref('BMDL', chid) if chid is not None else None)
+            # the cel's model wins; a costume accessory shows only where the cel names none
+            ref = s._kidref('BMDL', chid) if chid is not None else acc[i]
             if not ref: continue
             V, UV, F, sm = model(s.B.get(*ref))
             if len(F) == 0: continue
@@ -151,31 +152,73 @@ def smooth_by_groups(V, F, smooth):
             N[fi, c] = acc / (np.linalg.norm(acc) + 1e-12)
     return N
 
-def to_meshes(parts, M=np.eye(4), name='actor'):
-    """trimesh pieces (unindexed corners, textured or vertex-colored) for posed parts, placed by M"""
+def part_mesh(V, UV, F, sm, m, cache=None, M=np.eye(4)):
+    """one trimesh piece (unindexed corners) for a model with its material, placed by M.
+    Materials are shared through cache (keyed by MTRL chunk) so exports don't repeat textures."""
     import trimesh
     from PIL import Image
-    out = []
-    R = M[:3, :3]
-    for V, UV, F, sm, m, i in parts:
-        Vw = np.c_[V, np.ones(len(V))] @ M.T
-        N = smooth_by_groups(V, F, sm) @ R.T
-        P = Vw[F][:, :, :3].reshape(-1, 3); N = N.reshape(-1, 3)
-        T = np.arange(len(P)).reshape(-1, 3)
+    cache = {} if cache is None else cache
+    Vw = np.c_[V, np.ones(len(V))] @ M.T
+    N = smooth_by_groups(V, F, sm) @ M[:3, :3].T
+    P = Vw[F][:, :, :3].reshape(-1, 3); N = N.reshape(-1, 3)
+    T = np.arange(len(P)).reshape(-1, 3)
+    key = m['ref'] if m else None
+    if key not in cache:
         if m and 'image' in m:
-            uv = UV
-            if 'uvxf' in m: uv = np.c_[UV, np.ones(len(UV))] @ m['uvxf']
-            uvc = uv[F].reshape(-1, 2)
-            mat = trimesh.visual.material.PBRMaterial(baseColorTexture=Image.fromarray(m['image']), roughnessFactor=0.85, metallicFactor=0.0)
-            vis = trimesh.visual.TextureVisuals(uv=np.c_[uvc[:, 0], 1 - uvc[:, 1]], material=mat)
+            cache[key] = trimesh.visual.material.PBRMaterial(baseColorTexture=Image.fromarray(m['image']), roughnessFactor=0.85, metallicFactor=0.0)
         else:
             ramp = m['ramp'] if m else np.array([[200, 200, 200]])
-            col = ramp[min(len(ramp) - 1, int(len(ramp) * 0.72))]
-            mat = trimesh.visual.material.PBRMaterial(baseColorFactor=list(col / 255.0) + [1.0], roughnessFactor=0.85, metallicFactor=0.0)
-            vis = trimesh.visual.TextureVisuals(uv=np.zeros((len(P), 2)), material=mat)
-        mesh = trimesh.Trimesh(P, T, vertex_normals=N, visual=vis, process=False)
-        out.append(('%s_part%02d' % (name, i), mesh))
-    return out
+            col = ramp[min(len(ramp) - 1, int(len(ramp) * 0.72))]     # a lit shade from the palette ramp
+            cache[key] = trimesh.visual.material.PBRMaterial(baseColorFactor=list(col / 255.0) + [1.0], roughnessFactor=0.85, metallicFactor=0.0)
+    if m and 'image' in m:
+        uv = np.c_[UV, np.ones(len(UV))] @ m['uvxf'] if 'uvxf' in m else UV
+        uvc = uv[F].reshape(-1, 2); uvc = np.c_[uvc[:, 0], 1 - uvc[:, 1]]
+    else:
+        uvc = np.zeros((len(P), 2))
+    vis = trimesh.visual.TextureVisuals(uv=uvc, material=cache[key])
+    return trimesh.Trimesh(P, T, vertex_normals=N, visual=vis, process=False)
+
+def to_meshes(parts, M=np.eye(4), name='actor'):
+    """trimesh pieces for posed parts (from Template.pose), placed by M"""
+    cache = {}
+    return [('%s_part%02d' % (name, i), part_mesh(V, UV, F, sm, m, cache, M)) for V, UV, F, sm, m, i in parts]
+
+def rig(t):
+    """Everything needed to play an actor: every (body part, model) pair any cel uses,
+    as a trimesh scene of meshes named m0, m1, ... in the model's own space, and a
+    description of the body tree and every action's cels:
+      parents[part]               parent part, or -1 for the actor root
+      actions[k].xf               base64 little-endian float16, 12 per matrix: BRender 3x4
+                                  matrices, 4 rows of 3 (row-vector convention)
+      actions[k].cels[c][part]    [mesh index or -1, index into xf]: the part's model and
+                                  its transform relative to its parent for that cel"""
+    import trimesh
+    mats, acc = t.costume()
+    scene = trimesh.Scene(); meshes = {}; cache = {}
+    actions = []
+    for anid in sorted(t.actions):
+        a = t._kidref('ACTN', anid); akids = t.B.c.chunks[a]['kids']
+        cels = gg(t._kid('GGCL', 0, akids))
+        xf = np.array([struct.unpack('<12i', e) for e in gl(t._kid('GLXF', 0, akids))], float) * FX
+        out = []
+        for fixed, var in cels:
+            row = []
+            for part in range(len(var) // 4):
+                chid, im = struct.unpack('<hh', var[part * 4:part * 4 + 4])
+                ref = t._kidref('BMDL', chid) if chid != -1 else acc[part]
+                if ref is None: row.append([-1, im]); continue
+                if (part, ref) not in meshes:
+                    V, UV, F, sm = model(t.B.get(*ref))
+                    if len(F) == 0: meshes[(part, ref)] = -1
+                    else:
+                        k = len([v for v in meshes.values() if v >= 0])
+                        scene.add_geometry(part_mesh(V, UV, F, sm, mats[part], cache), geom_name='m%d' % k, node_name='m%d' % k)
+                        meshes[(part, ref)] = k
+                row.append([meshes[(part, ref)], im])
+            out.append(row)
+        import base64
+        actions.append(dict(name=t.actions[anid].rstrip(' *'), xf=base64.b64encode(xf.astype('<f2').tobytes()).decode(), cels=out))
+    return scene, dict(parents=t.parent, actions=actions, meshes=len([v for v in meshes.values() if v >= 0]))
 
 if __name__ == '__main__':
     t = Template(sys.argv[1])
