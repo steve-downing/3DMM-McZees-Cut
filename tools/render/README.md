@@ -44,7 +44,7 @@ text uses 3DMM's own fonts and is never affected.
 | `-Stereo` | off | render 3D |
 | `-Smooth` | off | blend actor motion between 3DMM's 6 fps frames: videos play at 24 fps (below) |
 | `-Depth` | 2.5 | how far behind the screen the scene can go (% of width) |
-| `-Formats` | all | any of `sbs`, `anaglyph`, `2d`, `crt`, `avi` |
+| `-Formats` | `2d` (`sbs,anaglyph,2d` with `-Stereo`) | any of `sbs`, `anaglyph`, `2d`, `crt`, `avi` |
 | `-Scale` | 2 | nearest-neighbor upscale (2 gives 1088×612 per eye) |
 | `-SoundFont` | GeneralUser GS | MIDI instruments: any `.sf2`/`.sf3`/`.dls`, or `windows` for the Windows GS Wavetable Synth's `gm.dls` |
 | `-MidiGain` | 0.6 | MIDI synth gain (before leveling) |
@@ -140,7 +140,8 @@ file's time in the movie, scene, frame, kind and original name.
 
 ```
 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--stereo] [--depth <pct>]
-            [--pop <pct>] [--fonts <dir>] [--click-pause <sec>] [--end-hold <sec>] [--max-frames <n>] [--debug]
+            [--pop <pct>] [--smooth] [--fonts <dir>] [--click-pause <sec>] [--end-hold <sec>]
+            [--max-frames <n>] [--debug]
 ```
 
 The output folder contains:

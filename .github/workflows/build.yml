@@ -35,7 +35,7 @@ jobs:
           exit $LASTEXITCODE
 
       - name: Render test movies
-        if: steps.compile.outcome == 'success' && hashFiles('tools/render/render-ci.ps1') != ''
+        if: steps.compile.outcome == 'success' && hashFiles('tools/render/render-ci.ps1') != '' && hashFiles('test-movies/**/*.3mm') != ''
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -56,7 +56,7 @@ jobs:
 
       - name: End-to-end batch test (Windows PowerShell 5.1)
         id: batch
-        if: steps.package.outcome == 'success'
+        if: steps.package.outcome == 'success' && hashFiles('test-movies/**/*.3mm') != ''
         shell: pwsh
         run: |
           if (Test-Path build/tools) { Copy-Item -Recurse build/tools package/3dmm-render/tools }
@@ -81,6 +81,7 @@ jobs:
             if ($l.StartsWith('-')) { $switches += $l }
             else { Copy-Item -LiteralPath (Join-Path test-movies $l) $req }
           }
+          if (-not (Get-ChildItem $req -Filter *.3mm)) { Write-Host "no movies requested"; exit 0 }
           if (Test-Path build/tools) { Copy-Item -Recurse build/tools package/3dmm-render/tools -ErrorAction SilentlyContinue }
           powershell -NoProfile -ExecutionPolicy Bypass -File package/3dmm-render/render-folder.ps1 `
             -InputDir $req -OutputDir ci-out/full -Formats 2d @switches *>&1 | Tee-Object -FilePath ci-out/full.log
