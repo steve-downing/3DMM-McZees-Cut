@@ -393,8 +393,10 @@ function setPlaying(on) {
 function tickActor(now) {
   if (!playing || !actor) return;
   const n = actor.meta.actions[actor.action].cels.length;
-  const pos = playing.pos0 + (now - playing.t0) / 1000 * 6, sub = smooth ? 4 : 1;
-  const q = Math.floor(pos * sub) / sub, c = Math.floor(q) % n, t = q - Math.floor(q);
+  // a frame's timestamp is taken before that frame's input events run, so it can be a little
+  // earlier than the click that started playing: never let the clock run backwards
+  const pos = playing.pos0 + Math.max(0, now - playing.t0) / 1000 * 6, sub = smooth ? 4 : 1;
+  const q = Math.floor(pos * sub) / sub, c = ((Math.floor(q) % n) + n) % n, t = q - Math.floor(q);
   if (c !== actor.cel || t !== actor.t) {
     if (c !== actor.cel) { frameIn.value = c; frameN.textContent = 'Frame ' + (c + 1) + ' / ' + n; }
     actor.cel = c; actor.t = t; pose(c, t);
@@ -442,7 +444,7 @@ function clearActor() {
 async function loadActor(id) {
   const req = ++actorReq;
   clearActor();
-  if (!id) return;
+  if (!id) { if (loadingEl.textContent !== 'Loading the cabin…') loadingEl.hidden = true; return; }   // None, maybe mid-load
   loadingEl.textContent = 'Loading ' + actorSel.selectedOptions[0].textContent + '…'; loadingEl.hidden = false;
   try {
     const [meta, b64] = await Promise.all([
@@ -506,7 +508,10 @@ playBtn.addEventListener('click', () => setPlaying(!playing));
 { const p = camPose(0); camera.position.copy(p.pos); yaw = p.yaw; pitch = p.pitch; roll = p.roll; camera.fov = p.fov; camera.updateProjectionMatrix(); setCurrent(0); }
 
 let last = performance.now();
-renderer.setAnimationLoop(now => {
+// three.js asks for the next frame only after this returns, so an uncaught error here would
+// stop drawing for good: catch and log instead
+renderer.setAnimationLoop(now => { try { frame(now); } catch (err) { console.error(err); } });
+function frame(now) {
   tickActor(now);
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (anim) {
@@ -535,5 +540,5 @@ renderer.setAnimationLoop(now => {
   dirty = false;
   camera.rotation.set(pitch, yaw, roll);
   renderer.render(scene, camera);
-});
+}
 </script>
