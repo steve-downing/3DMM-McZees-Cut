@@ -81,6 +81,8 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
     if ($mode -eq "stereo") {
         $rargs += @("--stereo", "--debug")
         if ($StereoMaxFrames -gt 0) { $rargs += @("--max-frames", "$StereoMaxFrames") }
+    } else {
+        $rargs += @("--poses", "`"$rawMode/poses.txt`"")   # the 3D scene player's capture
     }
 
     $sw = [Diagnostics.Stopwatch]::StartNew()
@@ -96,6 +98,16 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
     }
     $sw.Stop()
 
+    if (Test-Path "$rawMode/poses.txt") {
+        # a summary and the start of the pose capture, for a look
+        $kinds = @{}
+        foreach ($l in [IO.File]::ReadLines("$rawMode/poses.txt")) {
+            if ($l.Length -gt 1 -and $l[1] -eq ' ' -and "FAPMT".Contains($l[0])) { $kinds[$l[0]] = 1 + $kinds[$l[0]] }
+        }
+        "frames $($kinds['F']) actors $($kinds['A']) parts $($kinds['P']) models $($kinds['M']) materials $($kinds['T']); " +
+            "$([Math]::Round((Get-Item "$rawMode/poses.txt").Length / 1MB, 1)) MB" | Set-Content "$keepMode/poses-summary.txt"
+        Get-Content "$rawMode/poses.txt" -TotalCount 60 | Add-Content "$keepMode/poses-summary.txt"
+    }
     foreach ($f in "render.log", "events.txt", "timeline.ffconcat") {
         if (Test-Path "$rawMode/$f") { Copy-Item "$rawMode/$f" $keepMode }
     }

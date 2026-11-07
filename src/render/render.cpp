@@ -15,6 +15,10 @@
     --progress prints "progress <percent>" lines on stdout while it works,
     and "duration_ms <n>" (the length of the video) when it's done.
 
+    --poses <file> writes where every actor's every part is in each frame
+    (its model, material and world matrix), for playing the movie back in
+    3D; tools/sets/viewer/export_scene.py reads it.
+
     --smooth adds three in-between frames for every 6 fps step in which
     only actors moved: every actor part's transform is blended between the
     two frames, so motion plays at 24 fps.
@@ -80,6 +84,9 @@ RAPP::RAPP(void)
     _pglcfrmBefore = pvNil;
     _cfrmTotal = 0;
     _pctLast = -1;
+    _pfilePoses = pvNil;
+    _pglpbmdlPoses = pvNil;
+    _pglpbmtlPoses = pvNil;
     _prgsnapPrev = pvNil;
     _prgsnapCur = pvNil;
     _csnapPrev = _csnapCur = _csnapMax = 0;
@@ -300,6 +307,8 @@ bool RAPP::_FParseCommandLine(void)
             _fSmooth = fTrue;
         else if (0 == strcmp(psz, "--progress"))
             _fProgress = fTrue;
+        else if (0 == strcmp(psz, "--poses") && iarg + 1 < __argc)
+            _stnPoses.SetSz(__argv[++iarg]);
         else if (carg == 0)
         {
             _stnMovie.SetSz(psz);
@@ -321,7 +330,7 @@ bool RAPP::_FParseCommandLine(void)
     {
         fprintf(stderr, "usage: 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>] "
                         "[--fonts <dir>] [--end-hold <sec>] [--max-frames <n>] [--stereo] [--depth <percent>] [--pop "
-                        "<percent>] [--smooth] [--progress] [--debug]\n");
+                        "<percent>] [--smooth] [--progress] [--poses <file>] [--debug]\n");
         return fFalse;
     }
     return fTrue;
@@ -1473,7 +1482,147 @@ bool RAPP::_FEmitFrame(byte *prgb, ulong dtsOut)
         _Log("can't write %s", stn.Psz());
         return fFalse;
     }
+    if (_stnPoses.Cch() > 0)
+        _WritePoses(ifrm, dtsOut);
     return fTrue;
+}
+
+/***************************************************************************
+    --poses: one block per frame written,
+
+        F <frame> <ms> <scene> <background cno> <camera>
+        A <actor id> <template sid> <template cno> <parts>
+        P <part> <model> <material> <world matrix: 4 rows of 3>
+
+    Models and materials are numbered as they're first seen, and written
+    once, before the frame that first uses them:
+
+        M <model> <vertices> <faces>, then "x y z u v" per vertex and
+          "a b c smoothing" per face (model space)
+        T <material> <cno, or -1> <palette base> <palette range>
+
+    A frame that never got screen time is written again with the same
+    number: the last block for a frame wins.
+***************************************************************************/
+long RAPP::_IPoseModel(BACT *pbact)
+{
+    br_model *pbmdl = pbact->model;
+    long imdl, iv;
+    PMODL pmodl;
+
+    if (pvNil == pbmdl || pvNil == _pglpbmdlPoses)
+        return -1;
+    for (imdl = 0; imdl < _pglpbmdlPoses->IvMac(); imdl++)
+    {
+        if (*(br_model **)_pglpbmdlPoses->QvGet(imdl) == pbmdl)
+            return imdl;
+    }
+    if (!_pglpbmdlPoses->FAdd(&pbmdl, &imdl))
+        return -1;
+    pmodl = MODL::PmodlFromBmdl(pbmdl);
+    pmodl->AddRef(); // keep it, so its address can't be reused for another model
+    fprintf(_pfilePoses, "M %ld %d %d\n", imdl, pbmdl->nvertices, pbmdl->nfaces);
+    for (iv = 0; iv < pbmdl->nvertices; iv++)
+    {
+        br_vertex *pv = &pbmdl->vertices[iv];
+        fprintf(_pfilePoses, "%.4f %.4f %.4f %.4f %.4f\n", BrScalarToFloat(pv->p.v[0]), BrScalarToFloat(pv->p.v[1]),
+                BrScalarToFloat(pv->p.v[2]), BrScalarToFloat(pv->map.v[0]), BrScalarToFloat(pv->map.v[1]));
+    }
+    for (iv = 0; iv < pbmdl->nfaces; iv++)
+    {
+        br_face *pf = &pbmdl->faces[iv];
+        fprintf(_pfilePoses, "%d %d %d %d\n", pf->vertices[0], pf->vertices[1], pf->vertices[2], pf->smoothing);
+    }
+    return imdl;
+}
+
+long RAPP::_IPoseMaterial(BACT *pbact)
+{
+    br_material *pbmtl = pbact->material;
+    long imtl;
+    PMTRL pmtrl;
+
+    if (pvNil == pbmtl || pvNil == pbmtl->identifier || pvNil == _pglpbmtlPoses)
+        return -1;
+    for (imtl = 0; imtl < _pglpbmtlPoses->IvMac(); imtl++)
+    {
+        if (*(br_material **)_pglpbmtlPoses->QvGet(imtl) == pbmtl)
+            return imtl;
+    }
+    if (!_pglpbmtlPoses->FAdd(&pbmtl, &imtl))
+        return -1;
+    pmtrl = MTRL::PmtrlFromBmtl(pbmtl);
+    pmtrl->AddRef();
+    fprintf(_pfilePoses, "T %ld %ld %d %d\n", imtl, pmtrl->Cno() == cnoNil ? -1L : (long)pmtrl->Cno(),
+            pbmtl->index_base, pbmtl->index_range);
+    return imtl;
+}
+
+void RAPP::_WritePoses(long ifrm, ulong dtsOut)
+{
+    PSCEN pscen;
+    PGL pglpactr;
+    long iactr, ipart, imdl, imtl, i, j;
+    PACTR pactr;
+    PBODY pbody;
+    TAG tag;
+    BACT *pbact, *pbactTop;
+    br_matrix34 bmat;
+
+    if (pvNil == _pfilePoses)
+    {
+        _pfilePoses = fopen(_stnPoses.Psz(), "w");
+        _pglpbmdlPoses = GL::PglNew(size(br_model *));
+        _pglpbmtlPoses = GL::PglNew(size(br_material *));
+        if (pvNil == _pfilePoses || pvNil == _pglpbmdlPoses || pvNil == _pglpbmtlPoses)
+        {
+            _Log("can't write poses to %s", _stnPoses.Psz());
+            _stnPoses.SetNil();
+            return;
+        }
+    }
+    if (pvNil == _pmvie || pvNil == (pscen = _pmvie->Pscen()))
+        return;
+
+    // models and materials first, so the frame block stays together
+    pglpactr = pscen->PglRollCall();
+    for (iactr = 0; pvNil != pglpactr && iactr < pglpactr->IvMac(); iactr++)
+    {
+        pglpactr->Get(iactr, &pactr);
+        if (!pactr->FOnStage() || pvNil == (pbody = pactr->Pbody()) || pbody->FHidden())
+            continue;
+        for (ipart = 0; ipart < pbody->Cpart(); ipart++)
+        {
+            _IPoseModel(pbody->PbactPart(ipart));
+            _IPoseMaterial(pbody->PbactPart(ipart));
+        }
+    }
+
+    fprintf(_pfilePoses, "F %ld %lu %ld %ld %ld\n", ifrm, dtsOut, _pmvie->Iscen(),
+            pvNil == pscen->Pbkgd() ? -1L : (long)pscen->Pbkgd()->Cno(),
+            pvNil == pscen->Pbkgd() ? -1L : pscen->Pbkgd()->Icam());
+    for (iactr = 0; pvNil != pglpactr && iactr < pglpactr->IvMac(); iactr++)
+    {
+        pglpactr->Get(iactr, &pactr);
+        if (!pactr->FOnStage() || pvNil == (pbody = pactr->Pbody()) || pbody->FHidden())
+            continue;
+        pactr->GetTagTmpl(&tag);
+        fprintf(_pfilePoses, "A %ld %ld %ld %ld\n", pactr->Arid(), tag.sid, (long)tag.cno, pbody->Cpart());
+        for (pbactTop = pbody->PbactRoot(); pvNil != pbactTop->parent; pbactTop = pbactTop->parent)
+            ;
+        for (ipart = 0; ipart < pbody->Cpart(); ipart++)
+        {
+            pbact = pbody->PbactPart(ipart);
+            imdl = _IPoseModel(pbact);
+            imtl = _IPoseMaterial(pbact);
+            BrActorToActorMatrix34(&bmat, pbact, pbactTop);
+            fprintf(_pfilePoses, "P %ld %ld %ld", ipart, imdl, imtl);
+            for (i = 0; i < 4; i++)
+                for (j = 0; j < 3; j++)
+                    fprintf(_pfilePoses, " %.4f", BrScalarToFloat(bmat.m[i][j]));
+            fprintf(_pfilePoses, "\n");
+        }
+    }
 }
 
 void RAPP::_FinishTimeline(ulong dtsOutEnd)
@@ -1543,6 +1692,9 @@ void RAPP::_CleanUp(void)
         fclose(_pfileEvents);
     _pfileEvents = pvNil;
     _Log("exit code %ld", _lwExit);
+    if (pvNil != _pfilePoses)
+        fclose(_pfilePoses);
+    _pfilePoses = pvNil;
     if (pvNil != _pfileLog)
         fclose(_pfileLog);
     _pfileLog = pvNil;

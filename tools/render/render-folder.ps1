@@ -50,7 +50,10 @@ param(
     # while a movie renders and "@duration_ms <n>" after, and has the video
     # encode write ffmpeg's -progress reports to -ProgressFile
     [switch]$Progress,
-    [string]$ProgressFile
+    [string]$ProgressFile,
+    # also capture every actor's pose per frame (<movie>.poses.zip), for the
+    # 3D scene player (tools/sets/viewer/export_scene.py)
+    [switch]$Poses
 )
 $ErrorActionPreference = "Stop"
 
@@ -162,6 +165,8 @@ foreach ($movie in $movies) {
     if ($Stereo) { $rargs += @("--stereo", "--depth", "$Depth") }
     if ($Smooth) { $rargs += "--smooth" }
     if ($Progress) { $rargs += "--progress" }
+    $posesFile = Join-Path $work "poses.txt"
+    if ($Poses) { $rargs += @("--poses", "`"$posesFile`"") }
     if ($Fonts) { $rargs += @("--fonts", "`"$Fonts`"") }
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $proc = Start-Process -FilePath $Renderer -ArgumentList $rargs -PassThru -NoNewWindow `
@@ -211,6 +216,7 @@ foreach ($movie in $movies) {
             -CrtCurvature $CrtCurvature -CrtChroma $CrtChroma -ExtractSounds:$ExtractSounds `
             -IncludeLibrarySounds:$IncludeLibrarySounds
         if ($LASTEXITCODE -ne 0) { $row.status = "encode-failed" }
+        if ($Poses -and (Test-Path $posesFile)) { Compress-Archive -Force -Path $posesFile -DestinationPath "$outBase.poses.zip" }
         $row.outputs = ($outputs | Where-Object { Test-Path $_ } | ForEach-Object { Split-Path -Leaf $_ }) -join "; "
     } else {
         Write-Warning "$rel - $($row.status)$(if ($row.missing) { " (needs: $($row.missing))" })"

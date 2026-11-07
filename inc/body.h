@@ -113,6 +113,24 @@ class BODY : public BODY_PAR
         return _cbset;
     }
 
+    // McZee's Cut: for 3dmm-render --poses
+    long Cpart(void)
+    {
+        return _cbactPart;
+    }
+    BACT *PbactPart(long ipart)
+    {
+        return _PbactPart(ipart);
+    }
+    BACT *PbactRoot(void)
+    {
+        return _PbactRoot();
+    }
+    bool FHidden(void)
+    {
+        return _cactHidden > 0;
+    }
+
     void GetBcbBounds(BCB *pbcb, bool fWorld = fFalse);
     void GetRcBounds(RC *prc);
     void GetCenter(long *pxp, long *pyp);

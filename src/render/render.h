@@ -144,6 +144,7 @@ class RAPP : public RAPP_PAR
     bool _fDebug;
     bool _fSmooth;
     bool _fProgress; // --progress: report how far along we are on stdout
+    STN _stnPoses;   // --poses <file>: every actor part's model and place, per frame
 
     // engine objects
     PCFL _pcfl;
@@ -175,6 +176,9 @@ class RAPP : public RAPP_PAR
     ulong _luTboxSig;
     PGST _pgstMissingFonts;
     PGL _pglcfrmBefore; // per scene: frames in the scenes before it
+    FILE *_pfilePoses;
+    PGL _pglpbmdlPoses; // models written to the poses file so far (kept alive)
+    PGL _pglpbmtlPoses; // materials written so far (kept alive)
     long _cfrmTotal;
     long _pctLast;
     BMAT34 _bmat34Stereo;
@@ -250,6 +254,9 @@ class RAPP : public RAPP_PAR
     void _Stdout(PSZ pszFormat, ...);
     void _CountFrames(FNI *pfniMovie);
     void _ReportProgress(void);
+    void _WritePoses(long ifrm, ulong dtsOut);
+    long _IPoseModel(BACT *pbact);
+    long _IPoseMaterial(BACT *pbact);
     void _LogEngineErrors(PSZ pszContext);
     void _Event(PSZ pszFormat, ...);
 
