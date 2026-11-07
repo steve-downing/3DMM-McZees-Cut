@@ -107,6 +107,9 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
         "frames $($kinds['F']) actors $($kinds['A']) parts $($kinds['P']) models $($kinds['M']) materials $($kinds['T']); " +
             "$([Math]::Round((Get-Item "$rawMode/poses.txt").Length / 1MB, 1)) MB" | Set-Content "$keepMode/poses-summary.txt"
         Get-Content "$rawMode/poses.txt" -TotalCount 60 | Add-Content "$keepMode/poses-summary.txt"
+        if ($movie.BaseName -eq "Venus31") {   # has cabin scenes: kept whole, to develop the 3D scene player with
+            Compress-Archive -Force -Path "$rawMode/poses.txt" -DestinationPath "$keepMode/poses.zip"
+        }
     }
     foreach ($f in "render.log", "events.txt", "timeline.ffconcat") {
         if (Test-Path "$rawMode/$f") { Copy-Item "$rawMode/$f" $keepMode }
