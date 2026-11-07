@@ -186,6 +186,7 @@ calib camera-to-screen row0 1.43362 0.00000 0.00000 0.00000
 calib camera-to-screen row1 0.00000 2.54866 0.00000 0.00000
 calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
 calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    38.860 textbox story "The Mall "
     38.860 transition dissolve
     44.365 stereo view: converge=92.0 near=27.4 far=159.1 focal=323px eye=0.982 shift=2px
     44.365 camera hither=1.0000 yon=5000.0000 fov=50.63deg

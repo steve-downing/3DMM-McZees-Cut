@@ -12,6 +12,7 @@
     35.695 textbox story "The Mall "
     38.860 textbox story "The Mall "
     38.860 transition dissolve
+    52.865 textbox story "The Mall "
     52.865 transition dissolve
     63.540 textbox story "The End "
     68.370 end
