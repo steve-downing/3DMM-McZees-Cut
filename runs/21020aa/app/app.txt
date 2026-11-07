@@ -1,7 +1,7 @@
 prefetch: exit 0
-window: exit 0 in 84 s
-export improved: exit 0 in 11 s
-export avi: exit 0 in 74 s
+window: exit 0 in 98 s
+export improved: exit 0 in 13 s
+export avi: exit 0 in 86 s
 
 Name                          Length
 ----                          ------
