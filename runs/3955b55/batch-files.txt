@@ -1,16 +1,16 @@
 
 Name                     Length
 ----                     ------
-City Tour.2d.mp4       10978498
-City Tour.anaglyph.mp4 11778752
-Hospital.2d.mp4        21699891
-Hospital.anaglyph.mp4  23791615
-Jungle.2d.mp4          23059470
-Jungle.anaglyph.mp4    25497685
-Space.2d.mp4           24382984
-Space.anaglyph.mp4     26684560
-The Book.2d.mp4        27470489
-The Book.anaglyph.mp4  29670080
-Venus31.2d.mp4         22509738
-Venus31.anaglyph.mp4   24703830
+City Tour.2d.mp4       10978306
+City Tour.anaglyph.mp4 11778712
+Hospital.2d.mp4        21699171
+Hospital.anaglyph.mp4  23791979
+Jungle.2d.mp4          23058687
+Jungle.anaglyph.mp4    25496890
+Space.2d.mp4           24383256
+Space.anaglyph.mp4     26684540
+The Book.2d.mp4        27470942
+The Book.anaglyph.mp4  29670333
+Venus31.2d.mp4         22507970
+Venus31.anaglyph.mp4   24704168
 
