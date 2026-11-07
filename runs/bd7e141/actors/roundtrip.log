@@ -1,64 +1,64 @@
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
-00:32.599  render           | Saved: 'work/Bongo/thumbnail.png'
-01:08.690  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Bongo/Bongo.blend"
+00:49.081  render           | Saved: 'work/Bongo/thumbnail.png'
+01:34.017  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Bongo/Bongo.blend"
 Info: Saved as "Bongo.blend"
 Bongo: 607 cels, 15 costumes compared, 0 differences
 Bongo: 33 actions, 13961 part poses checked, worst 0.0548 mm, 0 problems
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
-00:20.482  render           | Saved: 'work/Gustave/thumbnail.png'
-01:00.051  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Gustave/Gustave.blend"
+00:26.354  render           | Saved: 'work/Gustave/thumbnail.png'
+01:15.622  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Gustave/Gustave.blend"
 Info: Saved as "Gustave.blend"
 Gustave: 639 cels, 17 costumes compared, 0 differences
 Gustave: 33 actions, 16614 part poses checked, worst 0.0286 mm, 0 problems
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
-00:10.977  render           | Saved: 'work/Henry/thumbnail.png'
-00:24.688  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Henry/Henry.blend"
+00:14.407  render           | Saved: 'work/Henry/thumbnail.png'
+00:31.611  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Henry/Henry.blend"
 Info: Saved as "Henry.blend"
 Henry: 161 cels, 1 costumes compared, 0 differences
 Henry: 11 actions, 3703 part poses checked, worst 0.0916 mm, 0 problems
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
-00:03.088  render           | Saved: 'work/Safe/thumbnail.png'
-00:05.715  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Safe/Safe.blend"
+00:04.020  render           | Saved: 'work/Safe/thumbnail.png'
+00:07.285  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Safe/Safe.blend"
 Info: Saved as "Safe.blend"
 Safe: 167 cels, 1 costumes compared, 0 differences
 Safe: 10 actions, 1503 part poses checked, worst 0.0111 mm, 0 problems
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
-00:17.617  render           | Saved: 'work/Bino BeGood/thumbnail.png'
-00:54.519  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Bino BeGood/Bino BeGood.blend"
+00:22.257  render           | Saved: 'work/Bino BeGood/thumbnail.png'
+01:08.384  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Bino BeGood/Bino BeGood.blend"
 Info: Saved as "Bino BeGood.blend"
 Bino BeGood: 640 cels, 16 costumes compared, 0 differences
 Bino BeGood: 33 actions, 17920 part poses checked, worst 0.1068 mm, 0 problems
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
-00:07.401  render           | Saved: 'work/Spaceship/thumbnail.png'
-00:12.878  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Spaceship/Spaceship.blend"
+00:09.369  render           | Saved: 'work/Spaceship/thumbnail.png'
+00:16.142  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Spaceship/Spaceship.blend"
 Info: Saved as "Spaceship.blend"
 Spaceship: 143 cels, 1 costumes compared, 0 differences
 Spaceship: 9 actions, 1859 part poses checked, worst 0.0136 mm, 0 problems
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
-00:21.391  render           | Saved: 'work/Explosio/thumbnail.png'
-00:22.220  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Explosio/Explosio.blend"
+00:27.779  render           | Saved: 'work/Explosio/thumbnail.png'
+00:28.700  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Explosio/Explosio.blend"
 Info: Saved as "Explosio.blend"
 Explosio: 42 cels, 17 costumes compared, 0 differences
 Explosio: 2 actions, 42 part poses checked, worst 0.0008 mm, 0 problems
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
 EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
-00:03.331  render           | Saved: 'work/Earth/thumbnail.png'
-00:06.738  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Earth/Earth.blend"
+00:04.251  render           | Saved: 'work/Earth/thumbnail.png'
+00:08.088  blend            | Read blend: "/home/runner/work/3DMM-McZees-Cut/3DMM-McZees-Cut/work/Earth/Earth.blend"
 Info: Saved as "Earth.blend"
 Earth: 143 cels, 1 costumes compared, 0 differences
 Earth: 9 actions, 143 part poses checked, worst 0.0453 mm, 0 problems
