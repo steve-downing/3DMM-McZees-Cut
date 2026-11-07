@@ -1,4 +1,4 @@
-     0.000 missing-font Futura
+     0.015 missing-font Futura
      0.000 transition cut
      0.000 play
      1.520 sound s000 vlm=65536 loops=1 offset=0

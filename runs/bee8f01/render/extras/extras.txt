@@ -7,7 +7,7 @@ mix: measured -16.6 LUFS, applied 0.6 dB toward -16.0 LUFS
 final stereo: -16.0 LUFS, true peak -1.0 dBTP
 No sounds were added to this movie (it only uses 3D Movie Maker's own). -IncludeLibrarySounds extracts those.
 0 sounds -> D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\ci-out\render\extras\City-Tour.sounds.zip
-City-Tour: 69.9 s
+City-Tour: 84.8 s
 stream|codec_name=cinepak|codec_tag_string=cvid|width=544|height=308|r_frame_rate=15/1|nb_frames=1178|nb_read_packets=244
 stream|codec_name=pcm_s16le|codec_tag_string=[1][0][0][0]|sample_rate=22050|channels=2|r_frame_rate=0/0|nb_frames=1573709|nb_read_packets=1538
 format|duration=78.533333|size=11603768
@@ -25,7 +25,7 @@ ducking: music -6.0 dB during 9 stretches of dialogue
 mix: measured -11.8 LUFS, applied -4.2 dB toward -16.0 LUFS
 final stereo: -16.0 LUFS, true peak -1.7 dBTP
 14 sounds -> D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\ci-out\render\extras\Hospital.sounds.zip
-Hospital: 6.2 s
+Hospital: 9.2 s
       49865  S04F001-speech-well-hello.wav
       16776  S04F126-speech-it-worked.wav
       17047  S04F231-speech-Follow-me.wav
