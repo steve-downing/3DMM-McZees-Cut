@@ -183,6 +183,7 @@ if ($dm) {
 # renderer; it's meant to be invisible in 2-D. Render Hospital with it on and
 # compare every frame with the normal render.
 $hosp = Get-ChildItem $MovieDir -Filter "Hospital.3mm" | Select-Object -First 1
+$prerenderBroken = $false
 $hospMono = Join-Path $work "Hospital/mono"
 if ($hosp -and (Test-Path "$hospMono/frames")) {
     $raw = Join-Path $work "prerender"
@@ -201,6 +202,7 @@ if ($hosp -and (Test-Path "$hospMono/frames")) {
     $timeline = if ((Get-FileHash "$hospMono/timeline.ffconcat").Hash -eq (Get-FileHash "$raw/timeline.ffconcat" -ErrorAction SilentlyContinue).Hash) { "same" } else { "different" }
     "Hospital without / with prerendering: $($a.Count) / $($b.Count) frames, $same identical, timeline $timeline" |
         Tee-Object -FilePath (Join-Path $OutDir "prerender-check.txt") | Write-Host
+    if ($diff -or $a.Count -ne $b.Count -or $timeline -ne "same") { $prerenderBroken = $true }
     if ($diff) {
         "differing frames: $(($diff | Select-Object -First 40) -join ' ')" | Add-Content (Join-Path $OutDir "prerender-check.txt")
         & ffmpeg -hide_banner -loglevel error -y -i (Join-Path "$hospMono/frames" $diff[0]) -i (Join-Path "$raw/frames" $diff[0]) `
@@ -301,3 +303,7 @@ if (Test-Path $src) {
 
 $summary | Export-Csv -NoTypeInformation (Join-Path $OutDir "summary.csv")
 $summary | Format-Table | Out-String | Write-Host
+if ($prerenderBroken) {
+    # see "One assumption, checked in CI" in tools/render/README.md
+    throw "2-D frames differ with and without prerendering (prerender-check.txt): the renderer no longer draws what 3DMM draws"
+}

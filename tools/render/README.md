@@ -254,6 +254,18 @@ Exit codes:
 - **Music.** MIDI is rendered with FluidSynth, so it will sound different
   from the Windows 95 wavetable synth you remember.
 
+**One assumption, checked in CI.** During playback 3DMM draws actors that
+won't change until the next camera cut into the background once and hides
+their bodies ("prerendering"). The renderer turns that off, so every actor
+stays a live 3-D body: stereo, smooth motion and pose capture all need
+that. We assume the 2-D picture comes out the same either way, since
+prerendering copies exactly the pixels and depths a live render produces.
+If BRender ever settled a tie in depth differently, it wouldn't. CI renders
+Hospital both ways (`--prerender` brings 3DMM's behavior back) and fails if
+any frame differs. Only one rendering pass is made even when 2-D and 3-D
+are both asked for, so if that check ever fails, 2-D outputs would need a
+separate pass with `--prerender`.
+
 ## Smooth motion (`-Smooth`)
 
 3D Movie Maker moves everything at 6 frames a second. With `-Smooth`, the
