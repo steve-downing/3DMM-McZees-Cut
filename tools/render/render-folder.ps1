@@ -9,6 +9,9 @@
 #   1. 3dmm-render plays it headlessly into a scratch folder
 #   2. encode-movie.ps1 builds the soundtrack and encodes the videos
 #   3. the scratch folder is deleted (unless -KeepFrames)
+# Asking for both 2-D (2d, avi, crt) and 3-D (sbs, anaglyph) formats plays
+# the movie twice: once exactly as 3DMM draws it for the 2-D videos, once in
+# stereo (every actor a live 3-D body) for the 3-D ones.
 # Movies whose videos are already newer than the .3mm are skipped, so an
 # interrupted run picks up where it left off (-Force redoes everything).
 # Every movie gets a row in <OutputDir>\report.csv.
@@ -118,8 +121,14 @@ if (-not $Formats) { $Formats = @("2d") }
 $known = "2d", "sbs", "anaglyph", "crt", "avi", "none"
 $unknown = @($Formats | Where-Object { $known -notcontains $_ })
 if ($unknown) { throw "unknown format(s): $($unknown -join ', ') (use $($known -join ', '))" }
-# 3D formats need the movie rendered from two cameras; everything else uses the 2-D view
-$Stereo = ($Formats -contains "sbs") -or ($Formats -contains "anaglyph")
+# 3D formats need the movie rendered from two cameras; everything else uses
+# the 2-D view, rendered exactly as 3DMM draws it. Each kind gets its own pass.
+$flat = @($Formats | Where-Object { "2d", "avi", "crt" -contains $_ })
+$deep = @($Formats | Where-Object { "sbs", "anaglyph" -contains $_ })
+$passes = @()
+if ($flat.Count -or -not $deep.Count) { $passes += , @{ Name = "2d"; Stereo = $false; Formats = $flat } }
+if ($deep.Count) { $passes += , @{ Name = "3d"; Stereo = $true; Formats = $deep } }
+if ($Formats -contains "none") { $passes[0].Formats += "none" }
 
 $InputDir = (Resolve-Path $InputDir).Path.TrimEnd('\')
 if ($Fonts) { $Fonts = (Resolve-Path $Fonts).Path.TrimEnd('\') }
@@ -161,68 +170,82 @@ foreach ($movie in $movies) {
     if (Test-Path $work) { Remove-Item -Recurse -Force $work }
     New-Item -ItemType Directory -Force $work | Out-Null
 
-    $rargs = @("`"$($movie.FullName)`"", "`"$work`"", "--root", "`"$Root`"", "--click-pause", "$ClickPause", "--end-hold", "$EndHold")
-    if ($Stereo) { $rargs += @("--stereo", "--depth", "$Depth") }
-    if ($Smooth) { $rargs += "--smooth" }
-    if ($Progress) { $rargs += "--progress" }
     $posesFile = Join-Path $work "poses.txt"
-    if ($Poses) { $rargs += @("--poses", "`"$posesFile`"") }
-    if ($Fonts) { $rargs += @("--fonts", "`"$Fonts`"") }
     $sw = [Diagnostics.Stopwatch]::StartNew()
-    $proc = Start-Process -FilePath $Renderer -ArgumentList $rargs -PassThru -NoNewWindow `
-        -RedirectStandardOutput (Join-Path $work "stdout.txt") -RedirectStandardError (Join-Path $work "stderr.txt")
-    $null = $proc.Handle   # without this, ExitCode can come back empty
-    $stdout = Join-Path $work "stdout.txt"
-    $deadline = [DateTime]::Now.AddMinutes($TimeoutMinutes)
-    $lastPct = -1
-    $finished = $false
-    while (-not $finished -and [DateTime]::Now -lt $deadline) {
-        $finished = $proc.WaitForExit(500)
-        if ($Progress) {
-            $m = Read-Matches $stdout 'progress (\d+)'
-            if ($m.Count -and [int]$m[$m.Count - 1].Groups[1].Value -ne $lastPct) {
-                $lastPct = [int]$m[$m.Count - 1].Groups[1].Value
-                Write-Host "@progress render $lastPct"
+    $passDirs = @()
+    for ($ip = 0; $ip -lt $passes.Count; $ip++) {
+        $pass = $passes[$ip]
+        $dir = if ($passes.Count -gt 1) { Join-Path $work $pass.Name } else { $work }
+        New-Item -ItemType Directory -Force $dir | Out-Null
+        $passDirs += $dir
+        $rargs = @("`"$($movie.FullName)`"", "`"$dir`"", "--root", "`"$Root`"", "--click-pause", "$ClickPause", "--end-hold", "$EndHold")
+        if ($pass.Stereo) { $rargs += @("--stereo", "--depth", "$Depth") }
+        if ($Smooth) { $rargs += "--smooth" }
+        if ($Progress) { $rargs += "--progress" }
+        if ($Poses -and $ip -eq 0) { $rargs += @("--poses", "`"$posesFile`"") }
+        if ($Fonts) { $rargs += @("--fonts", "`"$Fonts`"") }
+        $proc = Start-Process -FilePath $Renderer -ArgumentList $rargs -PassThru -NoNewWindow `
+            -RedirectStandardOutput (Join-Path $dir "stdout.txt") -RedirectStandardError (Join-Path $dir "stderr.txt")
+        $null = $proc.Handle   # without this, ExitCode can come back empty
+        $stdout = Join-Path $dir "stdout.txt"
+        $deadline = [DateTime]::Now.AddMinutes($TimeoutMinutes)
+        $lastPct = -1
+        $finished = $false
+        while (-not $finished -and [DateTime]::Now -lt $deadline) {
+            $finished = $proc.WaitForExit(500)
+            if ($Progress) {
+                $m = Read-Matches $stdout 'progress (\d+)'
+                if ($m.Count) {
+                    # two passes share the bar: the first fills it halfway
+                    $pct = [int][Math]::Floor(($ip * 100 + [int]$m[$m.Count - 1].Groups[1].Value) / $passes.Count)
+                    if ($pct -ne $lastPct) { $lastPct = $pct; Write-Host "@progress render $pct" }
+                }
             }
         }
-    }
-    if ($Progress) {
-        $m = Read-Matches $stdout 'duration_ms (\d+)'
-        if ($m.Count) { Write-Host "@duration_ms $($m[0].Groups[1].Value)" }
-    }
-    if (-not $finished) {
-        $proc.Kill()
-        $row.status = "timeout"
-    } else {
-        $row.exit = $proc.ExitCode
-        $row.status = if ($statusByExit.ContainsKey($proc.ExitCode)) { $statusByExit[$proc.ExitCode] } else { "crashed" }
+        if ($Progress -and $ip -eq 0) {
+            $m = Read-Matches $stdout 'duration_ms (\d+)'
+            if ($m.Count) { Write-Host "@duration_ms $($m[0].Groups[1].Value)" }
+        }
+        if (-not $finished) {
+            $proc.Kill()
+            $row.status = "timeout"
+        } else {
+            $row.exit = $proc.ExitCode
+            $row.status = if ($statusByExit.ContainsKey($proc.ExitCode)) { $statusByExit[$proc.ExitCode] } else { "crashed" }
+        }
+        if ($ip -eq 0) {
+            $row.frames = @(Get-ChildItem (Join-Path $dir "frames") -Filter *.bmp -ErrorAction SilentlyContinue).Count
+            $events = Join-Path $dir "events.txt"
+            if (Test-Path $events) {
+                $row.missing = (Select-String -Path $events -Pattern "missing-content (.*)$" |
+                        ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique) -join "; "
+                $row.missingFonts = (Select-String -Path $events -Pattern "missing-font (.*)$" |
+                        ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique) -join "; "
+            }
+        }
+        if ($row.status -ne "ok") { break }
     }
     $sw.Stop()
     $row.seconds = [Math]::Round($sw.Elapsed.TotalSeconds, 1)
-    $row.frames = @(Get-ChildItem (Join-Path $work "frames") -Filter *.bmp -ErrorAction SilentlyContinue).Count
-    $events = Join-Path $work "events.txt"
-    if (Test-Path $events) {
-        $row.missing = (Select-String -Path $events -Pattern "missing-content (.*)$" |
-                ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique) -join "; "
-        $row.missingFonts = (Select-String -Path $events -Pattern "missing-font (.*)$" |
-                ForEach-Object { $_.Matches[0].Groups[1].Value } | Sort-Object -Unique) -join "; "
-    }
 
     if ($row.status -eq "ok") {
         New-Item -ItemType Directory -Force (Split-Path -Parent $outBase) | Out-Null
-        & $encoder -RenderDir $work -OutBase $outBase -Formats $Formats -SoundFont $SoundFont -ProgressFile $ProgressFile `
-            -FluidSynth $FluidSynth -MidiGain $MidiGain -AudioLevel $AudioLevel -Duck:$Duck -Channels $Channels -Scale $Scale `
-            -CrtPreset $CrtPreset -CrtMask $CrtMask -CrtScanlines $CrtScanlines -CrtGlow $CrtGlow `
-            -CrtCurvature $CrtCurvature -CrtChroma $CrtChroma -ExtractSounds:$ExtractSounds `
-            -IncludeLibrarySounds:$IncludeLibrarySounds
-        if ($LASTEXITCODE -ne 0) { $row.status = "encode-failed" }
+        for ($ip = 0; $ip -lt $passes.Count; $ip++) {
+            & $encoder -RenderDir $passDirs[$ip] -OutBase $outBase -Formats $passes[$ip].Formats -SoundFont $SoundFont -ProgressFile $ProgressFile `
+                -FluidSynth $FluidSynth -MidiGain $MidiGain -AudioLevel $AudioLevel -Duck:$Duck -Channels $Channels -Scale $Scale `
+                -CrtPreset $CrtPreset -CrtMask $CrtMask -CrtScanlines $CrtScanlines -CrtGlow $CrtGlow `
+                -CrtCurvature $CrtCurvature -CrtChroma $CrtChroma -ExtractSounds:($ExtractSounds -and $ip -eq 0) `
+                -IncludeLibrarySounds:$IncludeLibrarySounds
+            if ($LASTEXITCODE -ne 0) { $row.status = "encode-failed" }
+        }
         if ($Poses -and (Test-Path $posesFile)) { Compress-Archive -Force -Path $posesFile -DestinationPath "$outBase.poses.zip" }
         $row.outputs = ($outputs | Where-Object { Test-Path $_ } | ForEach-Object { Split-Path -Leaf $_ }) -join "; "
     } else {
         Write-Warning "$rel - $($row.status)$(if ($row.missing) { " (needs: $($row.missing))" })"
         # keep the log next to where the video would have gone
         New-Item -ItemType Directory -Force (Split-Path -Parent $outBase) | Out-Null
-        if (Test-Path (Join-Path $work "render.log")) { Copy-Item (Join-Path $work "render.log") "$outBase.render.log" }
+        $log = Join-Path $passDirs[$passDirs.Count - 1] "render.log"
+        if (Test-Path $log) { Copy-Item $log "$outBase.render.log" }
     }
 
     if (-not $KeepFrames) { Remove-Item -Recurse -Force $work }

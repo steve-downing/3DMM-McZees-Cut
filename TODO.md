@@ -2,6 +2,49 @@
 
 Things we want to do, roughly in the order we'd get to them. Add freely.
 
+## Where this is headed
+
+**The dream:** direct a 3-D cartoon in VR. Point at an actor and send him to
+stage left, point at another and tell her to dance. Press a button, fade to
+black, and come back up in the audience, watching the actors perform it.
+And make it easy for a kid to make movies and share them with friends, the
+way we did with 3DMM.
+
+There may end up being several ways to make a movie (3DMM's studio, Blender
+for actors, a VR director) and several ways to watch one (2-D video, 3-D
+video, walking around the scene, the theater). Keep the best of the old
+program; add what wasn't possible before. Decisions to keep in line with
+that:
+
+- **The .3mm stays the source of truth.** Whatever a new tool makes is
+  saved as an ordinary movie (paths, actions, moves as actor events) that
+  opens in 3DMM. Anything 3DMM can't express goes in chunks it ignores, as
+  planned for attachments.
+- **3DMM's engine is the reference.** Other players are checked against
+  it, frame by frame, the way the scene player was checked against the
+  rendered video. Pose capture (`--poses`) is the bridge for now.
+- **A live engine for VR.** Directing needs movies to play live, not from a
+  capture: actor playback (templates, actions, cels, paths) in JavaScript
+  for WebXR, built next to the capture and compared against it.
+- **Directing verbs map to what 3DMM already has.** "Walk over there" is a
+  path; "dance" is an action; "turn around" is a rotate. Pointing in VR
+  replaces dragging on the stage.
+- **3-D sets are the bottleneck.** 3DMM's sets are pictures with depth; VR
+  needs real geometry. So far only the airplane cabin exists (hand-made).
+  Rebuild stock sets one at a time, and make new sets 3-D first (Blender,
+  Minecraft) with the background writer turning them into 3DMM sets too.
+- **The theater.** A room with a stage, an audience and a fade to black;
+  3DMM's own theater building is the obvious model.
+- **Sharing.** A link to a page that plays the movie in 3-D (no install,
+  works in a headset) plus ordinary video files. YouTube still takes
+  side-by-side 3-D videos if the file carries a stereo tag.
+
+Small steps toward it:
+- Tag `Movie.sbs.mp4` as side-by-side 3-D (MP4 `st3d`), so YouTube and
+  headset players show it in 3-D without setup.
+- Scene player: a whole movie, not just one scene; a theater mode.
+- More 3-D sets.
+
 ## Attach actors to actors and props
 
 Let one actor ride another: on someone's shoulders, on a crawling Bongo's
@@ -97,6 +140,5 @@ go in this repo or its downloads.
 
 ## Later
 
-- A VR player: the cartoon cabin and actors, with dialogue placed where the
-  characters are (WebXR).
+- Scene player: dialogue placed where the characters are (spatial audio).
 - Low-poly VRML export of sets and actors.

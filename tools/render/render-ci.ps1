@@ -178,18 +178,19 @@ if ($dm) {
     }
 }
 
-# CRT effects: full-res stills for each preset, and a short encode
-# Prerendering (3DMM baking still actors into the background) is off in the
-# renderer; it's meant to be invisible in 2-D. Render Hospital with it on and
-# compare every frame with the normal render.
+# Prerendering (3DMM baking still actors into the background) is on for 2-D,
+# as in 3DMM, and off for stereo, where every actor must stay a live 3-D body.
+# Render Hospital with it off and report how far that drifts from 3DMM's
+# picture: a few pixels where actors touch is known (a depth tie), more would
+# mean the stereo view no longer matches the 2-D one.
 $hosp = Get-ChildItem $MovieDir -Filter "Hospital.3mm" | Select-Object -First 1
-$prerenderBroken = $false
+$prerenderTiming = $null
 $hospMono = Join-Path $work "Hospital/mono"
 if ($hosp -and (Test-Path "$hospMono/frames")) {
     $raw = Join-Path $work "prerender"
     New-Item -ItemType Directory -Force $raw | Out-Null
     $p = Start-Process -FilePath $exe.FullName -PassThru -NoNewWindow `
-        -ArgumentList @("`"$($hosp.FullName)`"", "`"$raw`"", "--root", "`"$stage`"", "--prerender") `
+        -ArgumentList @("`"$($hosp.FullName)`"", "`"$raw`"", "--root", "`"$stage`"", "--no-prerender") `
         -RedirectStandardOutput (Join-Path $raw "stdout.txt") -RedirectStandardError (Join-Path $raw "stderr.txt")
     $null = $p.Handle
     if (-not $p.WaitForExit($TimeoutSeconds * 1000)) { $p.Kill() }
@@ -200,9 +201,10 @@ if ($hosp -and (Test-Path "$hospMono/frames")) {
         if ((Get-FileHash $a[$i].FullName).Hash -eq (Get-FileHash $b[$i].FullName).Hash) { $same++ } else { $diff += $a[$i].Name }
     }
     $timeline = if ((Get-FileHash "$hospMono/timeline.ffconcat").Hash -eq (Get-FileHash "$raw/timeline.ffconcat" -ErrorAction SilentlyContinue).Hash) { "same" } else { "different" }
-    "Hospital without / with prerendering: $($a.Count) / $($b.Count) frames, $same identical, timeline $timeline" |
+    "Hospital with / without prerendering: $($a.Count) / $($b.Count) frames, $same identical, timeline $timeline" |
         Tee-Object -FilePath (Join-Path $OutDir "prerender-check.txt") | Write-Host
-    if ($diff -or $a.Count -ne $b.Count -or $timeline -ne "same") { $prerenderBroken = $true }
+    # frame count and timing must agree, or the 3-D videos would drift from the 2-D ones
+    if ($a.Count -ne $b.Count -or $timeline -ne "same") { $prerenderTiming = "Hospital: $($a.Count) / $($b.Count) frames, timeline $timeline" }
     if ($diff) {
         "differing frames: $(($diff | Select-Object -First 40) -join ' ')" | Add-Content (Join-Path $OutDir "prerender-check.txt")
         & ffmpeg -hide_banner -loglevel error -y -i (Join-Path "$hospMono/frames" $diff[0]) -i (Join-Path "$raw/frames" $diff[0]) `
@@ -210,6 +212,7 @@ if ($hosp -and (Test-Path "$hospMono/frames")) {
     }
 }
 
+# CRT effects: full-res stills for each preset, and a short encode
 $crtExe = Get-ChildItem -Recurse $build -Filter 3dmm-crt.exe | Select-Object -First 1
 $firstMono = Get-ChildItem $work -Directory | Select-Object -First 1
 if ($crtExe -and $firstMono) {
@@ -303,7 +306,7 @@ if (Test-Path $src) {
 
 $summary | Export-Csv -NoTypeInformation (Join-Path $OutDir "summary.csv")
 $summary | Format-Table | Out-String | Write-Host
-if ($prerenderBroken) {
-    # see "One assumption, checked in CI" in tools/render/README.md
-    throw "2-D frames differ with and without prerendering (prerender-check.txt): the renderer no longer draws what 3DMM draws"
+if ($prerenderTiming) {
+    # see "Prerendering" in tools/render/README.md
+    throw "turning prerendering off changes the movie's timing ($prerenderTiming): 2-D and 3-D videos would drift apart"
 }

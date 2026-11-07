@@ -144,7 +144,7 @@ class RAPP : public RAPP_PAR
     bool _fDebug;
     bool _fSmooth;
     bool _fProgress;  // --progress: report how far along we are on stdout
-    bool _fPrerender; // --prerender: let 3DMM bake still actors into the background
+    bool _fPrerender; // 3DMM bakes still actors into the background; off for --stereo, --no-prerender
     STN _stnPoses;    // --poses <file>: every actor part's model and place, per frame
 
     // engine objects

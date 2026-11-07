@@ -161,8 +161,11 @@ jobs:
           powershell -NoProfile -ExecutionPolicy Bypass -File package/3dmm-render/render-folder.ps1 `
             -InputDir $in -OutputDir ci-out/batch -Formats anaglyph,2d -Scale 1 *>&1 |
             Tee-Object -FilePath ci-out/batch.log
-          Get-ChildItem -Recurse ci-out/batch -Filter *.mp4 | Select-Object Name, Length | Out-File ci-out/batch-files.txt
-          Get-ChildItem -Recurse ci-out/batch -Filter *.mp4 | Remove-Item
+          $mp4 = @(Get-ChildItem -Recurse ci-out/batch -Filter *.mp4)
+          $mp4 | Select-Object Name, Length | Out-File ci-out/batch-files.txt
+          $mp4 | Remove-Item
+          # 2d and anaglyph come from separate passes (as 3DMM draws it / in stereo): both must land
+          if ($mp4.Count -ne 4) { throw "expected 4 videos from the batch test, got $($mp4.Count): $($mp4.Name -join ', ')" }
 
       - name: App test
         if: steps.package.outcome == 'success' && hashFiles('test-movies/**/*.3mm') != ''

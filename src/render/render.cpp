@@ -21,9 +21,11 @@
 
     3DMM normally draws actors that won't change until the next camera cut
     into the background once and hides their bodies ("prerendering"). The
-    pictures are the same either way, but stereo, --smooth and --poses need
-    every actor as a live 3-D body, so the renderer turns it off;
-    --prerender turns it back on (CI checks that 2-D frames match).
+    renderer does the same, so 2-D frames match 3DMM's to the pixel. Stereo
+    needs every actor as a live 3-D body (a baked actor would sit flat in
+    the background), so --stereo turns it off; --no-prerender does too. The
+    two can differ by a few pixels where actors touch (CI reports how many).
+    --poses and --smooth handle baked actors either way.
 
     --smooth adds three in-between frames for every 6 fps step in which
     only actors moved: every actor part's transform is blended between the
@@ -87,7 +89,7 @@ RAPP::RAPP(void)
     _fDebug = fFalse;
     _fSmooth = fFalse;
     _fProgress = fFalse;
-    _fPrerender = fFalse;
+    _fPrerender = fTrue;
     _pglcfrmBefore = pvNil;
     _cfrmTotal = 0;
     _pctLast = -1;
@@ -242,9 +244,11 @@ bool RAPP::_FInit(ulong grfapp, ulong grfgob, long ginDef)
             _Log("font: %s", stn.Psz());
         }
     }
+    if (_fStereo)
+        _fPrerender = fFalse; // every actor live, so each eye can see it in depth
     SCEN::SetPrerendering(_fPrerender);
-    if (_fPrerender)
-        _Log("prerendering: on (3DMM's own behavior)");
+    if (!_fPrerender)
+        _Log("prerendering: off (every actor stays a live 3-D body)");
     if (!_FInitContent())
     {
         _lwExit = klwExitInit;
@@ -317,8 +321,8 @@ bool RAPP::_FParseCommandLine(void)
             _fSmooth = fTrue;
         else if (0 == strcmp(psz, "--progress"))
             _fProgress = fTrue;
-        else if (0 == strcmp(psz, "--prerender"))
-            _fPrerender = fTrue;
+        else if (0 == strcmp(psz, "--no-prerender"))
+            _fPrerender = fFalse;
         else if (0 == strcmp(psz, "--poses") && iarg + 1 < __argc)
             _stnPoses.SetSz(__argv[++iarg]);
         else if (carg == 0)
@@ -342,7 +346,7 @@ bool RAPP::_FParseCommandLine(void)
     {
         fprintf(stderr, "usage: 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>] "
                         "[--fonts <dir>] [--end-hold <sec>] [--max-frames <n>] [--stereo] [--depth <percent>] [--pop "
-                        "<percent>] [--smooth] [--progress] [--poses <file>] [--prerender] [--debug]\n");
+                        "<percent>] [--smooth] [--progress] [--poses <file>] [--no-prerender] [--debug]\n");
         return fFalse;
     }
     return fTrue;

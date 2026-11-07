@@ -71,7 +71,9 @@ text uses 3DMM's own fonts and is never affected.
 | `none` | | No video, e.g. for just `-ExtractSounds` |
 
 Asking for `sbs` or `anaglyph` renders the movie in 3D. Every other format
-is made from the plain 2-D view, even in a 3D render.
+is made from the plain 2-D view, exactly as 3DMM draws it. Asking for both
+kinds plays the movie twice (see [Prerendering](#how-it-stays-faithful)),
+so it takes about twice as long.
 
 ## Option reference
 
@@ -204,13 +206,14 @@ file's time in the movie, scene, frame, kind and original name.
 ```
 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--stereo] [--depth <pct>]
             [--pop <pct>] [--smooth] [--fonts <dir>] [--click-pause <sec>] [--end-hold <sec>]
-            [--max-frames <n>] [--debug]
+            [--max-frames <n>] [--progress] [--poses <file>] [--no-prerender] [--debug]
 ```
 
 The output folder contains:
 
 - `frames\*.bmp`: every distinct frame (stereo: left eye, right eye and
-  the 2-D view, side by side)
+  the 2-D view, side by side; that 2-D view has every actor live, so it can
+  differ from 3DMM's by a few pixels)
 - `timeline.ffconcat`: exact frame timings
 - `sounds\`, `audio-cues.tsv` and `audio.ffscript`: the extracted sounds, a cue sheet (category, timing, volume) and the raw mix
 - `sounds\index.tsv`: each sound's name, kind, source (movie or 3DMM) and where it's first played
@@ -254,17 +257,20 @@ Exit codes:
 - **Music.** MIDI is rendered with FluidSynth, so it will sound different
   from the Windows 95 wavetable synth you remember.
 
-**One assumption, checked in CI.** During playback 3DMM draws actors that
-won't change until the next camera cut into the background once and hides
-their bodies ("prerendering"). The renderer turns that off, so every actor
-stays a live 3-D body: stereo, smooth motion and pose capture all need
-that. We assume the 2-D picture comes out the same either way, since
-prerendering copies exactly the pixels and depths a live render produces.
-If BRender ever settled a tie in depth differently, it wouldn't. CI renders
-Hospital both ways (`--prerender` brings 3DMM's behavior back) and fails if
-any frame differs. Only one rendering pass is made even when 2-D and 3-D
-are both asked for, so if that check ever fails, 2-D outputs would need a
-separate pass with `--prerender`.
+**Prerendering.** During playback 3DMM draws actors that won't change until
+the next camera cut into the background once and hides their bodies
+("prerendering"). The renderer does the same, so 2-D videos match 3DMM to
+the pixel. Stereo can't: a baked actor would sit flat in the background, so
+`--stereo` keeps every actor a live 3-D body (`--no-prerender` does this
+without stereo). The two pictures aren't quite identical: where two actors
+touch at the same depth, BRender can settle the tie differently (in
+Hospital, 7 of 946 frames differ by a few pixels around the doctor's arm).
+So when a run asks for both 2-D and 3-D formats, `render-folder.ps1` plays
+the movie twice, once each way, and each video comes from its own pass.
+CI renders Hospital both ways and reports the difference; it fails only if
+the frame count or timing differ, since then 2-D and 3-D videos of one
+movie would drift apart. Pose capture (`-Poses`) and `-Smooth` work with
+baked actors too.
 
 ## Smooth motion (`-Smooth`)
 
