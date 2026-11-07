@@ -41,56 +41,114 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: ./tools/render/render-ci.ps1 -BuildDir build -MovieDir test-movies -OutDir ci-out/render
 
-      - name: Package the renderer
+      - name: Package McZee's Cut
         id: package
         if: steps.compile.outcome == 'success'
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          # A portable McZee's Cut: 3D Movie Maker finds "Microsoft Kids" next
+          # to its exe; Movie Exporter and the renderer sit beside it
           $pkg = "package/3dmm-render"
-          New-Item -ItemType Directory -Force "$pkg/3D Movie Maker" | Out-Null
+          $kids = "$pkg/Microsoft Kids"
+          New-Item -ItemType Directory -Force "$kids/3D Movie Maker", "$kids/Users/Melanie", "$pkg/tools" | Out-Null
+          Copy-Item (Get-ChildItem -Recurse build -Filter 3dmovie.exe | Select-Object -First 1).FullName $pkg
+          foreach ($chk in Get-ChildItem -Recurse build/chomp -Filter *.chk) {
+            # UTEST.CHT builds what 3DMM calls 3DMOVIE.CHK
+            $name = if ($chk.Name -ieq "utest.chk") { "3DMOVIE.CHK" } else { $chk.Name.ToUpper() }
+            Copy-Item $chk.FullName "$kids/3D Movie Maker/$name"
+          }
+          Copy-Item content-files/* "$kids/3D Movie Maker" -Exclude makefile
+          Copy-Item cd3/SAMPLES/*.3MM "$kids/Users/Melanie"
+          Get-ChildItem "$kids/3D Movie Maker" | Select-Object Name, Length | Format-Table -AutoSize | Out-String | Write-Host
+
           Copy-Item (Get-ChildItem -Recurse build -Filter 3dmm-render.exe | Select-Object -First 1).FullName $pkg
           Copy-Item (Get-ChildItem -Recurse build -Filter 3dmm-crt.exe | Select-Object -First 1).FullName $pkg
-          Copy-Item tools/render/render-folder.ps1, tools/render/encode-movie.ps1, tools/render/mix-audio.ps1, tools/render/get-tools.ps1, tools/render/README.md $pkg
-          Copy-Item content-files/*.3cn, content-files/*.3th "$pkg/3D Movie Maker"
-          Copy-Item (Get-ChildItem -Recurse build/chomp/studio -Filter utest.chk | Select-Object -First 1).FullName "$pkg/3D Movie Maker/3DMovie.chk"
-          # the app, built with the C# compiler that ships with Windows
+          Copy-Item tools/render/render-folder.ps1, tools/render/encode-movie.ps1, tools/render/mix-audio.ps1, tools/render/get-tools.ps1 $pkg
+          Copy-Item tools/render/README.md "$pkg/Exporting movies.md"
+          # Movie Exporter, built with the C# compiler that ships with Windows
           $csc = Join-Path $env:WINDIR "Microsoft.NET\Framework\v4.0.30319\csc.exe"
           # (this csc reads "/" in paths as option markers: use backslashes)
           & $csc /nologo /langversion:5 /target:winexe /optimize "/out:package\3dmm-render\Movie Exporter.exe" `
             /r:System.Windows.Forms.dll /r:System.Drawing.dll tools\render\app\MovieExporter.cs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+          # music for exports comes along (FluidSynth, LGPL-2.1, and the
+          # GeneralUser GS instruments); ffmpeg is fetched on first export
+          powershell -NoProfile -ExecutionPolicy Bypass -File "$pkg/get-tools.ps1" -SkipFfmpeg
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $fsDir = (Get-ChildItem -Recurse "$pkg/tools" -Filter fluidsynth.exe | Select-Object -First 1).Directory.Parent.FullName
+          Invoke-WebRequest -UseBasicParsing -OutFile (Join-Path $fsDir "LICENSE.txt") "https://raw.githubusercontent.com/FluidSynth/fluidsynth/master/LICENSE"
+          try {
+            $docs = Invoke-RestMethod -Headers @{ Authorization = "Bearer $env:GH_TOKEN" } "https://api.github.com/repos/mrbumpy409/GeneralUser-GS/contents/documentation"
+            $lic = @($docs | Where-Object { $_.name -match 'licen' })
+            foreach ($f in $lic) { Invoke-WebRequest -UseBasicParsing -OutFile "$pkg/tools/GeneralUser-GS $($f.name)" $f.download_url }
+            Write-Host "GeneralUser GS license files: $(($lic | ForEach-Object name) -join ', ')"
+          } catch { Write-Warning "couldn't fetch the GeneralUser GS license: $_" }
+          Get-ChildItem -Recurse "$pkg/tools" -File | Select-Object FullName, Length | Format-Table -AutoSize | Out-String -Width 300 | Write-Host
+
       - name: End-to-end batch test (Windows PowerShell 5.1)
         id: batch
         if: steps.package.outcome == 'success' && hashFiles('test-movies/**/*.3mm') != ''
         shell: pwsh
         run: |
-          if (Test-Path build/tools) { Copy-Item -Recurse build/tools package/3dmm-render/tools }
           powershell -NoProfile -ExecutionPolicy Bypass -File package/3dmm-render/render-folder.ps1 `
             -InputDir test-movies -OutputDir ci-out/batch -Formats anaglyph,2d -Scale 1 *>&1 |
             Tee-Object -FilePath ci-out/batch.log
           Get-ChildItem -Recurse ci-out/batch -Filter *.mp4 | Select-Object Name, Length | Out-File ci-out/batch-files.txt
           Get-ChildItem -Recurse ci-out/batch -Filter *.mp4 | Remove-Item
-          Remove-Item -Recurse -Force package/3dmm-render/tools -ErrorAction SilentlyContinue
 
       - name: App test
         if: steps.package.outcome == 'success' && hashFiles('test-movies/**/*.3mm') != ''
         shell: pwsh
         run: |
-          # the way a person would use it: no tools yet (it fetches what's
-          # missing), one movie, MP4 + AVI, improved style
-          Remove-Item -Recurse -Force package/3dmm-render/tools -ErrorAction SilentlyContinue
           $app = "ci-out/app"
           New-Item -ItemType Directory -Force $app | Out-Null
+          $exe = "package/3dmm-render/Movie Exporter.exe"
+          # --prefetch: no window, just makes sure the tools are there
+          $p = Start-Process -FilePath $exe -PassThru -Wait -ArgumentList "--prefetch"
+          "prefetch: exit $($p.ExitCode)" | Tee-Object "$app/app.txt"
+          # the full window, as a person would use it: one movie, MP4 + AVI, improved style
           $sw = [Diagnostics.Stopwatch]::StartNew()
-          $p = Start-Process -FilePath "package/3dmm-render/Movie Exporter.exe" -PassThru -Wait -ArgumentList @(
+          $p = Start-Process -FilePath $exe -PassThru -Wait -ArgumentList @(
             "`"$pwd/test-movies/City Tour.3mm`"", "--out", "`"$pwd/$app/videos`"", "--make", "mp4,avi",
             "--go", "--close-when-done", "--screenshot", "`"$pwd/$app/app.png`"")
-          "exit $($p.ExitCode) in $([Math]::Round($sw.Elapsed.TotalSeconds)) s" | Tee-Object "$app/app.txt"
-          Get-ChildItem -Recurse "$app/videos" | Select-Object Name, Length | Out-File -Append "$app/app.txt"
+          "window: exit $($p.ExitCode) in $([Math]::Round($sw.Elapsed.TotalSeconds)) s" | Tee-Object -Append "$app/app.txt"
+          # 3D Movie Maker's Export: one movie to one file, per preset
+          foreach ($preset in "improved", "avi") {
+            $ext = if ($preset -eq "avi") { "avi" } else { "mp4" }
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            $p = Start-Process -FilePath $exe -PassThru -Wait -ArgumentList @(
+              "--export", "`"$pwd/test-movies/City Tour.3mm`"", "--to", "`"$pwd/$app/export/My City Tour ($preset).$ext`"",
+              "--preset", $preset, "--close-when-done", "--screenshot", "`"$pwd/$app/export-$preset.png`"")
+            "export ${preset}: exit $($p.ExitCode) in $([Math]::Round($sw.Elapsed.TotalSeconds)) s" | Tee-Object -Append "$app/app.txt"
+          }
+          Get-ChildItem -Recurse "$app/videos", "$app/export" -ErrorAction SilentlyContinue | Select-Object Name, Length | Out-File -Append "$app/app.txt"
           Get-Content "$app/videos/report.csv" -ErrorAction SilentlyContinue | Out-File -Append "$app/app.txt"
-          Get-ChildItem -Recurse "$app/videos" -Include *.mp4, *.avi | Remove-Item
-          Remove-Item -Recurse -Force package/3dmm-render/tools -ErrorAction SilentlyContinue
+          Get-ChildItem -Recurse "$app/videos", "$app/export" -Include *.mp4, *.avi -ErrorAction SilentlyContinue | Remove-Item
+
+      - name: 3D Movie Maker starts from the package
+        if: steps.package.outcome == 'success'
+        shell: pwsh
+        run: |
+          # a smoke test: run the portable 3dmovie.exe for a bit and photograph the screen
+          $app = "ci-out/app"
+          New-Item -ItemType Directory -Force $app | Out-Null
+          Add-Type -AssemblyName System.Drawing, System.Windows.Forms
+          $p = Start-Process -FilePath "package/3dmm-render/3dmovie.exe" -WorkingDirectory "package/3dmm-render" -PassThru
+          foreach ($t in 8, 20) {
+            Start-Sleep -Seconds ($t - $(if ($t -eq 8) { 0 } else { 8 }))
+            try {
+              $b = [Windows.Forms.Screen]::PrimaryScreen.Bounds
+              $bmp = New-Object Drawing.Bitmap $b.Width, $b.Height
+              $g = [Drawing.Graphics]::FromImage($bmp)
+              $g.CopyFromScreen($b.Location, [Drawing.Point]::Empty, $b.Size)
+              $bmp.Save("$pwd/$app/3dmovie-${t}s.png")
+            } catch { "screenshot failed: $_" | Out-File -Append "$app/3dmovie.txt" }
+          }
+          "running after 20 s: $(-not $p.HasExited)" | Out-File -Append "$app/3dmovie.txt"
+          if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force } else { "exit code $($p.ExitCode)" | Out-File -Append "$app/3dmovie.txt" }
 
       - name: Full-quality renders on request
         if: steps.package.outcome == 'success' && hashFiles('ci-render-requests.txt') != ''
@@ -107,11 +165,9 @@ jobs:
             else { Copy-Item -LiteralPath (Join-Path test-movies $l) $req }
           }
           if (-not (Get-ChildItem $req -Filter *.3mm)) { Write-Host "no movies requested"; exit 0 }
-          if (Test-Path build/tools) { Copy-Item -Recurse build/tools package/3dmm-render/tools -ErrorAction SilentlyContinue }
           if ($switches -notcontains "-Formats") { $switches += @("-Formats", "2d") }
           powershell -NoProfile -ExecutionPolicy Bypass -File package/3dmm-render/render-folder.ps1 `
             -InputDir $req -OutputDir ci-out/full @switches *>&1 | Tee-Object -FilePath ci-out/full.log
-          Remove-Item -Recurse -Force package/3dmm-render/tools -ErrorAction SilentlyContinue
 
       - name: Publish results to ci-results branch
         if: always()
@@ -152,12 +208,27 @@ jobs:
           }
           Pop-Location
 
-      - name: Upload renderer package
+      - name: Upload McZee's Cut
         if: steps.package.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: 3dmm-render
-          path: package/
+          name: McZees-Cut
+          path: package/3dmm-render/
+
+      - name: Publish the download (main only)
+        if: steps.package.outcome == 'success' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # a GitHub Release, so anyone can download it without a GitHub account
+          Copy-Item -Recurse package/3dmm-render "McZees-Cut"
+          Compress-Archive -Path "McZees-Cut" -DestinationPath McZees-Cut.zip
+          $notes = "Unzip, then run **3dmovie.exe** for 3D Movie Maker (File > Export makes videos), or **Movie Exporter.exe** " +
+            "to turn a folder of movies into videos. The first export downloads ffmpeg (about 150 MB). " +
+            "Windows may warn that the apps are unrecognized: choose More info, then Run anyway.`n`nBuilt from $env:GITHUB_SHA."
+          gh release delete latest --yes --cleanup-tag 2>$null
+          gh release create latest McZees-Cut.zip --title "McZee's Cut (latest build)" --notes $notes --target $env:GITHUB_SHA --latest
 
       - name: Upload build
         if: steps.compile.outcome == 'success'

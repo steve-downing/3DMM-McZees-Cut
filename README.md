@@ -1,18 +1,26 @@
 # McZee's Cut
 
-_Your 3D Movie Maker movies, exported to video and remastered: smooth motion, real stereo 3D, CRT looks and 5.1 sound._
+_3D Movie Maker, with an Export button: your movies as videos, with smooth motion, real stereo 3D, CRT looks and 5.1 sound._
 
 ![Gustave's karate kick: 3D Movie Maker's 6 frames a second on the left, smoothed to 24 on the right](img/smooth-compare.gif)
 
-<sub>Gustave, one of 3DMM's own actors, in the rebuilt airplane cabin from the [set explorer](#try-the-3d-set-explorer). Every fourth frame on the right is exactly 3DMM's. The renderer's `-Smooth` uses the same blending.</sub>
+<sub>Gustave, one of 3DMM's own actors, in the rebuilt airplane cabin from the [set explorer](#try-the-3d-set-explorer). Every fourth frame on the right is exactly 3DMM's. Exports with smooth motion use the same blending.</sub>
 
-McZee's Cut turns `.3mm` movies into MP4s you can watch anywhere, using
-3D Movie Maker's real engine. It plays each movie headlessly and faster than
-real time, so the timing, transitions, text and sound come out the way 3DMM
-played them. Then it goes further than 3DMM could:
+McZee's Cut is a version of Microsoft 3D Movie Maker (1995), built on
+[3DMMForever](https://github.com/foone/3DMMForever). It runs on modern
+Windows straight from a folder, with no installer, and it adds new things to
+3DMM, starting with exporting movies as videos.
 
-- **Smooth motion.** 3DMM animates at 6 frames a second. `-Smooth` blends
-  every actor's motion between those frames and exports at 24.
+**[Download McZee's Cut](https://github.com/steve-downing/3DMM-McZees-Cut/releases/latest/download/McZees-Cut.zip)**
+(Windows 10 or 11). Unzip it anywhere and run `3dmovie.exe`. Windows may say
+it doesn't recognize the app: choose **More info**, then **Run anyway**.
+
+Exports use 3D Movie Maker's real engine. Each movie is played headlessly
+and faster than real time, so its timing, transitions, text and sound come
+out the way 3DMM played them. Then the export goes further than 3DMM could:
+
+- **Smooth motion.** 3DMM animates at 6 frames a second. Smooth motion
+  blends every actor's motion between those frames and exports at 24.
 - **Stereo 3D.** Side-by-side 3D for VR headsets and 3D TVs, red/cyan
   anaglyph, or plain 2D. Actors are rendered twice for real. The
   pre-rendered sets are reprojected from their depth maps.
@@ -22,12 +30,9 @@ played them. Then it goes further than 3DMM could:
   Loudness is leveled so every movie plays at a similar volume.
 - **Period-correct AVI.** A small Cinepak `.avi` that plays on Windows 95
   and 98 with nothing extra installed.
-- **Whole archives at once.** Point it at a folder of movies and it
-  converts everything, writes a report, and picks up where it left off if
-  interrupted.
-
-Everything that changes the movie (smooth motion, ducking) is opt-in. Left
-alone, you get the movie as 3DMM played it, leveled to a normal volume.
+- **Whole archives at once.** Point Movie Exporter at a folder of movies and
+  it converts everything, writes a report, and picks up where it left off
+  if interrupted.
 
 ## Try the 3D set explorer
 
@@ -47,29 +52,32 @@ phone. How the sets are rebuilt is in
 
 ## Export your movies
 
-These steps are for Windows 10 or 11.
+**From 3D Movie Maker:** open a movie, click the File button (the
+portfolio), then **Export**. Pick where to save it and a type:
 
-1. Download the `3dmm-render` package from the latest successful build on
-   the [Actions tab](../../actions) and unzip it. (GitHub asks you to sign
-   in to download build files.) The package includes the renderer, 3D Movie
-   Maker's content, the app and the scripts.
-2. Double-click **Movie Exporter.exe**. Windows may say it doesn't recognize
-   the app: choose **More info**, then **Run anyway**.
-3. Add your movies, pick a style, tick what you want, and press
-   **Make videos**. The first time, it downloads ffmpeg and the music
-   instruments, about 200 MB.
+| Type | What you get |
+|---|---|
+| AVI for Windows 95 and 98 | A small Cinepak video that plays on a 90s PC, as 3DMM played it |
+| MP4, faithful | The movie exactly as 3DMM played it |
+| MP4, faithful, 90s monitor look | The same, at 4K, looking like a mid-90s CRT |
+| MP4, improved (the default) | Smooth motion, and the music dips while characters talk |
 
-The app has two styles. **Improved**, the default, smooths the motion and
-dips the music while characters talk. **Faithful** is exactly what 3D Movie
-Maker played. Hover over any choice to see what it makes.
+The video is made in a small window of its own while you carry on in 3DMM.
+If the movie has unsaved changes, 3DMM saves it first. The first export
+downloads ffmpeg, about 150 MB; that starts as soon as you click Export.
+
+**Many movies at once:** run **Movie Exporter.exe**, next to `3dmovie.exe`.
+Add movies or a folder, pick Improved or Faithful, tick what to make
+(including 3D for VR, red/cyan 3D and the movie's sounds), and press **Make
+videos**. Hover over any choice to see what it makes.
 
 ### From the command line
 
-The app runs `render-folder.ps1`, which has every option (see
+Both run `render-folder.ps1`, which has every option (see
 [What it can do](#what-it-can-do)). In the unzipped folder:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File get-tools.ps1     # once: ffmpeg and the music tools
+powershell -ExecutionPolicy Bypass -File get-tools.ps1     # once: ffmpeg
 powershell -ExecutionPolicy Bypass -File render-folder.ps1 `
     -InputDir D:\3mm-archive -OutputDir D:\3mm-videos -Smooth -Duck
 ```
@@ -83,7 +91,7 @@ went. Run the script again and it skips anything already up to date.
 
 | You want | Add |
 |---|---|
-| The app's Improved style | `-Smooth -Duck` |
+| The Improved style | `-Smooth -Duck` |
 | The best-looking 2D video, music untouched | `-Smooth` |
 | 3D for a VR headset or 3D TV | `-Smooth -Formats sbs` |
 | 3D, red/cyan, and 2D, all at once | `-Smooth -Formats sbs,anaglyph,2d` |

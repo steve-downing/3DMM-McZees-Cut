@@ -147,6 +147,7 @@
 #define cidFrameThumb 50112
 #define cidSceneThumb 50113
 #define cidQuerySaveDocResult 50114
+#define cidExportMovie 50115 // McZee's Cut: File > Export
 
 // Misc Studio Strings
 #define idsBrowserPage 0
@@ -315,6 +316,7 @@
 #define kidSceneThumb 0x20093
 #define kidName 0x20094
 #define kidPortsSaveAs 0x20095
+#define kidPortsExport 0x2009A // McZee's Cut
 #define kidRollCallActor 0x20096
 #define kidRollCallProp 0x20097
 #define kidCCPTboxNuke 0x20098
@@ -741,6 +743,7 @@
 #define kttFrameSlider 0x223E1
 #define kttBrowserImportSpeech 0x223E2
 #define kttBrowserImportMidi 0x223E3
+#define kttPortsExport 0x223E4 // McZee's Cut
 
 //
 // Sound CNOs

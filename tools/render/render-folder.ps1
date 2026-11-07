@@ -64,10 +64,12 @@ if (-not $Renderer) {
 }
 if (-not $Renderer -or -not (Test-Path $Renderer)) { throw "can't find 3dmm-render.exe; pass -Renderer" }
 
-# content: the package ships its own "3D Movie Maker" folder next to the
-# renderer; otherwise fall back to a regular 3DMM install
+# content: McZee's Cut ships "Microsoft Kids\3D Movie Maker" next to the
+# renderer (older packages: just "3D Movie Maker"); otherwise fall back to a
+# regular 3DMM install
 if (-not $Root) {
-    $Root = @((Split-Path -Parent (Resolve-Path $Renderer)), "C:\Program Files (x86)\Microsoft Kids",
+    $here = Split-Path -Parent (Resolve-Path $Renderer)
+    $Root = @($here, (Join-Path $here "Microsoft Kids"), "C:\Program Files (x86)\Microsoft Kids",
         "C:\Program Files\Microsoft Kids") | Where-Object { Test-Path (Join-Path $_ "3D Movie Maker") } |
         Select-Object -First 1
 }

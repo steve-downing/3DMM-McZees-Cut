@@ -1,15 +1,22 @@
 // Movie Exporter: McZee's Cut's small Windows app around render-folder.ps1,
-// for people who would rather not use the command line. Pick movies, pick a style, pick
-// what to make, press the button.
+// for people who would rather not use the command line. Pick movies, pick a
+// style, pick what to make, press the button. 3D Movie Maker's Export button
+// runs it too, for one movie at a time.
 //
 // Built with the C# compiler that ships with Windows (.NET Framework 4.x), so
 // it sticks to C# 5. It lives next to render-folder.ps1 in the package.
 //
-// Command line (all optional; used by CI, and by anything that wants to hand
-// it movies):
+// Command line (all optional):
 //   "Movie Exporter.exe" [movie.3mm | folder]... [--out <folder>] [--style improved|faithful]
 //                 [--make mp4,crt,sbs,anaglyph,avi,sounds] [--go] [--close-when-done]
 //                 [--screenshot <file.png>]
+//       the full window, filled in (CI uses --go --close-when-done)
+//   "Movie Exporter.exe" --export <movie.3mm> --to <file> --preset avi|faithful|faithful-crt|improved
+//                 [--close-when-done] [--screenshot <file.png>]
+//       a small window that exports one movie to one file (3DMM's Export button)
+//   "Movie Exporter.exe" --prefetch
+//       no window: download ffmpeg and anything else missing, then exit
+//       (3DMM starts this as soon as Export is clicked)
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -18,6 +25,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 
 static class Program
@@ -28,12 +36,166 @@ static class Program
     [STAThread]
     static int Main(string[] args)
     {
+        if (args.Contains("--prefetch")) return Tools.Ensure(null) ? 0 : 1;
         try { SetProcessDPIAware(); } catch { }
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
+        if (args.Contains("--export"))
+        {
+            var ef = new ExportForm(args);
+            Application.Run(ef);
+            return ef.ExitCode;
+        }
         var form = new MainForm(args);
         Application.Run(form);
         return form.ExitCode;
+    }
+}
+
+// ffmpeg, FluidSynth and the instruments, in .\tools (get-tools.ps1 fetches
+// what's missing). Shared by every Movie Exporter process: a named mutex makes
+// a second download wait for the first instead of fighting over the files.
+static class Tools
+{
+    public static readonly string AppDir = AppDomain.CurrentDomain.BaseDirectory;
+    static Process current;
+
+    public static string Script(string name) { return Path.Combine(AppDir, name); }
+
+    public static string Quote(string s) { return "\"" + s.TrimEnd('\\') + "\""; }
+
+    public static bool Ready()
+    {
+        string tools = Path.Combine(AppDir, "tools");
+        bool fluid = Directory.Exists(tools) && Directory.GetFiles(tools, "fluidsynth.exe", SearchOption.AllDirectories).Length > 0;
+        bool sf = File.Exists(Path.Combine(tools, "GeneralUser-GS.sf2"));
+        bool ff = (Directory.Exists(tools) && Directory.GetFiles(tools, "ffmpeg.exe", SearchOption.AllDirectories).Length > 0) || OnPath("ffmpeg.exe");
+        return fluid && sf && ff;
+    }
+
+    static bool OnPath(string exe)
+    {
+        foreach (var d in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(';'))
+        {
+            try { if (d.Length > 0 && File.Exists(Path.Combine(d.Trim(), exe))) return true; } catch { }
+        }
+        return false;
+    }
+
+    // Blocks until the tools are there (downloading them if needed), so call
+    // it from a background thread. onLine gets get-tools.ps1's output.
+    public static bool Ensure(Action<string> onLine)
+    {
+        using (var m = new Mutex(false, @"Local\McZeesCut-MovieExporter-tools"))
+        {
+            try { m.WaitOne(); } catch (AbandonedMutexException) { }
+            try
+            {
+                if (Ready()) return true;
+                var psi = new ProcessStartInfo("powershell.exe",
+                    "-NoProfile -ExecutionPolicy Bypass -File " + Quote(Script("get-tools.ps1")))
+                {
+                    UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = AppDir,
+                    RedirectStandardOutput = true, RedirectStandardError = true,
+                };
+                using (var p = Process.Start(psi))
+                {
+                    current = p;
+                    p.ErrorDataReceived += (s, e) => { if (e.Data != null && onLine != null) onLine(e.Data); };
+                    p.BeginErrorReadLine();
+                    string line;
+                    while ((line = p.StandardOutput.ReadLine()) != null) if (onLine != null) onLine(line);
+                    p.WaitForExit();
+                    current = null;
+                }
+                return Ready();
+            }
+            catch (Exception ex)
+            {
+                if (onLine != null) onLine("couldn't run get-tools.ps1: " + ex.Message);
+                return false;
+            }
+            finally { m.ReleaseMutex(); }
+        }
+    }
+
+    // 3D Movie Maker may still have the movie open: copy it without asking
+    // for exclusive access
+    public static void CopyShared(string from, string to)
+    {
+        using (var src = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+        using (var dst = new FileStream(to, FileMode.CreateNew, FileAccess.Write))
+            src.CopyTo(dst);
+    }
+
+    public static void StopDownload()
+    {
+        try { var p = current; if (p != null && !p.HasExited) Kill(p.Id); } catch { }
+    }
+
+    // stops a process and everything it started (the renderer, ffmpeg)
+    public static void Kill(int pid)
+    {
+        try
+        {
+            var k = Process.Start(new ProcessStartInfo("taskkill", "/T /F /PID " + pid) { CreateNoWindow = true, UseShellExecute = false });
+            if (k != null) k.WaitForExit(5000);
+        }
+        catch { }
+    }
+
+    // report.csv from render-folder.ps1: one row per movie
+    public static List<List<string>> ReadReport(string file)
+    {
+        var rows = new List<List<string>>();
+        if (!File.Exists(file)) return rows;
+        foreach (var row in File.ReadAllLines(file).Skip(1)) rows.Add(SplitCsv(row));
+        return rows;
+    }
+
+    static List<string> SplitCsv(string line)
+    {
+        var cols = new List<string>();
+        var cur = new StringBuilder();
+        bool q = false;
+        for (int i = 0; i < line.Length; i++)
+        {
+            char ch = line[i];
+            if (q)
+            {
+                if (ch == '"' && i + 1 < line.Length && line[i + 1] == '"') { cur.Append('"'); i++; }
+                else if (ch == '"') q = false;
+                else cur.Append(ch);
+            }
+            else if (ch == '"') q = true;
+            else if (ch == ',') { cols.Add(cur.ToString()); cur.Clear(); }
+            else cur.Append(ch);
+        }
+        cols.Add(cur.ToString());
+        return cols;
+    }
+
+    // a problem with one movie, in plain words; null when it worked
+    public static string Problem(List<string> cols)
+    {
+        if (cols.Count < 2 || cols[1] == "ok") return null;
+        string movie = Path.GetFileNameWithoutExtension(cols[0]);
+        if (cols[1] == "missing-content")
+            return movie + " uses 3D Movie Maker add-on content that isn't included" + (cols.Count > 5 && cols[5] != "" ? " (" + cols[5] + ")" : "") + ".";
+        return movie + " couldn't be converted (" + cols[1] + ").";
+    }
+
+    public static void SaveScreenshot(Form f, string path)
+    {
+        try
+        {
+            using (var bmp = new Bitmap(f.Width, f.Height))
+            {
+                f.DrawToBitmap(bmp, new Rectangle(0, 0, f.Width, f.Height));
+                bmp.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+            }
+        }
+        catch { }
     }
 }
 
@@ -52,7 +214,7 @@ class MainForm : Form
 {
     public int ExitCode = 0;
 
-    readonly string appDir = AppDomain.CurrentDomain.BaseDirectory;
+    readonly string appDir = Tools.AppDir;
     readonly ListBox movieList = new ListBox();
     readonly RadioButton improved = new RadioButton();
     readonly RadioButton faithful = new RadioButton();
@@ -87,7 +249,7 @@ class MainForm : Form
     bool cancelled;
     bool autoGo, closeWhenDone;
     string screenshot;
-    bool needsSetup;
+    bool waitingForTools;
 
     public MainForm(string[] args)
     {
@@ -109,6 +271,8 @@ class MainForm : Form
         Shown += delegate
         {
             if (screenshot != null) SaveScreenshot(screenshot);
+            // the first time, start fetching ffmpeg right away, while movies are being picked
+            if (!autoGo && !Tools.Ready()) EnsureTools(null);
             if (autoGo) Go();
         };
     }
@@ -318,7 +482,7 @@ class MainForm : Form
 
     void UpdateButtons()
     {
-        bool running = proc != null;
+        bool running = proc != null || stageDir != null;
         bool anyMake = choices.Any(c => c.Box.Checked);
         goButton.Enabled = !running && movieList.Items.Count > 0 && anyMake;
         cancelButton.Enabled = running;
@@ -331,29 +495,53 @@ class MainForm : Form
     }
 
     // ---- running --------------------------------------------------------
-    string Script(string name) { return Path.Combine(appDir, name); }
+    string Script(string name) { return Tools.Script(name); }
 
-    bool ToolsReady()
+    // Runs then() on the UI thread once the tools are there; a download
+    // started earlier (by this window or another process) is waited for.
+    void EnsureTools(Action then)
     {
-        string tools = Path.Combine(appDir, "tools");
-        bool fluid = Directory.Exists(tools) && Directory.GetFiles(tools, "fluidsynth.exe", SearchOption.AllDirectories).Length > 0;
-        bool sf = File.Exists(Path.Combine(tools, "GeneralUser-GS.sf2"));
-        bool ff = (Directory.Exists(tools) && Directory.GetFiles(tools, "ffmpeg.exe", SearchOption.AllDirectories).Length > 0) || OnPath("ffmpeg.exe");
-        return fluid && sf && ff;
-    }
-
-    static bool OnPath(string exe)
-    {
-        foreach (var d in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(';'))
+        bool ready = Tools.Ready();
+        if (!ready)
         {
-            try { if (d.Length > 0 && File.Exists(Path.Combine(d.Trim(), exe))) return true; } catch { }
+            waitingForTools = true;
+            progress.Style = ProgressBarStyle.Marquee;
+            SetStatus(then == null
+                ? "Getting ready in the background (first time only): downloading ffmpeg..."
+                : "Finishing the one-time download of ffmpeg first...");
         }
-        return false;
+        UpdateButtons();
+        var t = new Thread(() =>
+        {
+            bool ok = ready || Tools.Ensure(line => BeginInvoke(new Action(() => AppendLog(line))));
+            BeginInvoke(new Action(() =>
+            {
+                waitingForTools = false;
+                progress.Style = ProgressBarStyle.Continuous;
+                if (!ok)
+                {
+                    if (then != null && !cancelled) { Fail("Couldn't download ffmpeg. Check the internet connection and try again (details below)."); ShowDetails(); Finish(); }
+                    else if (then == null) SetStatus("Couldn't download ffmpeg yet. It will try again when you make videos.");
+                    UpdateButtons();
+                    return;
+                }
+                if (then == null)
+                {
+                    if (proc == null && stageDir == null) SetStatus(movieList.Items.Count > 0 ? "Ready." : "Ready. Add some movies to get started.");
+                    UpdateButtons();
+                    return;
+                }
+                if (cancelled) { SetStatus("Stopped."); Finish(); return; }
+                then();
+            }));
+        });
+        t.IsBackground = true;
+        t.Start();
     }
 
     void Go()
     {
-        if (proc != null || !goButton.Enabled) return;
+        if (proc != null || stageDir != null || !goButton.Enabled) return;
         if (!File.Exists(Script("render-folder.ps1")))
         {
             Fail("render-folder.ps1 should be next to Movie Exporter.exe. Unzip the whole download and run it from there.");
@@ -374,26 +562,13 @@ class MainForm : Form
             string pick = name;
             for (int k = 2; used.Contains(pick); k++) pick = name + " (" + k + ")";
             used.Add(pick);
-            try { File.Copy(f, Path.Combine(stageDir, pick + ".3mm")); }
-            catch (Exception ex) { Fail("Can't read " + f + ": " + ex.Message); return; }
+            try { Tools.CopyShared(f, Path.Combine(stageDir, pick + ".3mm")); }
+            catch (Exception ex) { Fail("Can't read " + f + ": " + ex.Message); Finish(); return; }
         }
         cancelled = false;
         log.Clear();
         progress.Value = 0;
-        needsSetup = !ToolsReady();
-        if (needsSetup)
-        {
-            SetStatus("Getting ready (first time only): downloading ffmpeg and music instruments, about 200 MB...");
-            progress.Style = ProgressBarStyle.Marquee;
-            Run(Script("get-tools.ps1"), "", delegate (int code)
-            {
-                progress.Style = ProgressBarStyle.Continuous;
-                if (cancelled) { Finish(); return; }
-                if (code != 0 || !ToolsReady()) { Fail("Couldn't download the tools it needs. Check the internet connection and try again (details below)."); ShowDetails(); Finish(); return; }
-                StartRender();
-            });
-        }
-        else StartRender();
+        EnsureTools(StartRender);
     }
 
     void StartRender()
@@ -410,7 +585,7 @@ class MainForm : Form
         Run(Script("render-folder.ps1"), a.ToString(), delegate (int code) { Done(code); });
     }
 
-    static string Quote(string s) { return "\"" + s.TrimEnd('\\') + "\""; }
+    static string Quote(string s) { return Tools.Quote(s); }
 
     void Run(string script, string args, Action<int> onExit)
     {
@@ -465,7 +640,7 @@ class MainForm : Form
                 SetStatus(n == 1 ? "Making " + name + "..." : "Making " + i + " of " + n + ": " + name + "...");
             }
         }
-        else if (needsSetup && line.StartsWith("Downloading")) SetStatus("Getting ready (first time only): " + line);
+        else if (waitingForTools && line.StartsWith("Downloading")) SetStatus("Getting ready (first time only): " + line);
     }
 
     void Done(int code)
@@ -475,22 +650,13 @@ class MainForm : Form
         // report.csv: one row per movie, with a status
         var problems = new List<string>();
         int ok = 0;
-        string report = Path.Combine(outDir, "report.csv");
-        if (File.Exists(report))
+        var rows = Tools.ReadReport(Path.Combine(outDir, "report.csv"));
+        foreach (var cols in rows)
         {
-            foreach (var row in File.ReadAllLines(report).Skip(1))
-            {
-                var cols = SplitCsv(row);
-                if (cols.Count < 2) continue;
-                string movie = Path.GetFileNameWithoutExtension(cols[0]);
-                string st = cols[1];
-                if (st == "ok") ok++;
-                else if (st == "missing-content")
-                    problems.Add(movie + " uses 3D Movie Maker add-on content that isn't included" + (cols.Count > 5 && cols[5] != "" ? " (" + cols[5] + ")" : "") + ".");
-                else problems.Add(movie + " couldn't be converted (" + st + ").");
-            }
+            string p = Tools.Problem(cols);
+            if (p == null) ok++; else problems.Add(p);
         }
-        else problems.Add("Something went wrong before any movie was converted.");
+        if (rows.Count == 0) problems.Add("Something went wrong before any movie was converted.");
 
         if (problems.Count == 0)
         {
@@ -516,21 +682,15 @@ class MainForm : Form
 
     void Cancel()
     {
-        if (proc == null) return;
+        if (proc == null && stageDir == null) return;
         cancelled = true;
         SetStatus("Stopping...");
-        try
-        {
-            // the script starts the renderer and ffmpeg; stop all of them
-            var k = Process.Start(new ProcessStartInfo("taskkill", "/T /F /PID " + proc.Id) { CreateNoWindow = true, UseShellExecute = false });
-            if (k != null) k.WaitForExit(5000);
-        }
-        catch { }
+        if (proc != null) Tools.Kill(proc.Id);   // the script, the renderer and ffmpeg
     }
 
     void OnClosing(object sender, FormClosingEventArgs e)
     {
-        if (proc == null) return;
+        if (proc == null && stageDir == null) return;
         if (!closeWhenDone && MessageBox.Show(this, "Videos are still being made. Stop and close?", "Movie Exporter",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
         {
@@ -557,28 +717,6 @@ class MainForm : Form
     void AppendLog(string s)
     {
         log.AppendText(s + Environment.NewLine);
-    }
-
-    static List<string> SplitCsv(string line)
-    {
-        var cols = new List<string>();
-        var cur = new StringBuilder();
-        bool q = false;
-        for (int i = 0; i < line.Length; i++)
-        {
-            char ch = line[i];
-            if (q)
-            {
-                if (ch == '"' && i + 1 < line.Length && line[i + 1] == '"') { cur.Append('"'); i++; }
-                else if (ch == '"') q = false;
-                else cur.Append(ch);
-            }
-            else if (ch == '"') q = true;
-            else if (ch == ',') { cols.Add(cur.ToString()); cur.Clear(); }
-            else cur.Append(ch);
-        }
-        cols.Add(cur.ToString());
-        return cols;
     }
 
     // ---- command line ---------------------------------------------------
@@ -628,3 +766,235 @@ class MovieItem
         return System.IO.Path.GetFileNameWithoutExtension(Path) + (string.IsNullOrEmpty(dir) ? "" : "   (in " + dir + ")");
     }
 }
+
+// One movie to one file, for 3D Movie Maker's Export button: a small window
+// with a progress bar that keeps going while you carry on in 3DMM.
+class ExportForm : Form
+{
+    public int ExitCode = 0;
+
+    string movie, target, preset = "improved", screenshot;
+    bool closeWhenDone, cancelled, finished;
+    Process proc;
+    string work;
+
+    readonly Label title = new Label();
+    readonly Label detail = new Label();
+    readonly ProgressBar progress = new ProgressBar();
+    readonly Label status = new Label();
+    readonly Button watchButton = new Button();
+    readonly Button showButton = new Button();
+    readonly Button closeButton = new Button();
+    readonly CheckBox detailsBox = new CheckBox();
+    readonly TextBox log = new TextBox();
+
+    static readonly Dictionary<string, string> PresetNames = new Dictionary<string, string>
+    {
+        { "avi", "AVI for Windows 95 and 98" },
+        { "faithful", "MP4, faithful" },
+        { "faithful-crt", "MP4, faithful, 90s monitor look" },
+        { "improved", "MP4, improved: smooth motion, music dips while characters talk" },
+    };
+
+    public ExportForm(string[] args)
+    {
+        for (int i = 0; i < args.Length; i++)
+        {
+            string next = i + 1 < args.Length ? args[i + 1] : null;
+            if (args[i] == "--export" && next != null) { movie = next; i++; }
+            else if (args[i] == "--to" && next != null) { target = next; i++; }
+            else if (args[i] == "--preset" && next != null) { preset = next; i++; }
+            else if (args[i] == "--close-when-done") closeWhenDone = true;
+            else if (args[i] == "--screenshot" && next != null) { screenshot = Path.GetFullPath(next); i++; }
+        }
+        if (!PresetNames.ContainsKey(preset)) preset = "improved";
+        if (target == null && movie != null)
+            target = Path.ChangeExtension(movie, preset == "avi" ? ".avi" : ".mp4");
+
+        string name = movie != null ? Path.GetFileNameWithoutExtension(movie) : "?";
+        Text = "Exporting " + name;
+        AutoScaleDimensions = new SizeF(96f, 96f);
+        AutoScaleMode = AutoScaleMode.Dpi;
+        Font = new Font("Segoe UI", 9f);
+        FormBorderStyle = FormBorderStyle.FixedDialog;
+        MaximizeBox = false;
+        StartPosition = FormStartPosition.CenterScreen;
+        TopMost = true;   // stay visible over 3D Movie Maker
+        ClientSize = new Size(440, 170);
+
+        var root = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, Padding = new Padding(12) };
+        root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        Controls.Add(root);
+        title.Text = "Exporting “" + name + "”";
+        title.Font = new Font(Font.FontFamily, 11f, FontStyle.Bold);
+        title.AutoSize = true;
+        detail.Text = PresetNames[preset] + "\nto " + target;
+        detail.AutoSize = true;
+        detail.MaximumSize = new Size(410, 0);
+        detail.ForeColor = SystemColors.GrayText;
+        progress.Style = ProgressBarStyle.Marquee;
+        progress.Anchor = AnchorStyles.Left | AnchorStyles.Right;
+        progress.Height = 16;
+        status.AutoSize = true;
+        status.MaximumSize = new Size(410, 0);
+        status.Text = "Starting...";
+        var buttons = new FlowLayoutPanel { AutoSize = true, WrapContents = false, Margin = new Padding(0, 6, 0, 0) };
+        watchButton.Text = "Watch it";
+        showButton.Text = "Show in folder";
+        closeButton.Text = "Cancel";
+        foreach (var b in new[] { watchButton, showButton, closeButton }) { b.AutoSize = true; buttons.Controls.Add(b); }
+        watchButton.Visible = showButton.Visible = false;
+        watchButton.Click += delegate { try { Process.Start(target); } catch { } };
+        showButton.Click += delegate { try { Process.Start("explorer.exe", "/select,\"" + target + "\""); } catch { } };
+        closeButton.Click += delegate { Close(); };
+        detailsBox.Text = "Show details";
+        detailsBox.AutoSize = true;
+        detailsBox.CheckedChanged += delegate
+        {
+            log.Visible = detailsBox.Checked;
+            ClientSize = new Size(ClientSize.Width, detailsBox.Checked ? 360 : 170);
+        };
+        log.Multiline = true;
+        log.ReadOnly = true;
+        log.ScrollBars = ScrollBars.Both;
+        log.WordWrap = false;
+        log.Font = new Font(FontFamily.GenericMonospace, 8.5f);
+        log.Dock = DockStyle.Fill;
+        log.Visible = false;
+        var rows = new Control[] { title, detail, progress, status, buttons, detailsBox, log };
+        root.RowCount = rows.Length;
+        for (int r = 0; r < rows.Length; r++)
+        {
+            root.RowStyles.Add(rows[r] == log ? new RowStyle(SizeType.Percent, 100) : new RowStyle(SizeType.AutoSize));
+            root.Controls.Add(rows[r], 0, r);
+        }
+
+        FormClosing += OnClosing;
+        Shown += delegate
+        {
+            if (screenshot != null) Tools.SaveScreenshot(this, screenshot);
+            Start();
+        };
+    }
+
+    void Log(string line) { log.AppendText(line + Environment.NewLine); }
+
+    void Start()
+    {
+        if (movie == null || !File.Exists(movie)) { Fail("Can't find the movie to export: " + movie); return; }
+        if (!File.Exists(Tools.Script("render-folder.ps1"))) { Fail("render-folder.ps1 should be next to Movie Exporter.exe."); return; }
+
+        // render-folder.ps1 converts a folder: give it a folder with just this movie
+        work = Path.Combine(Path.GetTempPath(), "MovieExporter-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        string inDir = Path.Combine(work, "in");
+        Directory.CreateDirectory(inDir);
+        try { Tools.CopyShared(movie, Path.Combine(inDir, "movie.3mm")); }
+        catch (Exception ex) { Fail("Can't read the movie: " + ex.Message); return; }
+
+        if (!Tools.Ready()) status.Text = "Getting ready (first time only): downloading ffmpeg...";
+        var t = new Thread(() =>
+        {
+            bool ok = Tools.Ensure(line => BeginInvoke(new Action(() =>
+            {
+                Log(line);
+                if (line.StartsWith("Downloading")) status.Text = "Getting ready (first time only): " + line;
+            })));
+            BeginInvoke(new Action(() =>
+            {
+                if (cancelled) return;
+                if (!ok) { Fail("Couldn't download ffmpeg. Check the internet connection and try again."); return; }
+                Render();
+            }));
+        });
+        t.IsBackground = true;
+        t.Start();
+    }
+
+    void Render()
+    {
+        string outDir = Path.Combine(work, "out");
+        string formats = preset == "avi" ? "avi" : preset == "faithful-crt" ? "crt" : "2d";
+        string args = " -InputDir " + Tools.Quote(Path.Combine(work, "in")) + " -OutputDir " + Tools.Quote(outDir) +
+                      " -Formats " + formats + (preset == "improved" ? " -Smooth -Duck" : "") + " -Force";
+        status.Text = preset == "faithful-crt" ? "Making the video (the 4K CRT look takes a while)..." : "Making the video...";
+        Log("> render-folder.ps1" + args);
+        var psi = new ProcessStartInfo("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -File " + Tools.Quote(Tools.Script("render-folder.ps1")) + args)
+        {
+            UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = Tools.AppDir,
+            RedirectStandardOutput = true, RedirectStandardError = true,
+        };
+        proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
+        proc.OutputDataReceived += (s, e) => { if (e.Data != null) BeginInvoke(new Action(() => Log(e.Data))); };
+        proc.ErrorDataReceived += (s, e) => { if (e.Data != null) BeginInvoke(new Action(() => Log(e.Data))); };
+        proc.Exited += (s, e) => BeginInvoke(new Action(() => { proc = null; Done(outDir); }));
+        try { proc.Start(); proc.BeginOutputReadLine(); proc.BeginErrorReadLine(); }
+        catch (Exception ex) { proc = null; Fail("Couldn't start PowerShell: " + ex.Message); }
+    }
+
+    void Done(string outDir)
+    {
+        if (cancelled) { Cleanup(); return; }
+        string made = Path.Combine(outDir, preset == "avi" ? "movie.avi" : preset == "faithful-crt" ? "movie.crt.mp4" : "movie.mp4");
+        if (!File.Exists(made))
+        {
+            string why = null;
+            foreach (var cols in Tools.ReadReport(Path.Combine(outDir, "report.csv"))) why = why ?? Tools.Problem(cols);
+            Fail((why ?? "The video wasn't made.").Replace("movie ", "The movie ") + " Details below.");
+            return;
+        }
+        try
+        {
+            string dir = Path.GetDirectoryName(Path.GetFullPath(target));
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            if (File.Exists(target)) File.Delete(target);
+            File.Move(made, target);
+        }
+        catch (Exception ex) { Fail("Couldn't save " + target + ": " + ex.Message); return; }
+        finished = true;
+        progress.Style = ProgressBarStyle.Continuous;
+        progress.Value = 100;
+        status.Text = "Done!";
+        watchButton.Visible = showButton.Visible = true;
+        closeButton.Text = "Close";
+        Cleanup();
+        if (screenshot != null) Tools.SaveScreenshot(this, Path.ChangeExtension(screenshot, null) + "-done.png");
+        if (closeWhenDone) Close();
+    }
+
+    void Fail(string message)
+    {
+        ExitCode = 1;
+        finished = true;
+        progress.Style = ProgressBarStyle.Continuous;
+        progress.Value = 0;
+        status.Text = message;
+        status.ForeColor = Color.Firebrick;
+        closeButton.Text = "Close";
+        Log(message);
+        detailsBox.Checked = true;
+        Cleanup();
+        if (screenshot != null) Tools.SaveScreenshot(this, Path.ChangeExtension(screenshot, null) + "-done.png");
+        if (closeWhenDone) Close();
+    }
+
+    void Cleanup()
+    {
+        try { if (work != null && Directory.Exists(work)) Directory.Delete(work, true); } catch { }
+        work = null;
+    }
+
+    void OnClosing(object sender, FormClosingEventArgs e)
+    {
+        if (finished) return;
+        if (!closeWhenDone && MessageBox.Show(this, "Stop exporting?", Text, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        {
+            e.Cancel = true;
+            return;
+        }
+        cancelled = true;
+        ExitCode = 1;
+        if (proc != null) Tools.Kill(proc.Id);
+        Cleanup();
+    }
+}
+

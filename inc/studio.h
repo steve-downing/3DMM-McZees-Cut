@@ -123,6 +123,7 @@ class STDIO : public STDIO_PAR
     bool FCmdCreateTbox(PCMD pcmd);
     bool FCmdActorEaselOpen(PCMD pcmd);
     bool FCmdListenerEaselOpen(PCMD pcmd);
+    bool FCmdExportMovie(PCMD pcmd);
 
 #ifdef DEBUG
     bool FCmdWriteBmps(PCMD pcmd);

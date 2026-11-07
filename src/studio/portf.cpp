@@ -215,6 +215,94 @@ bool FPortGetFniOpen(FNI *pfni, LPTSTR lpstrFilter, LPTSTR lpstrTitle, FNI *pfni
 }
 
 /***************************************************************************
+    The extension of the iFilter'th (1-based) pattern in a common dialog
+    filter string: "Movies\0*.avi\0..." gives "avi". Returns fFalse if
+    there's no such pattern or it has no plain extension.
+***************************************************************************/
+static bool _FFilterExt(LPTSTR lpstrFilter, DWORD iFilter, PSZ pszExt)
+{
+    achar *pch = lpstrFilter;
+    achar *pchDot;
+    DWORD i;
+    long cch;
+
+    if (pch == pvNil || iFilter < 1)
+        return fFalse;
+    for (i = 1; i < iFilter; i++)
+    {
+        // skip a label and a pattern
+        pch += CchSz(pch) + 1;
+        if (*pch == chNil)
+            return fFalse;
+        pch += CchSz(pch) + 1;
+        if (*pch == chNil)
+            return fFalse;
+    }
+    pch += CchSz(pch) + 1; // the pattern, e.g. "*.avi"
+    pchDot = pch;
+    while (*pchDot != chNil && *pchDot != ChLit('.'))
+        pchDot++;
+    if (*pchDot != ChLit('.'))
+        return fFalse;
+    pchDot++;
+    for (cch = 0; pchDot[cch] != chNil && pchDot[cch] != ChLit(';') && pchDot[cch] != ChLit('*') && cch < 8; cch++)
+        pszExt[cch] = pchDot[cch];
+    pszExt[cch] = chNil;
+    return cch > 0;
+}
+
+/***************************************************************************
+    Does the file name already end in ".<pszExt>" (any case)?
+***************************************************************************/
+static bool _FHasExt(PSTN pstnFile, PSZ pszExt)
+{
+    long cchExt = CchSz(pszExt);
+    long cch = pstnFile->Cch();
+    achar *psz = pstnFile->Psz();
+
+    if (cch <= cchExt || psz[cch - cchExt - 1] != ChLit('.'))
+        return fFalse;
+    return lstrcmpi(psz + cch - cchExt, pszExt) == 0;
+}
+
+/***************************************************************************
+
+ FPortGetFniExport: McZee's Cut's Export portfolio. The save portfolio, with
+ a "Save as type" list of the kinds of video Movie Exporter makes.
+
+ Arguments: pfni            - Output FNI for the video file
+            pstnDefFileName - Default file name (the movie's name)
+            piType          - Returns the chosen type: 1 AVI, 2 MP4 faithful,
+                              3 MP4 faithful with the 90s monitor look,
+                              4 MP4 improved
+
+ Returns: 	TRUE	- File selected
+            FALSE	- User canceled portfolio.
+
+***************************************************************************/
+bool FPortGetFniExport(FNI *pfni, PSTN pstnDefFileName, long *piType)
+{
+    static achar szFilter[] = PszLit("AVI for Windows 95 and 98 (*.avi)\0*.avi\0")
+        PszLit("MP4, faithful (*.mp4)\0*.mp4\0") PszLit("MP4, faithful, 90s monitor look (*.mp4)\0*.mp4\0")
+            PszLit("MP4, improved: smooth motion, music dips under talking (*.mp4)\0*.mp4\0");
+    static achar szTitle[] = PszLit("Export Movie");
+    bool fRet;
+
+    AssertVarMem(pfni);
+    AssertVarMem(piType);
+
+    StopAllMovieSounds();
+    vapp.EnsureInteractive();
+    vapp.SetFInPortfolio(fTrue);
+    fRet = FPortGetFniSave(pfni, szFilter, szTitle, pvNil, pstnDefFileName, 0, kwavPortSaveMovie, piType, 4);
+    vpsndm->StopAll(sqnNil, sclNil);
+    vapp.SetFInPortfolio(fFalse);
+    vpcex->EnqueueCid(cidPortfolioClosed, 0, 0, fRet);
+    vpcex->EnqueueCid(cidPortfolioResult, 0, 0, fRet);
+    return fRet;
+}
+
+/***************************************************************************
 
  pfGetFniSave: Display the save portfolio.
 
@@ -226,13 +314,17 @@ bool FPortGetFniOpen(FNI *pfni, LPTSTR lpstrFilter, LPTSTR lpstrTitle, FNI *pfni
             pstnDefFileName - Ptr to default extension stn if required.
             grfPrevType	- Bits for types of preview required, (eg movie, sound etc) == 0 if no preview
             cnoWave     - Wave cno for audio when portfolio is invoked
+            piType      - If not nil, the "Save as type" list is shown, the
+                          file gets the chosen type's extension, and the
+                          chosen type (1-based) is returned here
+            iTypeDefault - The type selected at first
 
  Returns: 	TRUE	- File selected
             FALSE	- User canceled portfolio, (or other error).
 
 ***************************************************************************/
 bool FPortGetFniSave(FNI *pfni, LPTSTR lpstrFilter, LPTSTR lpstrTitle, LPTSTR lpstrDefExt, PSTN pstnDefFileName,
-                     ulong grfPrevType, CNO cnoWave)
+                     ulong grfPrevType, CNO cnoWave, long *piType, long iTypeDefault)
 {
     DLGINFO diPortfolio;
     OPENFILENAME ofn;
@@ -258,7 +350,7 @@ bool FPortGetFniSave(FNI *pfni, LPTSTR lpstrFilter, LPTSTR lpstrTitle, LPTSTR lp
     ofn.lStructSize = size(OPENFILENAME);
     ofn.hwndOwner = vwig.hwndApp;
     ofn.hInstance = vwig.hinst;
-    ofn.nFilterIndex = 1L;
+    ofn.nFilterIndex = (piType != pvNil) ? iTypeDefault : 1L;
     ofn.lpstrCustomFilter = NULL;
     ofn.nMaxFile = kcchMaxSz;
     ofn.lpstrFileTitle = szFileTitle;
@@ -288,6 +380,7 @@ bool FPortGetFniSave(FNI *pfni, LPTSTR lpstrFilter, LPTSTR lpstrTitle, LPTSTR lp
     diPortfolio.fDrawnBkgnd = fFalse;
     diPortfolio.grfPrevType = grfPrevType;
     diPortfolio.cnoWave = cnoWave;
+    diPortfolio.fShowTypes = (piType != pvNil);
     ofn.lCustData = (DWORD)&diPortfolio;
 
     ofn.lpstrFilter = lpstrFilter;
@@ -368,7 +461,19 @@ bool FPortGetFniSave(FNI *pfni, LPTSTR lpstrFilter, LPTSTR lpstrTitle, LPTSTR lp
 
                 // We always save the file with the default extension. If the
                 // user used a different extension, add the default on the end.
-                if (ofn.Flags & OFN_EXTENSIONDIFFERENT)
+                // With a choice of types, the chosen type's extension instead.
+                if (piType != pvNil)
+                {
+                    SZ szExt;
+
+                    *piType = ofn.nFilterIndex;
+                    if (_FFilterExt(lpstrFilter, ofn.nFilterIndex, szExt) && !_FHasExt(&stnFile, szExt))
+                    {
+                        stnFile.FAppendCh('.');
+                        stnFile.FAppendSz(szExt);
+                    }
+                }
+                else if (ofn.Flags & OFN_EXTENSIONDIFFERENT)
                 {
                     stnFile.FAppendCh('.');
                     stnFile.FAppendSz(lpstrDefExt);
@@ -501,11 +606,14 @@ UINT CALLBACK OpenHookProc(HWND hwndCustom, UINT msg, UINT wParam, LONG lParam)
         // Message for hiding the control. The documentation on CDM_HIDECONTROL doesn't really
         // describe what the command actually does, so explictly disable the OK/Cancel btns here.
 
-        SendMessage(hwndDlg, CDM_HIDECONTROL, stc2, 0L); // File type label
-        EnableWindow(GetDlgItem(hwndDlg, stc2), FALSE);
+        if (!pdiPortfolio->fShowTypes)
+        {
+            SendMessage(hwndDlg, CDM_HIDECONTROL, stc2, 0L); // File type label
+            EnableWindow(GetDlgItem(hwndDlg, stc2), FALSE);
 
-        SendMessage(hwndDlg, CDM_HIDECONTROL, cmb1, 0L); // File type combo box
-        EnableWindow(GetDlgItem(hwndDlg, cmb1), FALSE);
+            SendMessage(hwndDlg, CDM_HIDECONTROL, cmb1, 0L); // File type combo box
+            EnableWindow(GetDlgItem(hwndDlg, cmb1), FALSE);
+        }
 
         SendMessage(hwndDlg, CDM_HIDECONTROL, cmb13, 0L); // Filename entry box
         EnableWindow(GetDlgItem(hwndDlg, cmb13), FALSE);

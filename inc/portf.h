@@ -17,7 +17,8 @@ bool FPortDisplayWithIds(FNI *pfni, bool fOpen, long lFilterLabel, long lFilterE
 bool FPortGetFniOpen(FNI *pfni, LPTSTR lpstrFilter, LPTSTR lpstrTitle, FNI *pfniInitialDir, ulong grfPrevType,
                      CNO cnoWave);
 bool FPortGetFniSave(FNI *pfni, LPTSTR lpstrFilter, LPTSTR lpstrTitle, LPTSTR lpstrDefExt, PSTN pstnDefFileName,
-                     ulong grfPrevType, CNO cnoWave);
+                     ulong grfPrevType, CNO cnoWave, long *piType = pvNil, long iTypeDefault = 1);
+bool FPortGetFniExport(FNI *pfni, PSTN pstnDefFileName, long *piType);
 
 UINT CALLBACK OpenHookProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam);
 void OpenPreview(HWND hwnd, PGNV pgnvOff, RCS *prcsPreview);
@@ -37,6 +38,7 @@ typedef struct dlginfo
     RCS rcsDlg;        // Initial size of the portfolio common dlg window client area.
     ulong grfPrevType; // Bits for types of preview required, (eg movie, sound etc) == 0 if no preview
     CNO cnoWave;       // Wave file cno for audio when portfolio is invoked.
+    bool fShowTypes;   // fTrue to keep the "Save as type" list (Export)
 } DLGINFO;
 typedef DLGINFO *PDLGINFO;
 

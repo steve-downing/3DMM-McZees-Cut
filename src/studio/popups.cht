@@ -33,6 +33,7 @@ CREATE_SCRIPT("Portfolio")
 	CreateChildThis(kidPortsNew, kidPortsNew);
 	CreateChildThis(kidPortsSave, kidPortsSave);
 	CreateChildThis(kidPortsSaveAs, kidPortsSaveAs);
+	CreateChildThis(kidPortsExport, kidPortsExport);
 ENDCHUNK
 CREATE_ANIMST("Portfolio", kstOpen)
 	FilterCmdsThis(cidMouseDown, hidNil, kchidClick);
@@ -62,6 +63,7 @@ CHILD_SCRIPT("Portfolio, track mouse", kchidClick)
 	   (kid != kidPortsNew) &&
 	   (kid != kidPortsSave) &&
 	   (kid != kidPortsSaveAs) &&
+	   (kid != kidPortsExport) &&
 	   (kid != kidPortsBackground));
 	    //
 		// Hide this pop-up and pass click through
@@ -158,6 +160,25 @@ ADOPT_WAVE(kcnoFSaveAsWav, CHID(kstDefault, krepClicked))
 CHILD_SCRIPT("Portfolio Popup - Save As", CHID(kstDefault, kchidClick))
 	ChangeStateGob(kidPortsBackground, kstClosed);
 	EnqueueCid(cidSaveAs, 0, 0, 0, 0, 0);
+ENDCHUNK
+
+//
+//		File Export: the movie as a video, via Movie Exporter (new in McZees Cut)
+//
+GOBCHUNK("Export Popup - Export", kidPortsExport, kgokkRectHit)
+	DEFAULT_POSITION(kxpPortsExport, kypPortsExport, 100)
+	ACTION(fcustNil, fcustNil, fgrfstAll, kcrsHand, CHID(kstDefault, kchidClick), cidNil, kttPortsExport)
+ENDCHUNK
+REP_MBMPREG(CHID(kstDefault, krepDefault), "studio\bmp\p1expt.bmp",
+	kxpregPortsExport, kypregPortsExport)
+ADOPT_MBMP(LAST_MBMP, CHID(kstDefault, krepMouseUpOn))
+ADOPT_MBMP(LAST_MBMP, CHID(kstDefault, krepMouseDnOff))
+REP_MBMPREG(CHID(kstDefault, krepMouseDnOn), "studio\bmp\p1expts.bmp",
+	kxpregPortsExport, kypregPortsExport)
+ADOPT_WAVE(kcnoFSaveAsWav, CHID(kstDefault, krepClicked))
+CHILD_SCRIPT("Portfolio Popup - Export", CHID(kstDefault, kchidClick))
+	ChangeStateGob(kidPortsBackground, kstClosed);
+	EnqueueCid(cidExportMovie, khidStudio, 0, 0, 0, 0);
 ENDCHUNK
 
 

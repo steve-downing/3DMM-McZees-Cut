@@ -12,15 +12,29 @@ red/cyan anaglyph, or plain 2D.
 
 ## Quick start
 
-The easy way is the app: double-click **Movie Exporter.exe**, add movies,
-press **Make videos**. The first time, it downloads ffmpeg and the music
-tools. Windows may say it doesn't recognize the app: choose **More info**,
-then **Run anyway**.
+The easy ways:
+
+- In 3D Movie Maker, the File button's **Export** turns the open movie into
+  a video.
+- **Movie Exporter.exe** does many movies at once: add movies, press **Make
+  videos**.
+
+The first export downloads ffmpeg. Windows may say it doesn't recognize the
+apps: choose **More info**, then **Run anyway**.
+
+Movie Exporter's command line, which 3DMM's Export button uses:
+
+```
+"Movie Exporter.exe" --export <movie.3mm> --to <video file> --preset avi|faithful|faithful-crt|improved
+"Movie Exporter.exe" --prefetch        # no window: fetch ffmpeg if it's missing, then exit
+"Movie Exporter.exe" [movies or folders] [--out <folder>] [--style improved|faithful]
+                     [--make mp4,crt,sbs,anaglyph,avi,sounds] [--go] [--close-when-done]
+```
 
 From the command line:
 
-1. Fetch ffmpeg and the music tools (FluidSynth and a General MIDI
-   SoundFont) into `tools\`. ffmpeg is skipped if it's already installed:
+1. Fetch ffmpeg into `tools\` (skipped if it's already installed; the
+   package already has FluidSynth and the GeneralUser GS instruments):
    `powershell -ExecutionPolicy Bypass -File get-tools.ps1`
 2. Convert a folder:
 

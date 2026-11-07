@@ -5,7 +5,8 @@
 # for you the first time.
 # Works in Windows PowerShell 5.1 and PowerShell 7.
 param(
-    [string]$ToolsDir = (Join-Path $PSScriptRoot "tools")
+    [string]$ToolsDir = (Join-Path $PSScriptRoot "tools"),
+    [switch]$SkipFfmpeg   # packaging: ship the music tools, let ffmpeg come on first use
 )
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"   # Windows PowerShell's progress bar makes downloads crawl
@@ -18,7 +19,7 @@ function Get-Release([string]$Repo) {
 
 $haveFfmpeg = (Get-Command ffmpeg -ErrorAction SilentlyContinue) -or
     (Get-ChildItem -Recurse $ToolsDir -Filter ffmpeg.exe -ErrorAction SilentlyContinue)
-if (-not $haveFfmpeg) {
+if (-not $haveFfmpeg -and -not $SkipFfmpeg) {
     Write-Host "Downloading ffmpeg (about 150 MB)..."
     # BtbN's Windows builds; the GPL build has the x264/x265 encoders
     $url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
@@ -55,7 +56,7 @@ if (-not (Get-ChildItem -Recurse $ToolsDir -Filter fluidsynth.exe -ErrorAction S
 }
 
 $ff = Get-Command ffmpeg -ErrorAction SilentlyContinue
-$ffPath = if ($ff) { $ff.Source } else { (Get-ChildItem -Recurse $ToolsDir -Filter ffmpeg.exe | Select-Object -First 1).FullName }
+$ffPath = if ($ff) { $ff.Source } else { (Get-ChildItem -Recurse $ToolsDir -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1).FullName }
 $fs = Get-ChildItem -Recurse $ToolsDir -Filter fluidsynth.exe | Select-Object -First 1
 Write-Host "ffmpeg:     $ffPath"
 Write-Host "FluidSynth: $($fs.FullName)"

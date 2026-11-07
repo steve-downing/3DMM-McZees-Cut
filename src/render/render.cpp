@@ -242,12 +242,30 @@ bool RAPP::_FParseCommandLine(void)
     char szExe[MAX_PATH];
     char *pchSlash;
 
-    // default root: the folder this exe is in
+    // default root: the folder this exe is in, or its "Microsoft Kids" folder
+    // when it sits next to 3D Movie Maker itself (McZee's Cut's layout)
     GetModuleFileNameA(NULL, szExe, MAX_PATH);
     pchSlash = strrchr(szExe, '\\');
     if (pchSlash != NULL)
         *pchSlash = 0;
     _stnRoot.SetSz(szExe);
+    {
+        char szTry[MAX_PATH];
+        DWORD dwAttr;
+
+        wsprintfA(szTry, "%s\\3D Movie Maker", szExe);
+        dwAttr = GetFileAttributesA(szTry);
+        if (dwAttr == INVALID_FILE_ATTRIBUTES || !(dwAttr & FILE_ATTRIBUTE_DIRECTORY))
+        {
+            wsprintfA(szTry, "%s\\Microsoft Kids\\3D Movie Maker", szExe);
+            dwAttr = GetFileAttributesA(szTry);
+            if (dwAttr != INVALID_FILE_ATTRIBUTES && (dwAttr & FILE_ATTRIBUTE_DIRECTORY))
+            {
+                wsprintfA(szTry, "%s\\Microsoft Kids", szExe);
+                _stnRoot.SetSz(szTry);
+            }
+        }
+    }
 
     for (iarg = 1; iarg < __argc; iarg++)
     {

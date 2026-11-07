@@ -57,6 +57,7 @@ ON_CID_GEN(cidLoadProjectMovie, &STDIO::FCmdLoadProjectMovie, pvNil)
 ON_CID_GEN(cidSoundsEnabled, &STDIO::FCmdSoundsEnabled, pvNil)
 ON_CID_GEN(cidCreateTbox, &STDIO::FCmdCreateTbox, pvNil)
 ON_CID_GEN(cidActorEaselOpen, &STDIO::FCmdActorEaselOpen, pvNil)
+ON_CID_GEN(cidExportMovie, &STDIO::FCmdExportMovie, pvNil)
 ON_CID_GEN(cidListenerEaselOpen, &STDIO::FCmdListenerEaselOpen, pvNil)
 #ifdef DEBUG
 ON_CID_GEN(cidWriteBmps, &STDIO::FCmdWriteBmps, pvNil)
@@ -1860,6 +1861,112 @@ void STDIO::ActorEasel(bool *pfActrChanged)
 
     vpcex->EnqueueCid(cidActorEaselOpen);
     *pfActrChanged = fFalse;
+}
+
+/***************************************************************************
+    McZee's Cut: starts "Movie Exporter.exe" (next to this exe) with the
+    given arguments, without waiting for it. Returns fFalse if it isn't
+    there or won't start.
+***************************************************************************/
+static bool _FLaunchExporter(PSZ pszArgs)
+{
+    achar szExe[MAX_PATH];
+    achar szCmd[1024];
+    achar *pch;
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+
+    if (GetModuleFileName(NULL, szExe, MAX_PATH) == 0)
+        return fFalse;
+    pch = szExe + CchSz(szExe);
+    while (pch > szExe && pch[-1] != ChLit('\\'))
+        pch--;
+    *pch = chNil;
+    if (CchSz(szExe) + 32 >= MAX_PATH)
+        return fFalse;
+    lstrcat(szExe, PszLit("Movie Exporter.exe"));
+    if (GetFileAttributes(szExe) == (DWORD)-1)
+        return fFalse;
+    if (CchSz(szExe) + CchSz(pszArgs) + 4 >= 1024)
+        return fFalse;
+    wsprintf(szCmd, PszLit("\"%s\" %s"), szExe, pszArgs);
+
+    ClearPb(&si, size(si));
+    si.cb = size(si);
+    if (!CreateProcess(szExe, szCmd, pvNil, pvNil, FALSE, 0, pvNil, pvNil, &si, &pi))
+        return fFalse;
+    CloseHandle(pi.hThread);
+    CloseHandle(pi.hProcess);
+    return fTrue;
+}
+
+/***************************************************************************
+    McZee's Cut: File > Export. Makes sure the movie is saved, asks where
+    and as what (the Export portfolio), then hands it to Movie Exporter,
+    which makes the video in its own small window while 3DMM carries on.
+***************************************************************************/
+bool STDIO::FCmdExportMovie(PCMD pcmd)
+{
+    AssertThis(0);
+    AssertVarMem(pcmd);
+
+    static achar rgszPreset[4][16] = {PszLit("avi"), PszLit("faithful"), PszLit("faithful-crt"), PszLit("improved")};
+    achar szPrefetch[] = PszLit("--prefetch");
+    FNI fniMovie;
+    FNI fniVideo;
+    STN stnName;
+    STN stnMovie;
+    STN stnVideo;
+    long iType = 4;
+    achar szArgs[1024];
+
+    if (_pmvie == pvNil)
+        return fTrue;
+    if (_pmvie->Cscen() < 1)
+    {
+        PushErc(ercSocSaveFailure);
+        return fTrue;
+    }
+
+    // Movie Exporter downloads ffmpeg the first time it's needed: start that
+    // now, while the movie is saved and the file is picked
+    if (!_FLaunchExporter(szPrefetch))
+    {
+        vapp.EnsureInteractive();
+        MessageBox(vwig.hwndApp,
+                   PszLit("Export needs Movie Exporter.exe, which comes with McZee's Cut. ")
+                       PszLit("Put it in the same folder as 3D Movie Maker and try again."),
+                   PszLit("Export"), MB_OK | MB_ICONINFORMATION);
+        return fTrue;
+    }
+
+    // Movie Exporter works from the saved file
+    if (_pmvie->FDirty() || !_pmvie->FGetFni(&fniMovie))
+    {
+        if (!_pmvie->FSave(cidSave))
+            return fTrue;
+        if (_pmvie->FDirty() || !_pmvie->FGetFni(&fniMovie))
+            return fTrue;
+    }
+
+    _pmvie->GetName(&stnName);
+    if (!FPortGetFniExport(&fniVideo, &stnName, &iType))
+        return fTrue;
+    if (iType < 1 || iType > 4)
+        iType = 4;
+
+    fniMovie.GetStnPath(&stnMovie);
+    fniVideo.GetStnPath(&stnVideo);
+    if (stnMovie.Cch() + stnVideo.Cch() + 64 >= 1024)
+        return fTrue;
+    wsprintf(szArgs, PszLit("--export \"%s\" --to \"%s\" --preset %s"), stnMovie.Psz(), stnVideo.Psz(),
+             rgszPreset[iType - 1]);
+    if (!_FLaunchExporter(szArgs))
+    {
+        vapp.EnsureInteractive();
+        MessageBox(vwig.hwndApp, PszLit("Movie Exporter didn't start."), PszLit("Export"), MB_OK | MB_ICONINFORMATION);
+    }
+    return fTrue;
 }
 
 /***************************************************************************

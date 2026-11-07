@@ -477,7 +477,7 @@
 #define kxpPortsBackgroundLeft		477
 #define kypPortsBackgroundTop 		198
 #define kxpPortsBackgroundRight		589
-#define kypPortsBackgroundBottom	406
+#define kypPortsBackgroundBottom	458
 
 #define kxpPortsNew   				0
 #define kypPortsNew   				52
@@ -498,6 +498,12 @@
 #define kypPortsSaveAs   			208
 #define kxpregPortsSaveAs   		0
 #define kypregPortsSaveAs   		52
+
+// Export, below Save As (new in McZees Cut)
+#define kxpPortsExport   			0
+#define kypPortsExport   			260
+#define kxpregPortsExport   		0
+#define kypregPortsExport   		52
 
 // CUT, COPY PASTE POPUP -----------------------------------------------------
 
