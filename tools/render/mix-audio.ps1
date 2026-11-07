@@ -7,9 +7,10 @@
 #     (both were WAVs through the same sound card)
 #   * each music track is measured on its own and set -MusicUnder LU below
 #     the dialogue (or a little under the effects if there's no dialogue)
-#   * music ducks -Duck dB while anyone is speaking
 #   * the whole mix is normalized to -TargetLufs with peaks held under -1 dB
 # -AudioLevel original: the raw mix, as the engine played it.
+# -Duck (either mode): music dips -DuckDb dB while anyone is speaking. Off by
+# default, since 3DMM never did it.
 #
 # 5.1 routing: speech -> center; effects + music -> front L/R; music at
 # -6 dB -> surrounds; low end of effects + music -> LFE.
@@ -18,7 +19,8 @@ param(
     [Parameter(Mandatory)] [string]$RenderDir,
     [ValidateSet("auto", "original")] [string]$AudioLevel = "auto",
     [double]$MusicUnder = 8,
-    [double]$Duck = 6,
+    [switch]$Duck,
+    [double]$DuckDb = 6,
     [double]$TargetLufs = -16
 )
 $ErrorActionPreference = "Stop"
@@ -129,7 +131,7 @@ try {
 
     # --- ducking: music dips while anyone speaks ----------------------------
     $duckExpr = $null
-    if ($AudioLevel -eq "auto" -and $Duck -gt 0 -and $speech.Count -gt 0 -and $music.Count -gt 0) {
+    if ($Duck -and $DuckDb -gt 0 -and $speech.Count -gt 0 -and $music.Count -gt 0) {
         $attack = 0.15; $release = 0.5
         $spans = @($speech | Sort-Object start | ForEach-Object { , @($_.start, ($_.start + $_.duration)) })
         $merged = New-Object System.Collections.Generic.List[object]
@@ -143,8 +145,8 @@ try {
         $terms = $merged | ForEach-Object {
             "clip((t-$(F ($_[0] - $attack)))/$(F $attack),0,1)*clip(($(F ($_[1] + $release))-t)/$(F $release),0,1)"
         }
-        $duckExpr = "pow(10,-$(F $Duck 2)*min(1,$($terms -join '+'))/20)"
-        Note ("ducking: music -{0} dB during {1} stretches of dialogue" -f (F $Duck 1), $merged.Count)
+        $duckExpr = "pow(10,-$(F $DuckDb 2)*min(1,$($terms -join '+'))/20)"
+        Note ("ducking: music -{0} dB during {1} stretches of dialogue" -f (F $DuckDb 1), $merged.Count)
     }
 
     # --- master volume envelope (the engine's end-of-movie fade) -----------

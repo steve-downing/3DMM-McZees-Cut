@@ -192,12 +192,12 @@ if ($crtExe -and $firstMono) {
 $extras = Join-Path $OutDir "extras"
 New-Item -ItemType Directory -Force $extras | Out-Null
 $extrasLog = Join-Path $extras "extras.txt"
-foreach ($case in @(@{ dir = "City-Tour"; formats = "avi" }, @{ dir = "Hospital"; formats = "none" })) {
+foreach ($case in @(@{ dir = "City-Tour"; formats = "avi"; duck = $false }, @{ dir = "Hospital"; formats = "none"; duck = $true })) {
     $src = Join-Path $work "$($case.dir)/mono"
     if (-not (Test-Path $src)) { continue }
     $base = Join-Path $extras $case.dir
     $sw = [Diagnostics.Stopwatch]::StartNew()
-    & "$PSScriptRoot/encode-movie.ps1" -RenderDir $src -OutBase $base -Formats $case.formats -ExtractSounds `
+    & "$PSScriptRoot/encode-movie.ps1" -RenderDir $src -OutBase $base -Formats $case.formats -ExtractSounds -Duck:([bool]$case.duck) `
         -SoundFont $soundFont -FluidSynth $fluidPath *>&1 | Out-File -Append $extrasLog
     "$($case.dir): $([Math]::Round($sw.Elapsed.TotalSeconds, 1)) s" | Out-File -Append $extrasLog
     if (Test-Path "$base.avi") {

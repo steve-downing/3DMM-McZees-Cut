@@ -19,13 +19,15 @@ played them. Then it goes further than 3DMM could:
 - **CRT looks.** A 4K version that looks like a mid-90s monitor, a
   Trinitron or a TV, with an HDR option.
 - **Sound.** 5.1 Dolby Digital with dialogue in the center, plus stereo.
-  Loudness is leveled so every movie plays at a similar volume, and music
-  ducks under speech.
+  Loudness is leveled so every movie plays at a similar volume.
 - **Period-correct AVI.** A small Cinepak `.avi` that plays on Windows 95
   and 98 with nothing extra installed.
 - **Whole archives at once.** Point it at a folder of movies and it
   converts everything, writes a report, and picks up where it left off if
   interrupted.
+
+Everything that changes the movie (smooth motion, ducking) is opt-in. Left
+alone, you get the movie as 3DMM played it, leveled to a normal volume.
 
 ## Try the 3D set explorer
 
@@ -65,80 +67,52 @@ These steps are for Windows 10 or 11.
        -InputDir D:\3mm-archive -OutputDir D:\3mm-videos -Smooth
    ```
 
-The output folder mirrors the input folder. Each movie gets
-`Movie.2d.mp4` plus whatever else you asked for, and `report.csv` lists
-every movie and how it went. Movies that need content you don't have,
-such as the Nickelodeon pack, are marked `missing-content` along with the
-packs they need. Run the script again and it skips anything already up to
-date.
+The output folder mirrors the input folder. `My Movie.3mm` becomes
+`My Movie.mp4`, plus any other formats you asked for, and `report.csv` lists
+every movie and how it went. Run the script again and it skips anything
+already up to date.
 
 ### Recipes
 
 | You want | Add |
 |---|---|
 | The best-looking 2D video | `-Smooth` |
-| 3D for a VR headset or 3D TV, plus anaglyph and 2D | `-Smooth -Stereo` |
-| Only the side-by-side 3D | `-Smooth -Stereo -Formats sbs` |
-| The 90s monitor look, in 4K | `-Smooth -CRT` |
-| A 4K HDR CRT for an OLED | `-Smooth -CRT -CrtPreset hdr` |
-| A file for a real Windows 98 PC | `-Avi` |
+| 3D for a VR headset or 3D TV | `-Smooth -Formats sbs` |
+| 3D, red/cyan, and 2D, all at once | `-Smooth -Formats sbs,anaglyph,2d` |
+| The 90s monitor look, in 4K | `-Smooth -Formats crt` |
+| A 4K HDR CRT for an OLED | `-Smooth -Formats crt -CrtPreset hdr` |
+| A file for a real Windows 98 PC | `-Formats avi` |
+| Music that dips when characters talk | `-Duck` |
 | The movie's own voice clips and music, as files | `-ExtractSounds` |
-| The movie exactly as 3DMM played it, with 6 fps motion and the raw sound mix | `-AudioLevel original` (and leave out `-Smooth`) |
+| The movie exactly as 3DMM played it, including its raw sound mix | `-AudioLevel original` |
 
-## Options
+## What it can do
 
-All options belong to `render-folder.ps1`. Only `-InputDir` and
-`-OutputDir` are required.
+This section explains each feature. The [option reference](#option-reference)
+below lists every option with its values and default.
 
-### Picture
+### Formats
 
-| Option | Default | What it does |
+`-Formats` picks which files each movie gets. List as many as you like,
+separated by commas.
+
+| Format | File | What it is |
 |---|---|---|
-| `-Smooth` | off | Blend actor motion between 3DMM's 6 fps frames and export at 24 fps ([details](#smooth-motion)) |
-| `-Stereo` | off | Render in 3D. Writes side-by-side, anaglyph and 2D unless `-Formats` says otherwise |
-| `-Depth` | 2.5 | With `-Stereo`: how far behind the screen the scene can go, as % of picture width |
-| `-Formats` | `2d` (`sbs,anaglyph,2d` with `-Stereo`) | Any of `sbs`, `anaglyph`, `2d`, `crt`, `avi` |
-| `-Scale` | 2 | Nearest-neighbor upscale of the 544×306 picture. 2 gives 1088×612 per eye |
-| `-CRT` | off | Also write `.crt.mp4`, a 4K picture with CRT effects |
-| `-CrtPreset` | `pc` | `pc` (mid-90s monitor), `trinitron`, `tv` or `hdr` (10-bit HDR10) |
-| `-CrtMask`, `-CrtScanlines`, `-CrtGlow`, `-CrtCurvature` | per preset | Override one part of the preset |
-| `-CrtChroma` | 420 | `444` keeps phosphor colors crisp, but fewer players handle it |
-| `-Avi` | off | Also write a Cinepak `.avi` at the original 544×306 for Windows 95/98 |
+| `2d` (the default) | `Movie.mp4` | The movie as 3DMM showed it |
+| `sbs` | `Movie.sbs.mp4` | Side-by-side 3D, left eye then right, for VR headsets, 3D TVs and players in SBS mode |
+| `anaglyph` | `Movie.anaglyph.mp4` | Red/cyan 3D, for paper glasses |
+| `crt` | `Movie.crt.mp4` | 4K, looking like a 90s CRT |
+| `avi` | `Movie.avi` | Cinepak for Windows 95 and 98 |
+| `none` | | No video, for when you only want `-ExtractSounds` |
 
-### Sound
+Asking for `sbs` or `anaglyph` renders the movie from two cameras. Every
+other format comes from the plain 2D picture, even when it's rendered
+alongside 3D.
 
-| Option | Default | What it does |
-|---|---|---|
-| `-Channels` | `both` | `both` gives 5.1 Dolby Digital (dialogue in the center) plus stereo AAC. Or just `stereo` or `5.1` |
-| `-AudioLevel` | `auto` | `auto` levels the mix: speech and effects keep their balance, music sits under dialogue and ducks when someone talks, and the movie is normalized to -16 LUFS. `original` keeps the raw mix |
-| `-SoundFont` | GeneralUser GS | The MIDI instruments: any `.sf2`, `.sf3` or `.dls`, or `windows` for the Windows GS Wavetable Synth |
-| `-MidiGain` | 0.6 | MIDI synth gain, before leveling |
-| `-ExtractSounds` | off | Also write `.sounds.zip` with every sound imported or recorded into the movie, in order of use, plus a CSV of when each plays |
-| `-IncludeLibrarySounds` | off | With `-ExtractSounds`, also include the 3DMM library sounds the movie uses |
+### Smooth motion
 
-### Playback
-
-| Option | Default | What it does |
-|---|---|---|
-| `-ClickPause` | 3 | Seconds to hold a "wait for mouse click" pause |
-| `-EndHold` | 3 | Seconds to hold the last frame, which 3DMM leaves on screen |
-| `-Fonts` | none | A folder of extra fonts for text boxes, used only for rendering and never installed. Missing fonts fall back to the Windows system font, as in the 90s, and are listed in the report |
-
-### Housekeeping
-
-| Option | Default | What it does |
-|---|---|---|
-| `-Root` | the package folder | The folder containing `3D Movie Maker`, to use another install's content |
-| `-Renderer`, `-FluidSynth` | found automatically | Paths to `3dmm-render.exe` and FluidSynth |
-| `-TimeoutMinutes` | 30 | Give up on a movie that takes longer than this |
-| `-KeepFrames` | off | Keep the raw frames and logs |
-| `-Force` | off | Redo movies that are already up to date |
-
-## Smooth motion
-
-3D Movie Maker moves everything at 6 frames a second. With `-Smooth`, the
-renderer draws three in-between frames for every step, and the video plays
-at 24 fps.
+3D Movie Maker moves everything at 6 frames a second. `-Smooth` draws three
+in-between frames for every step, and the video plays at 24 fps.
 
 - Every actor part's position, rotation and scale is blended. So is the
   stretch in squash-and-stretch poses. Every fourth frame is still exactly
@@ -150,46 +124,151 @@ at 24 fps.
 - Steps where anything besides actor poses changes are left exactly as they
   were. That includes a camera cut, a text box, a costume change and an
   actor entering. So are poses the movie holds for longer than one step.
-- Sound timing doesn't change. `render.log` counts the steps it blended and
-  the steps it left alone.
+- Sound timing doesn't change. The movie's log counts the steps it blended
+  and the steps it left alone.
+
+Smooth motion applies to every format, AVI included.
+
+### 3D
+
+Each frame is rendered from two slightly separated cameras. Actors are
+re-rendered for real. The sets are pre-rendered pictures, so they're
+reprojected using their depth maps. `-Depth` sets how far behind the screen
+the scene can go.
+
+### CRT looks
+
+The `crt` format draws the movie the way it looked on a CRT: scanlines that
+widen with brightness, a phosphor mask, a little glow, scaled to 4K.
+`-CrtPreset` picks the screen: a mid-90s PC monitor (the default), a
+Trinitron, a TV, or the PC monitor in 10-bit HDR for an OLED. The other
+`-Crt` options adjust one part of the preset. CRT effects are 2D only.
+
+### AVI for Windows 95 and 98
+
+The `avi` format writes Cinepak video at 3DMM's original 544×306, with
+22 kHz stereo sound. That's what Windows 95 and 98 play with nothing extra
+installed. Only frames that change are stored, so files are small.
+
+An AVI is always the plain 2D picture at the original size, so `-Scale`,
+`-Depth`, `-Channels` and the `-Crt` options don't apply to it. Everything
+else does. With `-Smooth` it plays at 24 fps, and its sound gets the same
+leveling and ducking as the MP4s. Leave out `-Smooth` for the 6 fps original.
+
+### Sound
+
+3DMM tags every sound as speech, a sound effect or music, and McZee's Cut
+uses those tags.
+
+- **Leveling** (`-AudioLevel auto`, the default). Speech and effects keep
+  the balance they were made with. Each music track is measured and set a
+  little under the dialogue, since MIDI loudness depended on whoever's PC
+  it was. The whole movie is then brought to a standard loudness, so
+  movies play at similar volumes. `-AudioLevel original` skips all of this
+  and keeps the raw mix.
+- **Ducking** (`-Duck`, off by default). Music dips while anyone is
+  talking. It's often easier to follow, but 3DMM never did it.
+- **Channels** (`-Channels`). By default each video gets two soundtracks:
+  5.1 Dolby Digital, with dialogue in the center, and stereo.
+- **Music instruments** (`-SoundFont`, `-MidiGain`). MIDI music is played
+  with FluidSynth and a General MIDI SoundFont. Any SoundFont works, and
+  `windows` uses the instruments of Windows' own GS Wavetable Synth.
+- **Extracting sounds** (`-ExtractSounds`). Also writes `Movie.sounds.zip`,
+  with every sound imported or recorded into the movie, in the order
+  they're first played, plus a list of when each one plays.
+  `-IncludeLibrarySounds` adds the 3DMM sounds the movie uses.
+
+### Playback
+
+- **Pauses.** A "wait for mouse click" pause is held for `-ClickPause`
+  seconds, and the last frame is held for `-EndHold` seconds.
+- **Fonts.** Text boxes ask for fonts by name. A font that isn't installed
+  falls back to the Windows system font, as it did in the 90s, and the
+  report lists it. `-Fonts` takes a folder of font files to use for
+  rendering, without installing them.
+
+### Batches
+
+`report.csv` gets a row per movie: whether it worked, how long it took,
+and what it wrote. Movies that need content you don't have, such as the
+Nickelodeon pack, are marked `missing-content`, along with the packs they
+need. A run that's stopped picks up where it left off, because movies whose
+files are newer than the `.3mm` are skipped. `-Force` redoes them anyway.
+
+## Option reference
+
+All options belong to `render-folder.ps1`. Only `-InputDir` and
+`-OutputDir` are required. [What it can do](#what-it-can-do) explains each
+one.
+
+| Option | Values | Default | Applies to |
+|---|---|---|---|
+| `-InputDir` | folder | required | |
+| `-OutputDir` | folder | required | |
+| `-Formats` | `2d`, `sbs`, `anaglyph`, `crt`, `avi`, `none` | `2d` | |
+| `-Smooth` | switch | off | all formats |
+| `-Scale` | whole number | 2 (1088×612) | `2d`, `sbs`, `anaglyph` |
+| `-Depth` | % of picture width | 2.5 | `sbs`, `anaglyph` |
+| `-CrtPreset` | `pc`, `trinitron`, `tv`, `hdr` | `pc` | `crt` |
+| `-CrtMask` | `shadow`, `grille`, `slot`, `none` | per preset | `crt` |
+| `-CrtScanlines`, `-CrtGlow`, `-CrtCurvature` | number | per preset | `crt` |
+| `-CrtChroma` | `420`, `444` | `420` | `crt` |
+| `-AudioLevel` | `auto`, `original` | `auto` | all formats |
+| `-Duck` | switch | off | all formats |
+| `-Channels` | `both`, `stereo`, `5.1` | `both` | MP4s (an AVI is always stereo) |
+| `-SoundFont` | `.sf2`, `.sf3` or `.dls` file, or `windows` | GeneralUser GS | all formats |
+| `-MidiGain` | number | 0.6 | all formats |
+| `-ExtractSounds` | switch | off | |
+| `-IncludeLibrarySounds` | switch | off | with `-ExtractSounds` |
+| `-ClickPause` | seconds | 3 | all formats |
+| `-EndHold` | seconds | 3 | all formats |
+| `-Fonts` | folder | none | all formats |
+| `-Root` | folder containing `3D Movie Maker` | the package folder | |
+| `-Renderer`, `-FluidSynth` | file | found automatically | |
+| `-TimeoutMinutes` | minutes | 30 | |
+| `-KeepFrames` | switch | off | |
+| `-Force` | switch | off | |
 
 ## Running the renderer directly
 
-`render-folder.ps1` is the easy way. For your own pipeline, the renderer
-writes frames, exact timings and the extracted sounds to a folder, and
+`render-folder.ps1` is the easy way. For your own pipeline, `3dmm-render`
+writes a movie's frames, exact timings and sounds to a folder, and
 `encode-movie.ps1 -RenderDir <dir> -OutBase <name>` turns that folder into
-videos.
+videos, taking the same format and sound options.
 
 ```
 3dmm-render <movie.3mm> <outdir> [options]
 ```
 
-| Flag | What it does |
-|---|---|
-| `--smooth` | Add the 24 fps in-between frames |
-| `--stereo` | Render left and right eyes, plus the 2D view |
-| `--depth <pct>` | How far behind the screen the scene can go (default 2.5) |
-| `--pop <pct>` | How far in front of the screen things can come (default 1.5) |
-| `--root <dir>` | The folder containing `3D Movie Maker` |
-| `--fonts <dir>` | Extra fonts for text boxes |
-| `--click-pause <sec>` | Length of "wait for mouse click" pauses |
-| `--end-hold <sec>` | How long to hold the last frame |
-| `--max-frames <n>` | Stop after n frames, for quick tests |
-| `--debug` | Also write depth maps and depth stats |
+| Flag | Values | Default |
+|---|---|---|
+| `--smooth` | | off |
+| `--stereo` | | off |
+| `--depth` | % of picture width | 2.5 |
+| `--pop` | % of picture width | 1.5 |
+| `--root` | folder containing `3D Movie Maker` | the renderer's own folder |
+| `--fonts` | folder | none |
+| `--click-pause` | seconds | 3 |
+| `--end-hold` | seconds | 3 |
+| `--max-frames` | number | no limit |
+| `--debug` | | off |
 
-The full details are in [`tools/render/README.md`](tools/render/README.md):
-the output files, exit codes, the sound mix, the CRT presets and how the
-renderer stays faithful to 3DMM.
+`--pop` is how far in front of the screen things can come in 3D,
+`--max-frames` stops early for quick tests, and `--debug` also writes depth
+maps. [`tools/render/README.md`](tools/render/README.md) has the rest: the
+output folder, exit codes, the CRT presets in detail, and how the renderer
+stays faithful to 3DMM.
 
 ### Rendering in GitHub Actions
 
 Every push builds and packages the renderer, then renders quick previews
-of the movies in `test-movies/`: six of the sample movies from the 3DMM CD. To get full-length
-videos of particular movies, list them in `ci-render-requests.txt`, one file
-name per line. Lines starting with `-` are options for all of them, such as
-`-Smooth`. The results are pushed to the `ci-results` branch. On a public
-fork, that branch is public too, so only add movies whose authors are happy
-for them to be published.
+of the movies in `test-movies/`: six of the sample movies from the 3DMM
+CD. To get full-length videos of particular movies, list them in
+`ci-render-requests.txt`, one file name per line. Lines starting with `-`
+are options for all of them, such as `-Smooth` or `-Formats 2d,avi`. The
+results are pushed to the `ci-results` branch. On a public fork, that
+branch is public too, so only add movies whose authors are happy for them
+to be published.
 
 ## Building
 

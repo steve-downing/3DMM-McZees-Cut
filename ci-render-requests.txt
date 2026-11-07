@@ -1,4 +1,5 @@
 # full-quality renders for review (see build.yml): one test-movies file
-# name per line; lines starting with - are render-folder.ps1 switches for all
+# name per line; lines starting with - are render-folder.ps1 options for all
 -Smooth
+-Formats 2d,avi
 Hospital.3mm

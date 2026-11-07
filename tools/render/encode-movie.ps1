@@ -6,9 +6,9 @@
 # SoundFont are available; otherwise music is left silent and a warning
 # printed), then encodes each requested format from timeline.ffconcat:
 #
-# -AudioLevel auto (default) levels each music track against the dialogue,
-# ducks music under speech and normalizes loudness; "original" keeps the
-# raw mix. -Channels both (default) writes a 5.1 Dolby Digital track
+# -AudioLevel auto (default) levels each music track against the dialogue
+# and normalizes loudness; "original" keeps the raw mix. -Duck also dips
+# the music while someone is talking. -Channels both (default) writes a 5.1 Dolby Digital track
 # (dialogue in the center) plus a stereo AAC track. Levels go in render.log,
 # which is copied next to the videos as <name>.log.
 #
@@ -17,12 +17,14 @@
 # own instruments (%WINDIR%\System32\drivers\gm.dls). DLS needs a FluidSynth
 # build with native DLS support (the "cpp11" Windows builds have it).
 #
-#   2d        the movie as 3DMM showed it (from a stereo render too)
-#   sbs       full side-by-side (left | right), for 3D TVs / players in SBS mode
-#   anaglyph  red/cyan
-#   crt       2d with CRT effects, 4K (see -CrtPreset; needs 3dmm-crt.exe)
+#   2d        <name>.mp4: the movie as 3DMM showed it (from a stereo render too)
+#   sbs       <name>.sbs.mp4: full side-by-side (left | right), for 3D TVs / players in SBS mode
+#   anaglyph  <name>.anaglyph.mp4: red/cyan
+#   crt       <name>.crt.mp4: 2d with CRT effects, 4K (see -CrtPreset; needs 3dmm-crt.exe)
 #   avi       <name>.avi: Cinepak video at the original 544x306 and
-#             22 kHz PCM sound, which Windows 95/98 play out of the box
+#             22 kHz PCM sound, which Windows 95/98 play out of the box.
+#             Always 2-D at the original size; follows --smooth (24 fps).
+#   none      no video (e.g. just -ExtractSounds)
 #
 # -ExtractSounds also writes <name>.sounds.zip: the sounds that were added
 # to the movie itself (imported or recorded, plus any that are never
@@ -38,6 +40,7 @@ param(
     [string]$FluidSynth = "fluidsynth",
     [double]$MidiGain = 0.6,
     [ValidateSet("auto", "original")] [string]$AudioLevel = "auto",
+    [switch]$Duck,
     [ValidateSet("both", "stereo", "5.1")] [string]$Channels = "both",
     [int]$Scale = 2,
     [int]$Crf = 18,
@@ -201,7 +204,7 @@ try {
     if (Test-Path audio-cues.tsv) {
         # leveled stems -> stereo + 5.1 (see mix-audio.ps1)
         try {
-            $levels = & "$PSScriptRoot/mix-audio.ps1" -RenderDir $RenderDir -AudioLevel $AudioLevel
+            $levels = & "$PSScriptRoot/mix-audio.ps1" -RenderDir $RenderDir -AudioLevel $AudioLevel -Duck:$Duck
             $levels | ForEach-Object { Write-Host $_ }
             Add-Content -Path render.log -Value $levels
             $audioStereo = "audio-stereo.wav"
@@ -245,7 +248,7 @@ try {
     $fps = if ((Test-Path render.log) -and (Select-String -Quiet -Path render.log -Pattern 'smooth: on')) { 24 } else { 30 }
     foreach ($fmt in $Formats) {
         if ($fmt -eq "none") { continue }   # e.g. just -ExtractSounds
-        $out = "$OutBase.$fmt.mp4"
+        $out = if ($fmt -eq "2d") { "$OutBase.mp4" } else { "$OutBase.$fmt.mp4" }
         if ($fmt -eq "crt") {
             # CRT effects are 2-D only; a stereo render keeps the 2-D view for this
             $note = switch ($layout) {
@@ -262,8 +265,10 @@ try {
             # shipped. Only frames that change are encoded; the rest are
             # AVI null frames ("show the last one again"). 306 isn't a
             # multiple of 4, which Cinepak needs, so a black line is added
-            # above and below.
+            # above and below. 15 fps covers 3DMM's 6 fps steps and its
+            # transitions; a --smooth render keeps its 24 fps.
             $out = "$OutBase.avi"
+            $aviFps = if ($fps -eq 24) { 24 } else { 15 }
             $w98In = @()
             $w98Map = @()
             if ($audioStereo) {
@@ -271,7 +276,7 @@ try {
                 $w98Map = @("-map", "1:a", "-c:a", "pcm_s16le", "-ar", "22050", "-ac", "2")
             }
             ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i timeline.ffconcat @w98In -map 0:v @w98Map `
-                -vf "${crop2d}fps=15,format=yuv444p,mpdecimate=hi=1:lo=1:frac=0:max=15,pad=544:308:0:1,format=rgb24" -fps_mode vfr `
+                -vf "${crop2d}fps=$aviFps,format=yuv444p,mpdecimate=hi=1:lo=1:frac=0:max=$aviFps,pad=544:308:0:1,format=rgb24" -fps_mode vfr `
                 -c:v cinepak -max_extra_cb_iterations 0 -min_strips 3 -max_strips 3 $out
             if ($LASTEXITCODE -ne 0) { Write-Warning "encode failed: $out"; $failed++ }
             continue

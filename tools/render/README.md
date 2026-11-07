@@ -5,7 +5,7 @@ headlessly and faster than real time, and writes every frame plus the
 soundtrack to a folder. `render-folder.ps1` runs it over a whole folder
 of movies and encodes finished MP4s.
 
-With `-Stereo`, each frame is rendered twice from two slightly separated
+For 3D, each frame is rendered twice from two slightly separated
 cameras. Actors are re-rendered for real; the pre-rendered sets are
 reprojected using their depth maps. The result is side-by-side 3D,
 red/cyan anaglyph, or plain 2D.
@@ -22,12 +22,12 @@ red/cyan anaglyph, or plain 2D.
 
    ```powershell
    powershell -ExecutionPolicy Bypass -File render-folder.ps1 `
-       -InputDir D:\3mm-archive -OutputDir D:\3mm-videos -Stereo
+       -InputDir D:\3mm-archive -OutputDir D:\3mm-videos -Smooth
    ```
 
-Outputs mirror the input folders: `Movie.sbs.mp4`, `Movie.anaglyph.mp4`
-and `Movie.2d.mp4` (just `.2d.mp4` without `-Stereo`). `report.csv` lists
-every movie with its status. Movies that need content you don't have, such
+Outputs mirror the input folders: `Movie.3mm` becomes `Movie.mp4`, plus
+any other formats you ask for (below). `report.csv` lists every movie with
+its status. Movies that need content you don't have, such
 as the Nickelodeon pack, are marked `missing-content` and the needed packs
 are named. Re-running the script skips anything already up to date.
 
@@ -37,32 +37,66 @@ did in the 90s. The renderer reports every such font in `events.txt`,
 in the report's `missingFonts` column, and in a summary at the end. 3-D
 text uses 3DMM's own fonts and is never affected.
 
-## Useful options
+## Formats
 
-| Option | Default | What it does |
+`-Formats` picks which files each movie gets, as a comma-separated list.
+
+| Format | File | What it is |
 |---|---|---|
-| `-Stereo` | off | render 3D |
-| `-Smooth` | off | blend actor motion between 3DMM's 6 fps frames: videos play at 24 fps (below) |
-| `-Depth` | 2.5 | how far behind the screen the scene can go (% of width) |
-| `-Formats` | `2d` (`sbs,anaglyph,2d` with `-Stereo`) | any of `sbs`, `anaglyph`, `2d`, `crt`, `avi` |
-| `-Scale` | 2 | nearest-neighbor upscale (2 gives 1088×612 per eye) |
-| `-SoundFont` | GeneralUser GS | MIDI instruments: any `.sf2`/`.sf3`/`.dls`, or `windows` for the Windows GS Wavetable Synth's `gm.dls` |
-| `-MidiGain` | 0.6 | MIDI synth gain (before leveling) |
-| `-AudioLevel` | auto | `auto`: smart leveling (below); `original`: the raw mix |
-| `-Channels` | both | `both`: 5.1 Dolby Digital (dialogue in center) + stereo AAC; or `stereo`, `5.1` |
-| `-CRT` | off | also write `.crt.mp4`: 4K with CRT effects (below) |
-| `-CrtPreset` | pc | `pc`, `trinitron`, `tv`, `hdr` |
-| `-CrtMask`, `-CrtScanlines`, `-CrtGlow`, `-CrtCurvature` | per preset | override one aspect of the preset |
-| `-CrtChroma` | 420 | `444` keeps the phosphor colors crisp, but fewer players handle it |
-| `-Avi` | off | also write `.avi`, which plays on Windows 95/98 (below) |
-| `-ExtractSounds` | off | also write `.sounds.zip`: the sounds added to the movie, in order of use (below) |
-| `-IncludeLibrarySounds` | off | with `-ExtractSounds`, also include the 3DMM sounds the movie uses |
-| `-ClickPause` | 3 | seconds to hold "wait for mouse click" pauses (set with the pause buttons in the studio's Sounds tools) |
-| `-EndHold` | 3 | seconds to hold the final frame (3DMM leaves it on screen) |
-| `-Fonts` | none | folder of extra font files (`.ttf`, `.otf`, `.fon`...) loaded just for rendering, not installed |
-| `-Root` | auto | folder containing `3D Movie Maker` (to use another install's content) |
-| `-KeepFrames` | off | keep the raw frames and logs |
-| `-Force` | off | redo movies that are already up to date |
+| `2d` (the default) | `Movie.mp4` | The movie as 3DMM showed it |
+| `sbs` | `Movie.sbs.mp4` | Side-by-side 3D (left eye, right eye) for VR headsets, 3D TVs and players in SBS mode |
+| `anaglyph` | `Movie.anaglyph.mp4` | Red/cyan 3D |
+| `crt` | `Movie.crt.mp4` | 4K with CRT effects (below) |
+| `avi` | `Movie.avi` | Cinepak for Windows 95/98 (below) |
+| `none` | | No video, e.g. for just `-ExtractSounds` |
+
+Asking for `sbs` or `anaglyph` renders the movie in 3D. Every other format
+is made from the plain 2-D view, even in a 3D render.
+
+## Option reference
+
+The sections after this one explain what each option does.
+
+| Option | Values | Default | Applies to |
+|---|---|---|---|
+| `-InputDir`, `-OutputDir` | folder | required | |
+| `-Formats` | `2d`, `sbs`, `anaglyph`, `crt`, `avi`, `none` | `2d` | |
+| `-Smooth` | switch | off | all formats |
+| `-Scale` | whole number | 2 (1088×612) | `2d`, `sbs`, `anaglyph` |
+| `-Depth` | % of picture width | 2.5 | `sbs`, `anaglyph` |
+| `-CrtPreset` | `pc`, `trinitron`, `tv`, `hdr` | `pc` | `crt` |
+| `-CrtMask` | `shadow`, `grille`, `slot`, `none` | per preset | `crt` |
+| `-CrtScanlines`, `-CrtGlow`, `-CrtCurvature` | number | per preset | `crt` |
+| `-CrtChroma` | `420`, `444` | `420` | `crt` |
+| `-AudioLevel` | `auto`, `original` | `auto` | all formats |
+| `-Duck` | switch | off | all formats |
+| `-Channels` | `both`, `stereo`, `5.1` | `both` | MP4s (an AVI is always stereo) |
+| `-SoundFont` | `.sf2`, `.sf3` or `.dls` file, or `windows` | GeneralUser GS | all formats |
+| `-MidiGain` | number | 0.6 | all formats |
+| `-ExtractSounds` | switch | off | |
+| `-IncludeLibrarySounds` | switch | off | with `-ExtractSounds` |
+| `-ClickPause` | seconds | 3 | all formats |
+| `-EndHold` | seconds | 3 | all formats |
+| `-Fonts` | folder | none | all formats |
+| `-Root` | folder containing `3D Movie Maker` | the package folder | |
+| `-Renderer`, `-FluidSynth` | file | found automatically | |
+| `-TimeoutMinutes` | minutes | 30 | |
+| `-KeepFrames` | switch | off | |
+| `-Force` | switch | off | |
+
+## Other options
+
+- `-ClickPause` is how long a "wait for mouse click" pause is held. These
+  pauses are set with the pause buttons in the studio's Sounds tools.
+- `-EndHold` is how long the last frame stays up. 3DMM leaves it on screen.
+- `-Fonts` is a folder of font files (`.ttf`, `.otf`, `.fon`...) loaded just
+  for rendering and never installed.
+- `-Depth` is how far behind the screen a 3D scene can go.
+- `-Scale` is a nearest-neighbor upscale of the 544×306 picture.
+- `-Root` is the folder containing `3D Movie Maker`, to use another
+  install's content.
+- `-KeepFrames` keeps the raw frames and logs. `-Force` redoes movies that
+  are already up to date.
 
 ## Sound
 
@@ -73,9 +107,18 @@ keeps those tags. With `-AudioLevel auto` (the default):
   WAVs through the same sound card.
 - **Each music track** is measured on its own and set 8 LU below the
   dialogue. MIDI loudness used to depend on whoever's PC it was.
-- **Music ducks** 6 dB whenever someone is talking.
 - **The whole mix** is normalized to -16 LUFS with peaks under -1 dB, so
   movies play at similar volumes.
+
+`-AudioLevel original` keeps the raw mix, as the engine played it.
+
+`-Duck` dips the music 6 dB whenever someone is talking, with either
+setting. It's off by default because 3DMM never did it.
+
+`-SoundFont` picks the MIDI instruments: any `.sf2`, `.sf3` or `.dls`, or
+`windows` for the Windows GS Wavetable Synth's `gm.dls`. `-MidiGain` is the
+synth's gain before leveling. `-Channels` picks the soundtracks: both (the
+default), or just `stereo` or `5.1`.
 
 Every measurement and adjustment is written to the movie's `.log`, next
 to the videos.
@@ -87,8 +130,8 @@ natively. A stereo AAC track is included for everything else.
 
 ## CRT effects
 
-`-CRT` adds a `.crt.mp4`: the movie as it looked on a CRT, at 4K. The
-picture is scaled 6× (544×306 becomes 3264×1836) and centered.
+The `crt` format writes `Movie.crt.mp4`: the movie as it looked on a CRT,
+at 4K. The picture is scaled 6× (544×306 becomes 3264×1836) and centered.
 
 - **Scanlines:** each line is drawn as an electron beam whose width grows
   with brightness. Bright lines fill in; dark lines leave gaps.
@@ -103,18 +146,28 @@ picture is scaled 6× (544×306 becomes 3264×1836) and centered.
 | `tv` | consumer TV: slot mask, heavy scanlines, softer focus, curvature with rounded corners |
 | `hdr` | `pc` written as 10-bit HDR10. The OLED's headroom makes up the mask's lost light, so the mask can be stronger. |
 
-CRT effects are 2-D only. With `-Stereo`, `.crt.mp4` is made from the
+`-CrtMask`, `-CrtScanlines`, `-CrtGlow` and `-CrtCurvature` override one
+part of the preset. `-CrtChroma 444` keeps the phosphor colors crisp, but
+fewer players handle it.
+
+CRT effects are 2-D only. In a 3D render, `.crt.mp4` is made from the
 movie's ordinary 2-D view, and the log says so. Side-by-side and anaglyph
 output don't get CRT effects.
 
 ## AVI for Windows 95/98
 
-`-Avi` writes `Movie.avi` at the original 544×306: Cinepak video
-and 22 kHz 16-bit sound, which Windows 95 and 98 play with nothing extra
-installed. Only frames that change are stored, so files are small
-(roughly 10 MB a minute). Cinepak needs a height divisible
-by 4, so the picture has a black line above and below. Cinepak is slow to
-encode: allow a few minutes per movie.
+The `avi` format writes `Movie.avi` at the original 544×306: Cinepak
+video and 22 kHz 16-bit stereo sound, which Windows 95 and 98 play with
+nothing extra installed. Only frames that change are stored, so files are
+small (roughly 10 MB a minute). Cinepak needs a height divisible by 4, so
+the picture has a black line above and below. Cinepak is slow to encode:
+allow a few minutes per movie.
+
+An AVI is always the plain 2-D picture at the original size: `-Scale`,
+`-Depth`, `-Channels` and the CRT options don't apply. Everything else
+does. With `-Smooth` it plays at 24 fps (otherwise 15, which covers 3DMM's
+6 fps steps and its transitions), and its sound gets the same leveling and
+ducking as the MP4s.
 
 ## Extracting sounds
 
@@ -155,7 +208,8 @@ The output folder contains:
 - `render.log`: diagnostics
 
 `encode-movie.ps1 -RenderDir <outdir> -OutBase <name>` turns that folder
-into MP4s.
+into videos. It takes the same `-Formats` and sound options as
+`render-folder.ps1`.
 
 Exit codes:
 
@@ -210,6 +264,6 @@ play at 24 fps.
 - **The log.** `render.log` ends with a count of the steps that were
   blended and the steps that were held.
 
-Sound timing is unchanged. Transitions stay at 15 fps, and `.avi` output
-stays at 15 fps.
+Sound timing is unchanged. Transitions stay at 15 fps. Every format,
+`.avi` included, gets the in-betweens.
 

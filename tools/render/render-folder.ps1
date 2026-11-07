@@ -1,6 +1,9 @@
 # Batch-converts every .3mm under a folder into video files.
 #
-#   render-folder.ps1 -InputDir D:\3mm-archive -OutputDir D:\3mm-videos [-Stereo]
+#   render-folder.ps1 -InputDir D:\3mm-archive -OutputDir D:\3mm-videos [-Smooth] [-Formats 2d,sbs,...]
+#
+# -Formats picks the outputs (default 2d, the plain Movie.mp4); asking for
+# sbs or anaglyph renders the movie in 3D. See README.md for every option.
 #
 # For each movie (recursively; the folder structure is mirrored):
 #   1. 3dmm-render plays it headlessly into a scratch folder
@@ -19,7 +22,6 @@ param(
     [Parameter(Mandatory)] [string]$OutputDir,
     [string]$Root,
     [string]$Renderer,
-    [switch]$Stereo,
     [switch]$Smooth,
     [double]$Depth = 2.5,
     [string[]]$Formats,
@@ -27,20 +29,19 @@ param(
     [string]$FluidSynth,
     [double]$MidiGain = 0.6,
     [ValidateSet("auto", "original")] [string]$AudioLevel = "auto",
+    [switch]$Duck,
     [ValidateSet("both", "stereo", "5.1")] [string]$Channels = "both",
     [double]$ClickPause = 3,
     [double]$EndHold = 3,
     [string]$Fonts,
     [int]$TimeoutMinutes = 30,
     [int]$Scale = 2,
-    [switch]$CRT,
     [ValidateSet("pc", "trinitron", "tv", "hdr")] [string]$CrtPreset = "pc",
     [ValidateSet("", "shadow", "grille", "slot", "none")] [string]$CrtMask = "",
     [double]$CrtScanlines = -1,
     [double]$CrtGlow = -1,
     [double]$CrtCurvature = -1,
     [ValidateSet("420", "444")] [string]$CrtChroma = "420",
-    [switch]$Avi,
     [switch]$ExtractSounds,
     [switch]$IncludeLibrarySounds,
     [switch]$KeepFrames,
@@ -89,12 +90,12 @@ if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { throw "ffmpeg isn
 if (-not $Root -or -not (Test-Path (Join-Path $Root "3D Movie Maker"))) {
     throw "can't find a '3D Movie Maker' content folder; pass -Root (the folder that contains it)"
 }
-if (-not $Formats) { $Formats = if ($Stereo) { @("sbs", "anaglyph", "2d") } else { @("2d") } }
-if ($CRT -and $Formats -notcontains "crt") { $Formats += "crt" }
-if ($Avi -and $Formats -notcontains "avi") { $Formats += "avi" }
-if ($Stereo -and $Formats -contains "crt") {
-    Write-Host "Note: CRT effects are 2-D only, so .crt.mp4 is made from the movie's ordinary 2-D view."
-}
+if (-not $Formats) { $Formats = @("2d") }
+$known = "2d", "sbs", "anaglyph", "crt", "avi", "none"
+$unknown = @($Formats | Where-Object { $known -notcontains $_ })
+if ($unknown) { throw "unknown format(s): $($unknown -join ', ') (use $($known -join ', '))" }
+# 3D formats need the movie rendered from two cameras; everything else uses the 2-D view
+$Stereo = ($Formats -contains "sbs") -or ($Formats -contains "anaglyph")
 
 $InputDir = (Resolve-Path $InputDir).Path.TrimEnd('\')
 if ($Fonts) { $Fonts = (Resolve-Path $Fonts).Path.TrimEnd('\') }
@@ -117,7 +118,8 @@ foreach ($movie in $movies) {
     $rel = $movie.FullName.Substring($InputDir.Length + 1)
     $relBase = $rel.Substring(0, $rel.Length - $movie.Extension.Length)
     $outBase = Join-Path $OutputDir $relBase
-    $outputs = @($Formats | ForEach-Object { if ($_ -eq "avi") { "$outBase.avi" } else { "$outBase.$_.mp4" } })
+    $outputs = @($Formats | ForEach-Object {
+            switch ($_) { "2d" { "$outBase.mp4" } "avi" { "$outBase.avi" } "none" { } default { "$outBase.$_.mp4" } } })
     if ($ExtractSounds) { $outputs += "$outBase.sounds.zip" }
     $row = [ordered]@{ movie = $rel; status = ""; exit = ""; frames = ""; seconds = ""; missing = ""; missingFonts = ""; outputs = "" }
 
@@ -164,7 +166,7 @@ foreach ($movie in $movies) {
     if ($row.status -eq "ok") {
         New-Item -ItemType Directory -Force (Split-Path -Parent $outBase) | Out-Null
         & $encoder -RenderDir $work -OutBase $outBase -Formats $Formats -SoundFont $SoundFont `
-            -FluidSynth $FluidSynth -MidiGain $MidiGain -AudioLevel $AudioLevel -Channels $Channels -Scale $Scale `
+            -FluidSynth $FluidSynth -MidiGain $MidiGain -AudioLevel $AudioLevel -Duck:$Duck -Channels $Channels -Scale $Scale `
             -CrtPreset $CrtPreset -CrtMask $CrtMask -CrtScanlines $CrtScanlines -CrtGlow $CrtGlow `
             -CrtCurvature $CrtCurvature -CrtChroma $CrtChroma -ExtractSounds:$ExtractSounds `
             -IncludeLibrarySounds:$IncludeLibrarySounds

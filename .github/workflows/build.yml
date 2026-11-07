@@ -61,7 +61,7 @@ jobs:
         run: |
           if (Test-Path build/tools) { Copy-Item -Recurse build/tools package/3dmm-render/tools }
           powershell -NoProfile -ExecutionPolicy Bypass -File package/3dmm-render/render-folder.ps1 `
-            -InputDir test-movies -OutputDir ci-out/batch -Stereo -Formats anaglyph,2d -Scale 1 *>&1 |
+            -InputDir test-movies -OutputDir ci-out/batch -Formats anaglyph,2d -Scale 1 *>&1 |
             Tee-Object -FilePath ci-out/batch.log
           Get-ChildItem -Recurse ci-out/batch -Filter *.mp4 | Select-Object Name, Length | Out-File ci-out/batch-files.txt
           Get-ChildItem -Recurse ci-out/batch -Filter *.mp4 | Remove-Item
@@ -71,14 +71,14 @@ jobs:
         if: steps.package.outcome == 'success' && hashFiles('ci-render-requests.txt') != ''
         shell: pwsh
         run: |
-          # one test-movies file name per line, or a render-folder.ps1 switch
-          # such as -Smooth (applies to all); outputs land in ci-results
+          # one test-movies file name per line, or render-folder.ps1 options
+          # such as -Smooth or -Formats 2d,avi (apply to all); outputs land in ci-results
           $req = Join-Path $env:RUNNER_TEMP "requested"
           New-Item -ItemType Directory -Force $req | Out-Null
           $lines = @(Get-Content ci-render-requests.txt | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
           $switches = @()
           foreach ($l in $lines) {
-            if ($l.StartsWith('-')) { $switches += $l }
+            if ($l.StartsWith('-')) { $switches += -split $l }
             else { Copy-Item -LiteralPath (Join-Path test-movies $l) $req }
           }
           if (-not (Get-ChildItem $req -Filter *.3mm)) { Write-Host "no movies requested"; exit 0 }
