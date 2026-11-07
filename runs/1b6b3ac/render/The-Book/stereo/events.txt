@@ -1,0 +1,166 @@
+     0.031 missing-font Futura
+     0.000 transition cut
+     0.000 play
+     0.520 stereo view: converge=27.2 near=11.2 far=-1.0 focal=403px eye=0.384 shift=3px
+     0.520 camera hither=1.0000 yon=5000.0000 fov=41.53deg
+     0.520 bkgd Z deciles 65535 65535 65535 65535 65535 65535 65535 65535 65535 65535 65535
+     0.520 actor Z deciles 26868 27121 30339 30349 30359 30367 30375 30384 30421 30482 30584
+calib camera-to-screen row0 1.48366 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.63762 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+calib actor depth=1 viewz=-28.6274 screen x=0.2 y=0.4 z/w=-1.0131 w=-157.9688 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16325.5312 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.6680 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.6274 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-11.5621 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=2 viewz=-11.5621 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=65535
+     1.520 sound s000 vlm=65536 loops=1 offset=0
+     1.850 textbox story "P "
+     2.020 textbox story "P "
+     2.020 textbox story "I "
+     2.185 textbox story "P "
+     2.185 textbox story "I "
+     2.185 textbox story "C "
+     2.350 textbox story "P "
+     2.350 textbox story "I "
+     2.350 textbox story "C "
+     2.350 textbox story "T "
+     2.520 textbox story "P "
+     2.520 textbox story "I "
+     2.520 textbox story "C "
+     2.520 textbox story "T "
+     2.520 textbox story "U "
+     2.685 textbox story "P "
+     2.685 textbox story "I "
+     2.685 textbox story "C "
+     2.685 textbox story "T "
+     2.685 textbox story "U "
+     2.685 textbox story "R "
+     2.850 textbox story "P "
+     2.850 textbox story "I "
+     2.850 textbox story "C "
+     2.850 textbox story "T "
+     2.850 textbox story "U "
+     2.850 textbox story "R "
+     2.850 textbox story "E "
+     3.020 textbox story "P "
+     3.020 textbox story "I "
+     3.020 textbox story "C "
+     3.020 textbox story "T "
+     3.020 textbox story "U "
+     3.020 textbox story "R "
+     3.020 textbox story "E "
+     3.020 textbox story "S "
+     3.185 textbox story "P "
+     3.185 textbox story "I "
+     3.185 textbox story "C "
+     3.185 textbox story "T "
+     3.185 textbox story "U "
+     3.185 textbox story "R "
+     3.185 textbox story "E "
+     3.185 textbox story "S "
+     3.185 textbox story "•      "
+     3.350 textbox story "P "
+     3.350 textbox story "I "
+     3.350 textbox story "C "
+     3.350 textbox story "T "
+     3.350 textbox story "U "
+     3.350 textbox story "R "
+     3.350 textbox story "E "
+     3.350 textbox story "S "
+     3.350 textbox story "•      "
+     3.350 textbox story "•      "
+     3.520 textbox story "P "
+     3.520 textbox story "I "
+     3.520 textbox story "C "
+     3.520 textbox story "T "
+     3.520 textbox story "U "
+     3.520 textbox story "R "
+     3.520 textbox story "E "
+     3.520 textbox story "S "
+     3.520 textbox story "•      "
+     3.520 textbox story "•      "
+     3.520 textbox story "•      "
+     4.850 textbox story "presents "
+     4.850 transition dissolve
+    10.855 textbox story "              The Book "
+    10.855 textbox story "presents "
+    10.855 transition dissolve
+    14.860 sound s001 vlm=52430 loops=1 offset=0
+    14.860 sound s002 vlm=52430 loops=1 offset=0
+    14.860 sound s003 vlm=52430 loops=1 offset=0
+    14.860 sound s001 vlm=52430 loops=1 offset=0
+    14.860 sound s002 vlm=52430 loops=1 offset=0
+    14.860 sound s003 vlm=52430 loops=1 offset=0
+    14.860 sound s001 vlm=52430 loops=1 offset=0
+    14.860 sound s002 vlm=52430 loops=1 offset=0
+    14.860 sound s003 vlm=52430 loops=1 offset=0
+    14.860 sound s004 vlm=52430 loops=1 offset=0
+    16.860 stereo view: converge=161.0 near=20.5 far=-1.0 focal=303px eye=0.634 shift=1px
+    16.860 camera hither=1.0000 yon=5000.0000 fov=53.60deg
+    16.860 bkgd Z deciles 29461 30289 30964 32075 32506 32577 32675 32734 32741 65535 65535
+    16.860 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.11375 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 1.98003 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+calib actor depth=1 viewz=-1.7422 screen x=0.0 y=5.7 z/w=-1.0131 w=-157.9688 pixel=(272,147) Z=32598
+calib actor depth=1 viewz=4.0587 screen x=0.0 y=0.1 z/w=-1.0005 w=-16284.3516 pixel=(272,152) Z=32598
+calib actor depth=1 viewz=0.3482 screen x=0.0 y=0.1 z/w=-1.0005 w=-16177.6016 pixel=(272,152) Z=32598
+calib actor depth=2 viewz=0.1591 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=2 viewz=-1.3032 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=3 viewz=-2.1333 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=2 viewz=0.6004 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=2 viewz=0.7481 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=3 viewz=2.4371 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=1 viewz=0.3730 screen x=0.0 y=0.1 z/w=-1.0005 w=-16177.7188 pixel=(272,152) Z=32598
+calib actor depth=2 viewz=0.0493 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=3 viewz=0.0273 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=2 viewz=0.5546 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=3 viewz=-0.1445 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=2 viewz=-0.0145 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=3 viewz=-0.0908 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=2 viewz=1.5560 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=3 viewz=0.7727 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=2 viewz=0.3791 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=1 viewz=-0.1803 screen x=0.0 y=0.1 z/w=-1.0005 w=-16177.7188 pixel=(272,152) Z=32598
+calib actor depth=2 viewz=-0.5738 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=3 viewz=-0.5809 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=3 viewz=-1.2869 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=3 viewz=-0.6399 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=3 viewz=-1.3349 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+calib actor depth=3 viewz=-0.5134 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32598
+    16.860 textbox story "              The Book "
+    16.860 transition dissolve
+    24.865 textbox story "                                  starri"
+    29.200 textbox story "                                     wit"
+    33.365 textbox story "                                      an"
+    36.035 unused-sound s005
+    36.035 unused-sound s006
+    36.035 unused-sound s007
+    36.035 unused-sound s008
+    36.035 unused-sound s009
+    36.035 unused-sound s010
+    36.035 unused-sound s011
+    36.035 unused-sound s012
+    36.035 unused-sound s013
+    36.035 unused-sound s014
+    36.035 unused-sound s015
+    36.035 unused-sound s016
+    36.035 unused-sound s017
+    36.035 unused-sound s018
+    36.035 unused-sound s019
+    36.035 end

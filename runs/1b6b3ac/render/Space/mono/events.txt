@@ -1,0 +1,71 @@
+     0.000 transition cut
+     0.000 sound s000 vlm=65536 loops=1 offset=0
+     0.000 play
+     4.850 transition dissolve
+     8.855 sound s001 vlm=32768 loops=1 offset=0
+    20.855 transition dissolve
+    24.860 sound s002 vlm=32768 loops=1 offset=0
+    24.860 sound s003 vlm=52430 loops=2147483647 offset=0
+    32.530 transition cut
+    32.695 sound s002 vlm=32768 loops=1 offset=0
+    36.195 sound s004 vlm=32768 loops=1 offset=0
+    41.695 transition cut
+    44.360 sound s004 vlm=65536 loops=1 offset=0
+    50.360 sound s005 vlm=65536 loops=1 offset=0
+    50.695 sound s006 vlm=65536 loops=1 offset=0
+    51.030 sound s007 vlm=65536 loops=1 offset=0
+    51.530 sound s006 vlm=65536 loops=1 offset=0
+    52.860 sound s006 vlm=65536 loops=1 offset=0
+    53.695 sound s005 vlm=65536 loops=1 offset=0
+    54.195 sound s007 vlm=65536 loops=1 offset=0
+    55.860 transition cut
+    56.030 sound s004 vlm=65536 loops=1 offset=0
+    57.030 sound s008 vlm=65536 loops=1 offset=0
+    57.860 sound s009 vlm=65536 loops=1 offset=0
+    59.360 sound s010 vlm=65536 loops=1 offset=0
+    61.860 transition dissolve
+    65.865 sound s004 vlm=65536 loops=1 offset=0
+    75.035 sound s006 vlm=65536 loops=1 offset=0
+    76.700 sound s006 vlm=65536 loops=1 offset=0
+    77.365 sound s006 vlm=65536 loops=1 offset=0
+    80.700 transition dissolve
+    84.705 sound s011 vlm=16221 loops=2147483647 offset=0
+    85.375 sound s012 vlm=65536 loops=1 offset=0
+    89.540 transition cut
+    89.705 sound s004 vlm=65536 loops=1 offset=0
+    95.875 sound s005 vlm=65536 loops=1 offset=0
+    95.875 sound s006 vlm=65536 loops=1 offset=0
+    96.375 sound s005 vlm=65536 loops=1 offset=0
+    96.875 sound s006 vlm=65536 loops=1 offset=0
+    97.040 sound s005 vlm=65536 loops=1 offset=0
+    98.040 sound s006 vlm=65536 loops=1 offset=0
+    99.205 sound s008 vlm=65536 loops=1 offset=0
+    99.705 sound s007 vlm=65536 loops=1 offset=0
+   100.875 sound s008 vlm=65536 loops=1 offset=0
+   101.205 sound s007 vlm=65536 loops=1 offset=0
+   102.040 sound s008 vlm=65536 loops=1 offset=0
+   102.205 sound s007 vlm=65536 loops=1 offset=0
+   105.875 transition dissolve
+   113.880 sound s004 vlm=32768 loops=1 offset=0
+   120.215 transition dissolve
+   124.220 sound s013 vlm=65536 loops=2147483647 offset=0
+   124.555 sound s014 vlm=32768 loops=1 offset=0
+   127.720 sound s014 vlm=32768 loops=1 offset=0
+   129.720 sound s015 vlm=32768 loops=1 offset=0
+   138.220 sound s016 vlm=32768 loops=1 offset=0
+   140.390 sound s017 vlm=65536 loops=1 offset=0
+   163.055 sound s018 vlm=65536 loops=1 offset=0
+   163.555 sound s019 vlm=32768 loops=1 offset=0
+   164.555 sound s018 vlm=65536 loops=1 offset=0
+   177.055 sound s020 vlm=65536 loops=1 offset=0
+   182.055 textbox story "To continue viewing, please insert an ad"
+   182.055 transition cut
+   182.220 sound s021 vlm=52430 loops=1 offset=0
+   182.890 textbox story "To continue viewing, please insert an ad"
+   182.890 textbox story " "
+   183.390 textbox story "To continue viewing, please insert an ad"
+   188.720 textbox story " "
+   189.055 textbox story " "
+   189.055 textbox credits "    Dedicated to:      Sarah, for keepin"
+   189.055 textbox story "Written, directed, and produced by Allen"
+   202.390 end
