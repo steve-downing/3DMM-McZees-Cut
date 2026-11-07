@@ -96,9 +96,12 @@ def set_labels(t):
 
 
 def make_mesh(name, V, UV, F, sm):
+    # Triangles with a repeated corner draw nothing; drop them. Doubled
+    # triangles stay (some are double-sided on purpose), so no validate().
+    keep = [len(set(int(i) for i in f)) == 3 for f in F]
+    F = np.array([f for f, k in zip(F, keep) if k], int).reshape(-1, 3); sm = np.array([g for g, k in zip(sm, keep) if k], int)
     me = bpy.data.meshes.new(name)
     me.from_pydata([tuple(point(v)) for v in V], [], [tuple(int(i) for i in f) for f in F])
-    me.validate(clean_customdata=False)
     uvl = me.uv_layers.new(name='UVMap')
     for poly in me.polygons:
         for li, vi in zip(poly.loop_indices, poly.vertices):

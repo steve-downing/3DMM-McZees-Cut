@@ -86,8 +86,9 @@ Imported actors have a `costume_N` property per set to try the options on.
 **Materials** become 8-bit 3DMM materials:
 
 - A material with an image texture (the first Image Texture node) becomes a
-  texture, matched to 3DMM's 256-color palette with no dithering. Keep
-  images at 256 pixels or under (bigger ones are scaled down). Imported
+  texture, matched to 3DMM's 256-color palette with no dithering. Stock
+  textures are mostly 100 to 250 pixels across and never over 452; images
+  over 512 are scaled down. Imported
   materials keep 3DMM's texture transform in `uv_transform`.
 - Anything else is a solid color: the closest of the 17 color ramps 3DMM
   shades with (`palette_base` and `palette_range` override the choice).

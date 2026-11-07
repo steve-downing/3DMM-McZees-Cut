@@ -19,8 +19,11 @@ import import_actor, export_actor  # noqa: E402
 
 def tris(parts):
     """posed triangles per part: rows of (3 positions, 3 uvs)"""
-    return {i: np.concatenate([V[F].reshape(len(F), 9), UV[F].reshape(len(F), 6)], 1)
-            for V, UV, F, sm, m, i in parts}
+    out = {}
+    for V, UV, F, sm, m, i in parts:
+        F = np.array([f for f in F if len(set(f)) == 3])   # the importer drops triangles that draw nothing
+        out[i] = np.concatenate([V[F].reshape(len(F), 9), UV[F].reshape(len(F), 6)], 1)
+    return out
 
 
 def tri_diff(a, b):
@@ -30,10 +33,13 @@ def tri_diff(a, b):
     return max(d.min(1).max(), d.min(0).max())
 
 
-def costume_desc(t, cmid):
+def costume_desc(t, cmid, nparts):
+    """a costume's materials and accessories, for the parts its body part set has
+    (a few stock costumes list more, which 3DMM never uses)"""
     ref = t._kidref('CMTL', cmid); ck = t.B.c.chunks[ref]['kids']
     out = []
     for kc, kn, ch in sorted(ck, key=lambda k: (k[2], k[0])):
+        if ch >= nparts: continue
         if kc == 'MTRL':
             m = t.material((kc, kn))
             d = ('MTRL', ch, m['base'], m['range'])
@@ -55,9 +61,11 @@ def compare(name, path):
     check(a.bset == b.bset, 'body part sets differ')
     check(a.rest == b.rest, 'rest orientation differs')
     check([len(c) for c in a.costumes] == [len(c) for c in b.costumes], 'costume counts differ')
-    for ca, cb in zip(a.costumes, b.costumes):
+    for ibset, (ca, cb) in enumerate(zip(a.costumes, b.costumes)):
+        n = a.bset.count(ibset)
         for x, y in zip(ca, cb):
-            check(costume_desc(a, x) == costume_desc(b, y), 'costume %d/%d differs:\n  %s\n  %s' % (x, y, costume_desc(a, x), costume_desc(b, y)))
+            da, db = costume_desc(a, x, n), costume_desc(b, y, n)
+            check(da == db, 'costume %d/%d differs:\n  %s\n  %s' % (x, y, da, db))
     check(sorted(a.actions) == sorted(b.actions), 'action numbers differ')
     ncel = 0
     for anid in sorted(a.actions):

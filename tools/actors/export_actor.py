@@ -192,9 +192,9 @@ class Export:
                 w, h = img.size
                 px = np.array(img.pixels[:], np.float32).reshape(h, w, -1)[::-1, :, :3]
                 rgb = np.clip(np.round(s._srgb(img, px) * 255), 0, 255)
-                if max(w, h) > 256:                 # 3DMM's own textures stay at 256 or under
+                if max(w, h) > 512:                 # 3DMM's own textures are 452 pixels at most
                     from PIL import Image
-                    k = 256 / max(w, h)
+                    k = 512 / max(w, h)
                     rgb = np.array(Image.fromarray(rgb.astype(np.uint8)).resize((max(1, round(w * k)), max(1, round(h * k))), Image.LANCZOS), float)
                 s.tmaps[img.name] = s.new('TMAP', chunky.tmap(quantize(rgb)))
             s.w.adopt(key, s.tmaps[img.name], 0)

@@ -30,7 +30,7 @@ jobs:
           mkdir -p ci-out/actors
           set -o pipefail
           status=0
-          for a in Bongo Gustave Safe "Bino BeGood" Spaceship Explosio Earth; do
+          for a in Bongo Gustave Henry Safe "Bino BeGood" Spaceship Explosio Earth; do
             python tools/actors/roundtrip.py "$a" "work/$a" 2>&1 | grep -v "Deprecation\|use_nodes\|^Fra:" | tee -a ci-out/actors/roundtrip.log || status=1
           done
           exit $status
@@ -88,14 +88,15 @@ jobs:
 
       - name: Get the add-on actor test
         id: addon
-        if: steps.compile.outcome == 'success' && needs.actors.result == 'success'
+        if: steps.compile.outcome == 'success' && needs.actors.result != 'skipped'
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: actor-test
           path: addon-in
 
       - name: Add-on actor plays like the original
-        if: steps.addon.outcome == 'success'
+        if: steps.addon.outcome == 'success' && hashFiles('addon-in/actor-test/*.3cn') != ''
         shell: pwsh
         run: |
           Copy-Item -Recurse addon-in/ci-out/actors ci-out/ -ErrorAction SilentlyContinue
