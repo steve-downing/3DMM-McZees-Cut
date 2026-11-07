@@ -143,8 +143,9 @@ class RAPP : public RAPP_PAR
     double _pctPop;
     bool _fDebug;
     bool _fSmooth;
-    bool _fProgress; // --progress: report how far along we are on stdout
-    STN _stnPoses;   // --poses <file>: every actor part's model and place, per frame
+    bool _fProgress;  // --progress: report how far along we are on stdout
+    bool _fPrerender; // --prerender: let 3DMM bake still actors into the background
+    STN _stnPoses;    // --poses <file>: every actor part's model and place, per frame
 
     // engine objects
     PCFL _pcfl;

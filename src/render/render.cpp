@@ -19,6 +19,12 @@
     (its model, material and world matrix), for playing the movie back in
     3D; tools/sets/viewer/export_scene.py reads it.
 
+    3DMM normally draws actors that won't change until the next camera cut
+    into the background once and hides their bodies ("prerendering"). The
+    pictures are the same either way, but stereo, --smooth and --poses need
+    every actor as a live 3-D body, so the renderer turns it off;
+    --prerender turns it back on (CI checks that 2-D frames match).
+
     --smooth adds three in-between frames for every 6 fps step in which
     only actors moved: every actor part's transform is blended between the
     two frames, so motion plays at 24 fps.
@@ -81,6 +87,7 @@ RAPP::RAPP(void)
     _fDebug = fFalse;
     _fSmooth = fFalse;
     _fProgress = fFalse;
+    _fPrerender = fFalse;
     _pglcfrmBefore = pvNil;
     _cfrmTotal = 0;
     _pctLast = -1;
@@ -235,6 +242,9 @@ bool RAPP::_FInit(ulong grfapp, ulong grfgob, long ginDef)
             _Log("font: %s", stn.Psz());
         }
     }
+    SCEN::SetPrerendering(_fPrerender);
+    if (_fPrerender)
+        _Log("prerendering: on (3DMM's own behavior)");
     if (!_FInitContent())
     {
         _lwExit = klwExitInit;
@@ -307,6 +317,8 @@ bool RAPP::_FParseCommandLine(void)
             _fSmooth = fTrue;
         else if (0 == strcmp(psz, "--progress"))
             _fProgress = fTrue;
+        else if (0 == strcmp(psz, "--prerender"))
+            _fPrerender = fTrue;
         else if (0 == strcmp(psz, "--poses") && iarg + 1 < __argc)
             _stnPoses.SetSz(__argv[++iarg]);
         else if (carg == 0)
@@ -330,7 +342,7 @@ bool RAPP::_FParseCommandLine(void)
     {
         fprintf(stderr, "usage: 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>] "
                         "[--fonts <dir>] [--end-hold <sec>] [--max-frames <n>] [--stereo] [--depth <percent>] [--pop "
-                        "<percent>] [--smooth] [--progress] [--poses <file>] [--debug]\n");
+                        "<percent>] [--smooth] [--progress] [--poses <file>] [--prerender] [--debug]\n");
         return fFalse;
     }
     return fTrue;

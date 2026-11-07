@@ -179,6 +179,35 @@ if ($dm) {
 }
 
 # CRT effects: full-res stills for each preset, and a short encode
+# Prerendering (3DMM baking still actors into the background) is off in the
+# renderer; it's meant to be invisible in 2-D. Render Hospital with it on and
+# compare every frame with the normal render.
+$hosp = Get-ChildItem $MovieDir -Filter "Hospital.3mm" | Select-Object -First 1
+$hospMono = Join-Path $work "Hospital/mono"
+if ($hosp -and (Test-Path "$hospMono/frames")) {
+    $raw = Join-Path $work "prerender"
+    New-Item -ItemType Directory -Force $raw | Out-Null
+    $p = Start-Process -FilePath $exe.FullName -PassThru -NoNewWindow `
+        -ArgumentList @("`"$($hosp.FullName)`"", "`"$raw`"", "--root", "`"$stage`"", "--prerender") `
+        -RedirectStandardOutput (Join-Path $raw "stdout.txt") -RedirectStandardError (Join-Path $raw "stderr.txt")
+    $null = $p.Handle
+    if (-not $p.WaitForExit($TimeoutSeconds * 1000)) { $p.Kill() }
+    $a = @(Get-ChildItem "$hospMono/frames" -Filter *.bmp | Sort-Object Name)
+    $b = @(Get-ChildItem "$raw/frames" -Filter *.bmp -ErrorAction SilentlyContinue | Sort-Object Name)
+    $same = 0; $diff = @()
+    for ($i = 0; $i -lt [Math]::Min($a.Count, $b.Count); $i++) {
+        if ((Get-FileHash $a[$i].FullName).Hash -eq (Get-FileHash $b[$i].FullName).Hash) { $same++ } else { $diff += $a[$i].Name }
+    }
+    $timeline = if ((Get-FileHash "$hospMono/timeline.ffconcat").Hash -eq (Get-FileHash "$raw/timeline.ffconcat" -ErrorAction SilentlyContinue).Hash) { "same" } else { "different" }
+    "Hospital without / with prerendering: $($a.Count) / $($b.Count) frames, $same identical, timeline $timeline" |
+        Tee-Object -FilePath (Join-Path $OutDir "prerender-check.txt") | Write-Host
+    if ($diff) {
+        "differing frames: $(($diff | Select-Object -First 40) -join ' ')" | Add-Content (Join-Path $OutDir "prerender-check.txt")
+        & ffmpeg -hide_banner -loglevel error -y -i (Join-Path "$hospMono/frames" $diff[0]) -i (Join-Path "$raw/frames" $diff[0]) `
+            -filter_complex hstack (Join-Path $OutDir "prerender-first-difference.png")
+    }
+}
+
 $crtExe = Get-ChildItem -Recurse $build -Filter 3dmm-crt.exe | Select-Object -First 1
 $firstMono = Get-ChildItem $work -Directory | Select-Object -First 1
 if ($crtExe -and $firstMono) {

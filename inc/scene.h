@@ -117,6 +117,16 @@ class SCEN : public SCEN_PAR
     MARKMEM
     ASSERT
 
+  public:
+    // McZee's Cut: during playback, actors that won't change until the next
+    // camera cut are normally drawn into the background once and their
+    // bodies hidden ("prerendered"). 3dmm-render turns that off, so every
+    // actor stays a live 3-D body (for stereo, smooth motion and poses).
+    static void SetPrerendering(bool fAllowed)
+    {
+        _fPrerenderAllowed = fAllowed;
+    }
+
   protected:
     typedef struct SEV *PSEV;
 
@@ -172,6 +182,7 @@ class SCEN : public SCEN_PAR
     void _MarkMovieDirty(void);
     void _DoPrerenderingWork(bool fStartNow); // Does any prerendering for _nfrmCur
     void _EndPrerendering(void);              // Stops prerendering
+    static bool _fPrerenderAllowed;           // McZee's Cut: see SetPrerendering
 
     //
     // Make actors go to a specific frame

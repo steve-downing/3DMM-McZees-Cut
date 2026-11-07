@@ -447,6 +447,8 @@ class SUNT : public SUNT_PAR
 };
 
 RTCLASS(SCEN)
+
+bool SCEN::_fPrerenderAllowed = fTrue;
 RTCLASS(SUNT)
 RTCLASS(SUNS)
 RTCLASS(SUNA)
@@ -1090,9 +1092,9 @@ void SCEN::_DoPrerenderingWork(bool fStartNow)
     // in this frame, prerender any actors that don't change from
     // here to the next camera view change or the end of the scene.
     //
-    if (!Pmvie()->FPlaying())
+    if (!Pmvie()->FPlaying() || !_fPrerenderAllowed)
     {
-        return; // only prerender if the movie is playing
+        return; // only prerender if the movie is playing (and it's allowed)
     }
 
     // Do prerender if this is the first frame of the scene
