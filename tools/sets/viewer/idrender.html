@@ -1,0 +1,43 @@
+<!doctype html><html><body style="margin:0">
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+const W=544,H=306;
+const renderer=new THREE.WebGLRenderer({antialias:false,preserveDrawingBuffer:true});
+renderer.setSize(W,H); renderer.setPixelRatio(1); document.body.appendChild(renderer.domElement);
+const gl=renderer.getContext();
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0,0,0);
+const cam=new THREE.PerspectiveCamera(50,W/H,0.2,500);
+const meta=await (await fetch('ids.json')).json();
+const buf=await (await fetch('ids.bin')).arrayBuffer();
+const pos=new Float32Array(buf);           // non-indexed: 9 floats per face
+const nf=pos.length/9;
+const id=new Float32Array(nf*3*3);
+for(let f=0;f<nf;f++){ const k=f+1; const r=(k&255)/255, g=((k>>8)&255)/255, b=((k>>16)&255)/255;
+  for(let j=0;j<3;j++){ id[(f*3+j)*3]=r; id[(f*3+j)*3+1]=g; id[(f*3+j)*3+2]=b; } }
+const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3)); geo.setAttribute('color',new THREE.BufferAttribute(id,3));
+const mat=new THREE.ShaderMaterial({vertexShader:'attribute vec3 color; varying vec3 vC; void main(){vC=color; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'varying vec3 vC; void main(){ gl_FragColor=vec4(vC,1.); }', side:THREE.DoubleSide});
+scene.add(new THREE.Mesh(geo,mat));
+renderer.outputColorSpace=THREE.LinearSRGBColorSpace;
+window.renderView=(k)=>{ const v=meta.views[k]; const r=v.rot;
+  const m=new THREE.Matrix4().makeBasis(new THREE.Vector3(...r[0]),new THREE.Vector3(...r[1]),new THREE.Vector3(...r[2]));
+  m.setPosition(new THREE.Vector3(...v.pos)); cam.matrixAutoUpdate=false; cam.matrix.copy(m); cam.updateMatrixWorld(true);
+  cam.fov=v.fov; cam.updateProjectionMatrix(); renderer.render(scene,cam);
+  const px=new Uint8Array(W*H*4); gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,px);
+  let s=''; const chunk=0x8000; for(let i=0;i<px.length;i+=chunk) s+=String.fromCharCode.apply(null,px.subarray(i,i+chunk));
+  return btoa(s); };
+window.visibleFrom=(pts)=>{
+  const S=160; renderer.setSize(S,S); const c2=new THREE.PerspectiveCamera(90,1,0.05,500);
+  const seen=new Uint8Array(nf+1); const px=new Uint8Array(S*S*4);
+  const dirs=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+  for(const p of pts){ for(const d of dirs){
+    c2.position.set(p[0],p[1],p[2]); c2.up.set(d[1]!==0?0:0, d[1]!==0?0:1, d[1]!==0?1:0);
+    c2.lookAt(p[0]+d[0],p[1]+d[1],p[2]+d[2]); c2.updateMatrixWorld(true);
+    renderer.render(scene,c2); gl.readPixels(0,0,S,S,gl.RGBA,gl.UNSIGNED_BYTE,px);
+    for(let i=0;i<px.length;i+=4){ const k=px[i]|(px[i+1]<<8)|(px[i+2]<<16); if(k>0&&k<=nf) seen[k]=1; } } }
+  renderer.setSize(W,H);
+  let s=''; const chunk=0x8000; for(let i=0;i<seen.length;i+=chunk) s+=String.fromCharCode.apply(null,seen.subarray(i,i+chunk));
+  return btoa(s); };
+window.ready=true;
+</script></body></html>

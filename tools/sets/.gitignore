@@ -1,0 +1,8 @@
+lib/kcd
+viewer/node_modules/
+viewer/package-lock.json
+*/out/
+*/build/
+site/
+views/
+__pycache__/

@@ -1,0 +1,9 @@
+{
+  "name": "3dmm-sets-viewer",
+  "private": true,
+  "description": "Headless render harness for the rebuilt 3DMM sets (shoot.js, compare.py)",
+  "dependencies": {
+    "playwright": "^1.40.0",
+    "three": "^0.160.0"
+  }
+}

@@ -1,0 +1,322 @@
+<title>Airplane Set in 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: the cabin fills the screen; a camera strip of the nine original 3DMM angles runs along the bottom, controls float above it. Single dark look, by choice: it's a viewport. */
+:root {
+  --ink: #12111a;          /* behind everything */
+  --panel: rgba(24, 22, 36, 0.86);
+  --line: rgba(236, 232, 245, 0.14);
+  --fg: #ece8f5;
+  --muted: #a39fb6;
+  --gold: #d9b45a;         /* the seat trim */
+  --teal: #4f9e88;         /* the carpet */
+  --display: "Archivo Narrow", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--ink); color: var(--fg); font-family: var(--body); overflow: hidden; }
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#stage canvas:active { cursor: grabbing; }
+#orig { position: fixed; top: 0; bottom: 0; left: 50%; height: 100%; aspect-ratio: 544 / 306; transform: translateX(-50%);
+  max-width: none; pointer-events: none; opacity: 0; image-rendering: auto; }
+
+.hud { position: fixed; z-index: 2; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#title { top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px));
+  padding: 10px 14px; max-width: min(420px, calc(100% - 32px)); }
+#title h1 { margin: 0; font: 700 1.25rem/1.1 var(--display); letter-spacing: 0.01em; text-wrap: balance; }
+#title p { margin: 4px 0 0; font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
+#title .tag { font: 500 0.7rem/1 var(--display); text-transform: uppercase; letter-spacing: 0.12em; color: var(--gold); }
+
+#help { top: calc(12px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  padding: 10px 14px; font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+#help kbd { font: 700 0.72rem/1 var(--body); color: var(--fg); border: 1px solid var(--line); border-bottom-width: 2px;
+  border-radius: 4px; padding: 1px 5px; }
+
+#strip { left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  width: min(980px, calc(100% - 32px)); padding: 8px 10px 10px; display: grid; gap: 8px; }
+#strip .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+#strip .label { font: 500 0.72rem/1 var(--display); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+#status { font: 700 0.85rem/1 var(--display); letter-spacing: 0.04em; color: var(--fg); }
+#cams { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+#cams button { flex: 0 0 auto; position: relative; padding: 0; border: 2px solid transparent; border-radius: 6px; overflow: hidden;
+  background: #000; cursor: pointer; width: 92px; aspect-ratio: 544 / 306; }
+#cams button img { display: block; width: 100%; height: 100%; object-fit: cover; }
+#cams button span { position: absolute; left: 4px; bottom: 3px; font: 700 0.7rem/1 var(--display); color: #fff;
+  text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+#cams button[aria-pressed="true"] { border-color: var(--gold); }
+#cams button:focus-visible, .btn:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.mix { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 0.8rem; color: var(--muted); }
+.mix input { accent-color: var(--gold); width: 130px; }
+.mix input:disabled { opacity: 0.35; }
+
+#pad { right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(140px + env(safe-area-inset-bottom, 0px)); padding: 8px; display: none;
+  grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); gap: 6px; }
+.btn { background: rgba(236, 232, 245, 0.08); color: var(--fg); border: 1px solid var(--line); border-radius: 8px;
+  font: 700 1rem/1 var(--body); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+.btn:active, .btn.on { background: var(--teal); }
+#loading { position: fixed; inset: 0; display: grid; place-items: center; font: 500 1rem var(--display);
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); z-index: 1; pointer-events: none; }
+
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { font: 700 0.75rem/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+  background: transparent; border: 0; padding: 6px 10px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--gold); color: #1b1726; }
+.seg button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+@media (hover: none), (max-width: 700px) {
+  #help { display: none; }
+  #pad { display: grid; }
+  #cams button { width: 76px; }
+  .mix input { width: 100px; }
+}
+@media (max-width: 520px) {
+  #title p { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div id="stage"></div>
+<img id="orig" alt="">
+<div id="loading">Loading the cabin…</div>
+
+<div id="title" class="hud">
+  <div class="tag">3D Movie Maker · AD-Airplane background</div>
+  <h1>Airplane interior, in 3D</h1>
+  <p>Rebuilt from parts measured off the nine camera angles and their depth buffers: one cabin cross-section swept end to end, and one seat placed 13 times. Cartoon is a low-poly remake under real lights; Photo keeps the original 1995 renders as textures.</p>
+</div>
+
+<div id="help" class="hud">
+  <div>Drag to look around</div>
+  <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to move</div>
+  <div><kbd>Q</kbd> <kbd>E</kbd> down / up · <kbd>Shift</kbd> faster</div>
+  <div><kbd>1</kbd>–<kbd>9</kbd> original cameras</div>
+</div>
+
+<div id="pad" class="hud" aria-label="Move">
+  <button class="btn" data-k="KeyQ" aria-label="Down">▾</button>
+  <button class="btn" data-k="KeyW" aria-label="Forward">▲</button>
+  <button class="btn" data-k="KeyE" aria-label="Up">▴</button>
+  <button class="btn" data-k="KeyA" aria-label="Left">◀</button>
+  <button class="btn" data-k="KeyS" aria-label="Back">▼</button>
+  <button class="btn" data-k="KeyD" aria-label="Right">▶</button>
+</div>
+
+<div id="strip" class="hud">
+  <div class="row">
+    <span class="label">3DMM cameras</span>
+    <span id="status">Camera 1</span>
+    <div class="seg" role="group" aria-label="Style">
+      <button type="button" id="style-toon" aria-pressed="true">Cartoon</button>
+      <button type="button" id="style-photo" aria-pressed="false">Photo</button>
+    </div>
+    <label class="mix" for="mix">Compare with original
+      <input id="mix" type="range" min="0" max="100" value="0">
+    </label>
+  </div>
+  <div id="cams"></div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { addSurfaceTexture, makeSkyMaterial, makeSky } from './surface.js';
+
+// the nine original camera views: vertical fov (degrees), position, rotation rows (BRender camera matrix)
+const CAMS = [{"fov":78.322,"pos":[-18.8661,14.7356,26.3896],"rot":[[0.76547,0.0,0.64323],[0.25063,0.92081,-0.29828],[-0.59233,0.38965,0.7049]]},{"fov":48.082,"pos":[2.9867,15.0424,-17.0295],"rot":[[-0.9951,0.0,-0.09834],[-0.01984,0.97931,0.20058],[0.09631,0.20157,-0.97456]]},{"fov":53.009,"pos":[-18.8391,12.8824,22.8379],"rot":[[0.57831,0.0,0.81569],[0.09409,0.99316,-0.06673],[-0.81017,0.11536,0.5744]]},{"fov":53.009,"pos":[-21.1851,11.759,20.8769],"rot":[[0.13014,0.0,0.99138],[0.0979,0.99503,-0.01286],[-0.9865,0.09875,0.1295]]},{"fov":32.542,"pos":[4.6273,8.7634,21.1018],"rot":[[0.02452,0.0,-0.99963],[0.08409,0.99631,0.00206],[0.996,-0.08414,0.02444]]},{"fov":29.515,"pos":[-5.1183,12.3242,22.863],"rot":[[0.8877,0.0,-0.46004],[-0.05339,0.9931,-0.10301],[0.45688,0.11603,0.88162]]},{"fov":16.436,"pos":[21.675,19.9418,4.6803],"rot":[[-0.38568,0.0,-0.92249],[-0.22585,0.96945,0.09441],[0.89435,0.24481,-0.37392]]},{"fov":41.534,"pos":[-16.3792,11.596,21.9666],"rot":[[0.18062,0.0,-0.98337],[0.21274,0.97617,0.03906],[0.95998,-0.21634,0.17633]]},{"fov":55.662,"pos":[0.0,18.9633,23.8528],"rot":[[0.99994,0.0,0.0],[0.0,0.95938,-0.2816],[0.0,0.28162,0.95938]]}];
+
+const stage = document.getElementById('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));   // Retina at full density is a lot of pixels for little gain
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;   // nothing moves: shadows are computed once per model
+// draw only when something changed (camera moved, model loaded, window resized)
+let dirty = true; const invalidate = () => { dirty = true; };
+for (const ev of ['resize', 'keydown', 'keyup', 'pointerdown', 'pointerup', 'wheel']) addEventListener(ev, invalidate, { passive: true });
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.4;   // matches the brightness of the original renders
+stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x12111a);
+scene.add(makeSky(THREE));   // seen through the window openings
+const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 400);
+camera.rotation.order = 'YXZ';
+
+// lights for the cartoon cabin (the photo version is unlit: its lighting is baked into the renders)
+scene.add(new THREE.HemisphereLight(0xfff6e8, 0xc9b8a8, 1.9));
+const sun = new THREE.DirectionalLight(0xfff0d6, 1.3);
+sun.position.set(-14, 40, 18); sun.target.position.set(0, 0, 5);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
+Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 90 });
+scene.add(sun, sun.target);
+const lamp = new THREE.PointLight(0xfff2dd, 120, 60, 1.6); lamp.position.set(0, 22, 5); scene.add(lamp);
+
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+// --- camera pose helpers -------------------------------------------------
+function camPose(i) {
+  const c = CAMS[i], r = c.rot;
+  const m = new THREE.Matrix4().makeBasis(new THREE.Vector3(...r[0]), new THREE.Vector3(...r[1]), new THREE.Vector3(...r[2]));
+  const e = new THREE.Euler().setFromRotationMatrix(m, 'YXZ');
+  return { pos: new THREE.Vector3(...c.pos), yaw: e.y, pitch: e.x, roll: e.z, fov: c.fov };
+}
+let yaw = 0, pitch = 0, roll = 0;
+let anim = null, current = -1;
+const mix = document.getElementById('mix'), orig = document.getElementById('orig'), status = document.getElementById('status');
+function lerpAngle(a, b, t) { let d = ((b - a + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; return a + d * t; }
+function goCam(i, instant) {
+  const to = camPose(i);
+  const from = { pos: camera.position.clone(), yaw, pitch, roll, fov: camera.fov };
+  anim = { from, to, t0: performance.now(), dur: instant || matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 900, i };
+  setCurrent(-1);
+}
+// camera 7 sits just outside the simplified bin corner, so clip that wall away there
+const NEAR = { 6: 2.2 };
+function setCurrent(i) {
+  current = i;
+  const near = NEAR[i] || 0.05;
+  if (camera.near !== near) { camera.near = near; camera.updateProjectionMatrix(); }
+  document.querySelectorAll('#cams button').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+  mix.disabled = i < 0;
+  if (i >= 0) { orig.src = 'views/cam' + i + '.jpg'; status.textContent = 'Camera ' + (i + 1); }
+  else status.textContent = anim ? 'Moving…' : 'Free look';
+  orig.style.opacity = i >= 0 ? mix.value / 100 : 0;
+}
+mix.addEventListener('input', () => { orig.style.opacity = current >= 0 ? mix.value / 100 : 0; });
+
+// --- camera strip ----------------------------------------------------------
+const camsEl = document.getElementById('cams');
+CAMS.forEach((c, i) => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.setAttribute('aria-pressed', 'false'); b.setAttribute('aria-label', 'Original camera ' + (i + 1));
+  b.innerHTML = '<img alt="" src="views/cam' + i + '.jpg"><span>' + (i + 1) + '</span>';
+  b.addEventListener('click', () => goCam(i));
+  camsEl.appendChild(b);
+});
+
+// --- look and move -------------------------------------------------------
+const keys = new Set();
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (/^Digit[1-9]$/.test(e.code)) { goCam(+e.code.slice(5) - 1); return; }
+  keys.add(e.code);
+});
+addEventListener('keyup', e => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+document.querySelectorAll('#pad .btn').forEach(b => {
+  const k = b.dataset.k;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); keys.add(k); b.classList.add('on'); b.setPointerCapture(e.pointerId); });
+  const up = () => { keys.delete(k); b.classList.remove('on'); };
+  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+});
+let drag = null;
+const cv = renderer.domElement;
+cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY }; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const k = 0.0042 * (camera.fov / 60);
+  yaw += (e.clientX - drag.x) * k; pitch += (e.clientY - drag.y) * k;
+  pitch = Math.max(-1.5, Math.min(1.5, pitch));
+  drag = { x: e.clientX, y: e.clientY }; invalidate();
+  if (anim) anim = null;
+  roll *= 0.9; if (current >= 0) setCurrent(-1);
+});
+cv.addEventListener('pointerup', () => { drag = null; });
+cv.addEventListener('wheel', e => { e.preventDefault(); const f = new THREE.Vector3(0, 0, -1).applyEuler(camera.rotation);
+  camera.position.addScaledVector(f, -e.deltaY * 0.01); if (current >= 0) setCurrent(-1); }, { passive: false });
+
+// --- the models ----------------------------------------------------------
+// both ship as base64 text (artifacts don't serve .glb files); photo loads on first use
+const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
+const models = {}; let style = 'toon';
+const loadingEl = document.getElementById('loading');
+function loadModel(name) {
+  if (models[name]) return models[name];
+  models[name] = fetch(name + '.glb.txt').then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }).then(b64 => {
+    const bin = atob(b64.trim()); const buf = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+    return loader.parseAsync(buf.buffer, '');
+  }).then(g => {
+    g.scene.traverse(o => {
+      if (!o.isMesh) return;
+      if (name === 'toon') {
+        const glow = /glow/.test(o.name + (o.parent ? o.parent.name : ''));
+        const sky = /sky/.test(o.name + (o.parent ? o.parent.name : ''));
+        o.material = sky ? makeSkyMaterial(THREE) : glow ? new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false })
+          : addSurfaceTexture(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
+        o.castShadow = !glow && !/^cabin/.test(o.name + (o.parent ? o.parent.name : ''));
+        o.receiveShadow = true;
+      } else {
+        const map = o.material.map;
+        if (map) { map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = renderer.capabilities.getMaxAnisotropy(); }
+        o.material = new THREE.MeshBasicMaterial({ map: map || null, vertexColors: !map, side: THREE.DoubleSide, toneMapped: false });
+      }
+    });
+    g.scene.visible = false; scene.add(g.scene);
+    return g.scene;
+  });
+  return models[name];
+}
+function setStyle(name) {
+  style = name;
+  document.getElementById('style-toon').setAttribute('aria-pressed', String(name === 'toon'));
+  document.getElementById('style-photo').setAttribute('aria-pressed', String(name === 'cabin'));
+  loadingEl.textContent = 'Loading the cabin…'; loadingEl.hidden = false;
+  loadModel(name).then(root => {
+    if (style !== name) return;
+    for (const k in models) models[k].then(r => { r.visible = (k === name); renderer.shadowMap.needsUpdate = true; invalidate(); });
+    loadingEl.hidden = true;
+  }).catch(err => { loadingEl.textContent = "Couldn't load the model: " + err.message; });
+}
+document.getElementById('style-toon').addEventListener('click', () => setStyle('toon'));
+document.getElementById('style-photo').addEventListener('click', () => setStyle('cabin'));
+setStyle('toon');
+
+// start where 3DMM's first camera stood
+{ const p = camPose(0); camera.position.copy(p.pos); yaw = p.yaw; pitch = p.pitch; roll = p.roll; camera.fov = p.fov; camera.updateProjectionMatrix(); setCurrent(0); }
+
+let last = performance.now();
+renderer.setAnimationLoop(now => {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (anim) {
+    let t = Math.min(1, (now - anim.t0) / anim.dur); const s = t * t * (3 - 2 * t);
+    camera.position.lerpVectors(anim.from.pos, anim.to.pos, s);
+    yaw = lerpAngle(anim.from.yaw, anim.to.yaw, s); pitch = THREE.MathUtils.lerp(anim.from.pitch, anim.to.pitch, s);
+    roll = THREE.MathUtils.lerp(anim.from.roll, anim.to.roll, s);
+    camera.fov = THREE.MathUtils.lerp(anim.from.fov, anim.to.fov, s); camera.updateProjectionMatrix();
+    if (t >= 1) { const i = anim.i; anim = null; setCurrent(i); }
+    dirty = true;
+  }
+  const mv = new THREE.Vector3(
+    (keys.has('KeyD') || keys.has('ArrowRight')) - (keys.has('KeyA') || keys.has('ArrowLeft')),
+    keys.has('KeyE') - keys.has('KeyQ'),
+    (keys.has('KeyS') || keys.has('ArrowDown')) - (keys.has('KeyW') || keys.has('ArrowUp')));
+  if (mv.lengthSq() > 0) {
+    anim = null; if (current >= 0) setCurrent(-1);
+    if (camera.fov !== 60) { camera.fov += (60 - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); }
+    roll *= 0.9;
+    const speed = (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 24 : 8) * dt;
+    const flat = new THREE.Vector3(mv.x, 0, mv.z).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+    camera.position.addScaledVector(flat, speed); camera.position.y += mv.y * speed;
+    dirty = true;
+  }
+  if (!dirty) return;
+  dirty = false;
+  camera.rotation.set(pitch, yaw, roll);
+  renderer.render(scene, camera);
+});
+</script>
