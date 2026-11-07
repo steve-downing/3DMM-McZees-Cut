@@ -60,6 +60,11 @@ $ErrorActionPreference = "Stop"
 # "-Formats a,b" arrives as one string when run with powershell -File
 if ($Formats) { $Formats = @($Formats | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
 $RenderDir = (Resolve-Path $RenderDir).Path
+# ffmpeg: on PATH, or fetched into .\tools by get-tools.ps1
+if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+    $ffLocal = Get-ChildItem -Recurse (Join-Path $PSScriptRoot "tools") -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($ffLocal) { $env:PATH = "$($ffLocal.DirectoryName);$env:PATH" }
+}
 if ($SoundFont -eq "windows") { $SoundFont = Join-Path $env:WINDIR "System32\drivers\gm.dls" }
 if ($SoundFont -and -not (Test-Path $SoundFont)) { Write-Warning "SoundFont not found: $SoundFont" }
 if ($SoundFont) { $SoundFont = (Resolve-Path $SoundFont -ErrorAction SilentlyContinue).Path }

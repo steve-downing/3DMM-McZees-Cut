@@ -52,31 +52,39 @@ These steps are for Windows 10 or 11.
 1. Download the `3dmm-render` package from the latest successful build on
    the [Actions tab](../../actions) and unzip it. (GitHub asks you to sign
    in to download build files.) The package includes the renderer, 3D Movie
-   Maker's content and the scripts below.
-2. Install ffmpeg: `winget install Gyan.FFmpeg`
-3. Fetch the music tools, FluidSynth and a General MIDI SoundFont:
+   Maker's content, the app and the scripts.
+2. Double-click **McZee's Cut.exe**. Windows may say it doesn't recognize
+   the app: choose **More info**, then **Run anyway**.
+3. Add your movies, pick a style, tick what you want, and press
+   **Make videos**. The first time, it downloads ffmpeg and the music
+   instruments, about 200 MB.
 
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File get-tools.ps1
-   ```
+The app has two styles. **Improved**, the default, smooths the motion and
+dips the music while characters talk. **Faithful** is exactly what 3D Movie
+Maker played. Hover over any choice to see what it makes.
 
-4. Convert a folder of movies:
+### From the command line
 
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File render-folder.ps1 `
-       -InputDir D:\3mm-archive -OutputDir D:\3mm-videos -Smooth
-   ```
+The app runs `render-folder.ps1`, which has every option (see
+[What it can do](#what-it-can-do)). In the unzipped folder:
 
-The output folder mirrors the input folder. `My Movie.3mm` becomes
-`My Movie.mp4`, plus any other formats you asked for, and `report.csv` lists
-every movie and how it went. Run the script again and it skips anything
-already up to date.
+```powershell
+powershell -ExecutionPolicy Bypass -File get-tools.ps1     # once: ffmpeg and the music tools
+powershell -ExecutionPolicy Bypass -File render-folder.ps1 `
+    -InputDir D:\3mm-archive -OutputDir D:\3mm-videos -Smooth -Duck
+```
+
+`get-tools.ps1` skips ffmpeg if it's already installed. The output folder
+mirrors the input folder. `My Movie.3mm` becomes `My Movie.mp4`, plus any
+other formats you asked for, and `report.csv` lists every movie and how it
+went. Run the script again and it skips anything already up to date.
 
 ### Recipes
 
 | You want | Add |
 |---|---|
-| The best-looking 2D video | `-Smooth` |
+| The app's Improved style | `-Smooth -Duck` |
+| The best-looking 2D video, music untouched | `-Smooth` |
 | 3D for a VR headset or 3D TV | `-Smooth -Formats sbs` |
 | 3D, red/cyan, and 2D, all at once | `-Smooth -Formats sbs,anaglyph,2d` |
 | The 90s monitor look, in 4K | `-Smooth -Formats crt` |
@@ -198,36 +206,39 @@ files are newer than the `.3mm` are skipped. `-Force` redoes them anyway.
 ## Option reference
 
 All options belong to `render-folder.ps1`. Only `-InputDir` and
-`-OutputDir` are required. [What it can do](#what-it-can-do) explains each
-one.
+`-OutputDir` are required. [What it can do](#what-it-can-do) covers the
+bigger features in more depth.
 
-| Option | Values | Default | Applies to |
-|---|---|---|---|
-| `-InputDir` | folder | required | |
-| `-OutputDir` | folder | required | |
-| `-Formats` | `2d`, `sbs`, `anaglyph`, `crt`, `avi`, `none` | `2d` | |
-| `-Smooth` | switch | off | all formats |
-| `-Scale` | whole number | 2 (1088×612) | `2d`, `sbs`, `anaglyph` |
-| `-Depth` | % of picture width | 2.5 | `sbs`, `anaglyph` |
-| `-CrtPreset` | `pc`, `trinitron`, `tv`, `hdr` | `pc` | `crt` |
-| `-CrtMask` | `shadow`, `grille`, `slot`, `none` | per preset | `crt` |
-| `-CrtScanlines`, `-CrtGlow`, `-CrtCurvature` | number | per preset | `crt` |
-| `-CrtChroma` | `420`, `444` | `420` | `crt` |
-| `-AudioLevel` | `auto`, `original` | `auto` | all formats |
-| `-Duck` | switch | off | all formats |
-| `-Channels` | `both`, `stereo`, `5.1` | `both` | MP4s (an AVI is always stereo) |
-| `-SoundFont` | `.sf2`, `.sf3` or `.dls` file, or `windows` | GeneralUser GS | all formats |
-| `-MidiGain` | number | 0.6 | all formats |
-| `-ExtractSounds` | switch | off | |
-| `-IncludeLibrarySounds` | switch | off | with `-ExtractSounds` |
-| `-ClickPause` | seconds | 3 | all formats |
-| `-EndHold` | seconds | 3 | all formats |
-| `-Fonts` | folder | none | all formats |
-| `-Root` | folder containing `3D Movie Maker` | the package folder | |
-| `-Renderer`, `-FluidSynth` | file | found automatically | |
-| `-TimeoutMinutes` | minutes | 30 | |
-| `-KeepFrames` | switch | off | |
-| `-Force` | switch | off | |
+| Option | What it does | Values | Default | Applies to |
+|---|---|---|---|---|
+| `-InputDir` | The folder of `.3mm` movies to convert, including its subfolders | folder | required | |
+| `-OutputDir` | Where the videos go, in the same subfolders | folder | required | |
+| `-Formats` | Which files to make for each movie ([formats](#formats)) | `2d`, `sbs`, `anaglyph`, `crt`, `avi`, `none` | `2d` | |
+| `-Smooth` | Makes motion smooth: adds three in-between frames to each of 3DMM's 6 frames a second, for 24 | switch | off | all formats |
+| `-Scale` | Makes the picture bigger without blurring it, by repeating pixels. 2 doubles 544×306 to 1088×612 | whole number | 2 | `2d`, `sbs`, `anaglyph` |
+| `-Depth` | How deep the 3D looks: how far behind the screen the scene can go, as a percentage of the picture's width | number | 2.5 | `sbs`, `anaglyph` |
+| `-CrtPreset` | Which old screen to imitate: a 90s PC monitor, a Trinitron, a TV, or the PC monitor in HDR | `pc`, `trinitron`, `tv`, `hdr` | `pc` | `crt` |
+| `-CrtMask` | The pattern of colored dots or stripes on the glass | `shadow`, `grille`, `slot`, `none` | per preset | `crt` |
+| `-CrtScanlines` | How visible the dark gaps between the lines are | number | per preset | `crt` |
+| `-CrtGlow` | How much bright areas glow | number | per preset | `crt` |
+| `-CrtCurvature` | How curved the glass is | number | per preset | `crt` |
+| `-CrtChroma` | `444` keeps the tiny colored dots sharp, but some players can't play it | `420`, `444` | `420` | `crt` |
+| `-AudioLevel` | `auto` evens out the volume: every movie plays about as loud as the next, and MIDI music sits under the dialogue. `original` keeps the sound exactly as 3DMM mixed it | `auto`, `original` | `auto` | all formats |
+| `-Duck` | Turns the music down while someone is talking, so you can hear them, then back up. Audio editors call this "ducking". 3DMM never did it | switch | off | all formats |
+| `-Channels` | Which soundtracks to include: surround sound (5.1, with voices in the center speaker), stereo, or both | `both`, `stereo`, `5.1` | `both` | MP4s (an AVI is always stereo) |
+| `-SoundFont` | The instrument sounds used to play MIDI music. `windows` uses the ones built into Windows | `.sf2`, `.sf3` or `.dls` file, or `windows` | GeneralUser GS | all formats |
+| `-MidiGain` | How loud MIDI music is played, before any leveling | number | 0.6 | all formats |
+| `-ExtractSounds` | Also saves the voices, sound effects and music added to the movie, as a ZIP of audio files | switch | off | |
+| `-IncludeLibrarySounds` | Adds 3DMM's own sounds that the movie uses to that ZIP | switch | off | with `-ExtractSounds` |
+| `-ClickPause` | How many seconds to wait at a "click to continue" pause | seconds | 3 | all formats |
+| `-EndHold` | How many seconds the last frame stays on screen | seconds | 3 | all formats |
+| `-Fonts` | A folder of fonts for text boxes whose font isn't installed. They're used for rendering, not installed | folder | none | all formats |
+| `-Root` | Use 3D Movie Maker content from somewhere else, like another install | folder containing `3D Movie Maker` | the package folder | |
+| `-Renderer` | Where `3dmm-render.exe` is | file | found automatically | |
+| `-FluidSynth` | Where FluidSynth, the MIDI player, is | file | found automatically | |
+| `-TimeoutMinutes` | Gives up on a movie that takes longer than this | minutes | 30 | |
+| `-KeepFrames` | Keeps the raw frames and logs, for troubleshooting | switch | off | |
+| `-Force` | Redoes movies even if their videos are already up to date | switch | off | |
 
 ## Running the renderer directly
 
@@ -240,22 +251,20 @@ videos, taking the same format and sound options.
 3dmm-render <movie.3mm> <outdir> [options]
 ```
 
-| Flag | Values | Default |
-|---|---|---|
-| `--smooth` | | off |
-| `--stereo` | | off |
-| `--depth` | % of picture width | 2.5 |
-| `--pop` | % of picture width | 1.5 |
-| `--root` | folder containing `3D Movie Maker` | the renderer's own folder |
-| `--fonts` | folder | none |
-| `--click-pause` | seconds | 3 |
-| `--end-hold` | seconds | 3 |
-| `--max-frames` | number | no limit |
-| `--debug` | | off |
+| Flag | What it does | Values | Default |
+|---|---|---|---|
+| `--smooth` | Adds three in-between frames to each of 3DMM's 6 frames a second | | off |
+| `--stereo` | Renders each frame for the left eye, the right eye and the plain 2D view | | off |
+| `--depth` | How far behind the screen a 3D scene can go | % of picture width | 2.5 |
+| `--pop` | How far in front of the screen things can come in 3D | % of picture width | 1.5 |
+| `--root` | Where 3D Movie Maker's content is | folder containing `3D Movie Maker` | the renderer's own folder |
+| `--fonts` | Extra fonts for text boxes, used without installing them | folder | none |
+| `--click-pause` | How long to wait at a "click to continue" pause | seconds | 3 |
+| `--end-hold` | How long the last frame stays up | seconds | 3 |
+| `--max-frames` | Stops after this many frames, for quick tests | number | no limit |
+| `--debug` | Also writes depth maps and depth statistics | | off |
 
-`--pop` is how far in front of the screen things can come in 3D,
-`--max-frames` stops early for quick tests, and `--debug` also writes depth
-maps. [`tools/render/README.md`](tools/render/README.md) has the rest: the
+[`tools/render/README.md`](tools/render/README.md) has the rest: the
 output folder, exit codes, the CRT presets in detail, and how the renderer
 stays faithful to 3DMM.
 

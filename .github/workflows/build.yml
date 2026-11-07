@@ -53,6 +53,11 @@ jobs:
           Copy-Item tools/render/render-folder.ps1, tools/render/encode-movie.ps1, tools/render/mix-audio.ps1, tools/render/get-tools.ps1, tools/render/README.md $pkg
           Copy-Item content-files/*.3cn, content-files/*.3th "$pkg/3D Movie Maker"
           Copy-Item (Get-ChildItem -Recurse build/chomp/studio -Filter utest.chk | Select-Object -First 1).FullName "$pkg/3D Movie Maker/3DMovie.chk"
+          # the app, built with the C# compiler that ships with Windows
+          $csc = Join-Path $env:WINDIR "Microsoft.NET\Framework\v4.0.30319\csc.exe"
+          & $csc /nologo /langversion:5 /target:winexe /optimize "/out:$pkg/McZee's Cut.exe" `
+            /r:System.Windows.Forms.dll /r:System.Drawing.dll tools/render/app/McZeesCut.cs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: End-to-end batch test (Windows PowerShell 5.1)
         id: batch
@@ -65,6 +70,25 @@ jobs:
             Tee-Object -FilePath ci-out/batch.log
           Get-ChildItem -Recurse ci-out/batch -Filter *.mp4 | Select-Object Name, Length | Out-File ci-out/batch-files.txt
           Get-ChildItem -Recurse ci-out/batch -Filter *.mp4 | Remove-Item
+          Remove-Item -Recurse -Force package/3dmm-render/tools -ErrorAction SilentlyContinue
+
+      - name: App test
+        if: steps.package.outcome == 'success' && hashFiles('test-movies/**/*.3mm') != ''
+        shell: pwsh
+        run: |
+          # the way a person would use it: no tools yet (it fetches what's
+          # missing), one movie, MP4 + AVI, improved style
+          Remove-Item -Recurse -Force package/3dmm-render/tools -ErrorAction SilentlyContinue
+          $app = "ci-out/app"
+          New-Item -ItemType Directory -Force $app | Out-Null
+          $sw = [Diagnostics.Stopwatch]::StartNew()
+          $p = Start-Process -FilePath "package/3dmm-render/McZee's Cut.exe" -PassThru -Wait -ArgumentList @(
+            "`"$pwd/test-movies/City Tour.3mm`"", "--out", "`"$pwd/$app/videos`"", "--make", "mp4,avi",
+            "--go", "--close-when-done", "--screenshot", "`"$pwd/$app/app.png`"")
+          "exit $($p.ExitCode) in $([Math]::Round($sw.Elapsed.TotalSeconds)) s" | Tee-Object "$app/app.txt"
+          Get-ChildItem -Recurse "$app/videos" | Select-Object Name, Length | Out-File -Append "$app/app.txt"
+          Get-Content "$app/videos/report.csv" -ErrorAction SilentlyContinue | Out-File -Append "$app/app.txt"
+          Get-ChildItem -Recurse "$app/videos" -Include *.mp4, *.avi | Remove-Item
           Remove-Item -Recurse -Force package/3dmm-render/tools -ErrorAction SilentlyContinue
 
       - name: Full-quality renders on request
@@ -83,8 +107,9 @@ jobs:
           }
           if (-not (Get-ChildItem $req -Filter *.3mm)) { Write-Host "no movies requested"; exit 0 }
           if (Test-Path build/tools) { Copy-Item -Recurse build/tools package/3dmm-render/tools -ErrorAction SilentlyContinue }
+          if ($switches -notcontains "-Formats") { $switches += @("-Formats", "2d") }
           powershell -NoProfile -ExecutionPolicy Bypass -File package/3dmm-render/render-folder.ps1 `
-            -InputDir $req -OutputDir ci-out/full -Formats 2d @switches *>&1 | Tee-Object -FilePath ci-out/full.log
+            -InputDir $req -OutputDir ci-out/full @switches *>&1 | Tee-Object -FilePath ci-out/full.log
           Remove-Item -Recurse -Force package/3dmm-render/tools -ErrorAction SilentlyContinue
 
       - name: Publish results to ci-results branch

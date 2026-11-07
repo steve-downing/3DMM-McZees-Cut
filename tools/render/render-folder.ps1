@@ -86,7 +86,12 @@ if (-not $SoundFont -and (Test-Path (Join-Path $toolsDir "GeneralUser-GS.sf2")))
 if (-not $SoundFont -or -not (Get-Command $FluidSynth -ErrorAction SilentlyContinue)) {
     Write-Warning "No FluidSynth/SoundFont: MIDI music will be silent. Run get-tools.ps1 to fetch them."
 }
-if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { throw "ffmpeg isn't on PATH" }
+# ffmpeg: on PATH, or fetched into .\tools by get-tools.ps1
+if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+    $ffLocal = Get-ChildItem -Recurse (Join-Path $PSScriptRoot "tools") -Filter ffmpeg.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($ffLocal) { $env:PATH = "$($ffLocal.DirectoryName);$env:PATH" }
+}
+if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { throw "can't find ffmpeg: run get-tools.ps1, or install it (winget install Gyan.FFmpeg)" }
 if (-not $Root -or -not (Test-Path (Join-Path $Root "3D Movie Maker"))) {
     throw "can't find a '3D Movie Maker' content folder; pass -Root (the folder that contains it)"
 }
