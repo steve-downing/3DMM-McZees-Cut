@@ -39,7 +39,7 @@ param(
     [double]$CrtGlow = -1,
     [double]$CrtCurvature = -1,
     [ValidateSet("420", "444")] [string]$CrtChroma = "420",
-    [switch]$Win98,
+    [switch]$Avi,
     [switch]$ExtractSounds,
     [switch]$IncludeLibrarySounds,
     [switch]$KeepFrames,
@@ -90,7 +90,7 @@ if (-not $Root -or -not (Test-Path (Join-Path $Root "3D Movie Maker"))) {
 }
 if (-not $Formats) { $Formats = if ($Stereo) { @("sbs", "anaglyph", "2d") } else { @("2d") } }
 if ($CRT -and $Formats -notcontains "crt") { $Formats += "crt" }
-if ($Win98 -and $Formats -notcontains "win98") { $Formats += "win98" }
+if ($Avi -and $Formats -notcontains "avi") { $Formats += "avi" }
 if ($Stereo -and $Formats -contains "crt") {
     Write-Host "Note: CRT effects are 2-D only, so .crt.mp4 is made from the movie's ordinary 2-D view."
 }
@@ -116,7 +116,7 @@ foreach ($movie in $movies) {
     $rel = $movie.FullName.Substring($InputDir.Length + 1)
     $relBase = $rel.Substring(0, $rel.Length - $movie.Extension.Length)
     $outBase = Join-Path $OutputDir $relBase
-    $outputs = @($Formats | ForEach-Object { if ($_ -eq "win98") { "$outBase.win98.avi" } else { "$outBase.$_.mp4" } })
+    $outputs = @($Formats | ForEach-Object { if ($_ -eq "avi") { "$outBase.avi" } else { "$outBase.$_.mp4" } })
     if ($ExtractSounds) { $outputs += "$outBase.sounds.zip" }
     $row = [ordered]@{ movie = $rel; status = ""; exit = ""; frames = ""; seconds = ""; missing = ""; missingFonts = ""; outputs = "" }
 

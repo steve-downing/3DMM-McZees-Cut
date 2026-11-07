@@ -21,7 +21,7 @@
 #   sbs       full side-by-side (left | right), for 3D TVs / players in SBS mode
 #   anaglyph  red/cyan
 #   crt       2d with CRT effects, 4K (see -CrtPreset; needs 3dmm-crt.exe)
-#   win98     <name>.win98.avi: Cinepak video at the original 544x306 and
+#   avi       <name>.avi: Cinepak video at the original 544x306 and
 #             22 kHz PCM sound, which Windows 95/98 play out of the box
 #
 # -ExtractSounds also writes <name>.sounds.zip: the sounds that were added
@@ -255,13 +255,13 @@ try {
             if (-not (Invoke-CrtEncode $out)) { Write-Warning "encode failed: $out"; $failed++ }
             continue
         }
-        if ($fmt -eq "win98") {
+        if ($fmt -eq "avi") {
             # Cinepak + 22 kHz PCM in an AVI: plays with what Windows 95/98
             # shipped. Only frames that change are encoded; the rest are
             # AVI null frames ("show the last one again"). 306 isn't a
             # multiple of 4, which Cinepak needs, so a black line is added
             # above and below.
-            $out = "$OutBase.win98.avi"
+            $out = "$OutBase.avi"
             $w98In = @()
             $w98Map = @()
             if ($audioStereo) {

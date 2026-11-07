@@ -43,7 +43,7 @@ text uses 3DMM's own fonts and is never affected.
 |---|---|---|
 | `-Stereo` | off | render 3D |
 | `-Depth` | 2.5 | how far behind the screen the scene can go (% of width) |
-| `-Formats` | all | any of `sbs`, `anaglyph`, `2d`, `crt`, `win98` |
+| `-Formats` | all | any of `sbs`, `anaglyph`, `2d`, `crt`, `avi` |
 | `-Scale` | 2 | nearest-neighbor upscale (2 gives 1088×612 per eye) |
 | `-SoundFont` | GeneralUser GS | MIDI instruments: any `.sf2`/`.sf3`/`.dls`, or `windows` for the Windows GS Wavetable Synth's `gm.dls` |
 | `-MidiGain` | 0.6 | MIDI synth gain (before leveling) |
@@ -53,7 +53,7 @@ text uses 3DMM's own fonts and is never affected.
 | `-CrtPreset` | pc | `pc`, `trinitron`, `tv`, `hdr` |
 | `-CrtMask`, `-CrtScanlines`, `-CrtGlow`, `-CrtCurvature` | per preset | override one aspect of the preset |
 | `-CrtChroma` | 420 | `444` keeps the phosphor colors crisp, but fewer players handle it |
-| `-Win98` | off | also write `.win98.avi`, which plays on Windows 95/98 (below) |
+| `-Avi` | off | also write `.avi`, which plays on Windows 95/98 (below) |
 | `-ExtractSounds` | off | also write `.sounds.zip`: the sounds added to the movie, in order of use (below) |
 | `-IncludeLibrarySounds` | off | with `-ExtractSounds`, also include the 3DMM sounds the movie uses |
 | `-ClickPause` | 3 | seconds to hold "wait for mouse click" pauses (set with the pause buttons in the studio's Sounds tools) |
@@ -106,9 +106,9 @@ CRT effects are 2-D only. With `-Stereo`, `.crt.mp4` is made from the
 movie's ordinary 2-D view, and the log says so. Side-by-side and anaglyph
 output don't get CRT effects.
 
-## Windows 98
+## AVI for Windows 95/98
 
-`-Win98` writes `Movie.win98.avi` at the original 544×306: Cinepak video
+`-Avi` writes `Movie.avi` at the original 544×306: Cinepak video
 and 22 kHz 16-bit sound, which Windows 95 and 98 play with nothing extra
 installed. Only frames that change are stored, so files are small
 (roughly 10 MB a minute). Cinepak needs a height divisible

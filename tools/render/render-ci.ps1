@@ -164,11 +164,11 @@ if ($crtExe -and $firstMono) {
     ffmpeg -hide_banner -loglevel error -y -i (Join-Path $work "crt-stereo.bmp") -vf scale=1280:-1 (Join-Path $OutDir "crt-stereo.png")
 }
 
-# Windows 98 AVI (Cinepak) and sound extraction
+# AVI for Windows 95/98 (Cinepak) and sound extraction
 $extras = Join-Path $OutDir "extras"
 New-Item -ItemType Directory -Force $extras | Out-Null
 $extrasLog = Join-Path $extras "extras.txt"
-foreach ($case in @(@{ dir = "Super-Bag-Man"; formats = "win98" }, @{ dir = "Dueling-Morons"; formats = "none" })) {
+foreach ($case in @(@{ dir = "Super-Bag-Man"; formats = "avi" }, @{ dir = "Dueling-Morons"; formats = "none" })) {
     $src = Join-Path $work "$($case.dir)/mono"
     if (-not (Test-Path $src)) { continue }
     $base = Join-Path $extras $case.dir
@@ -176,9 +176,9 @@ foreach ($case in @(@{ dir = "Super-Bag-Man"; formats = "win98" }, @{ dir = "Due
     & "$PSScriptRoot/encode-movie.ps1" -RenderDir $src -OutBase $base -Formats $case.formats -ExtractSounds `
         -SoundFont $soundFont -FluidSynth $fluidPath *>&1 | Out-File -Append $extrasLog
     "$($case.dir): $([Math]::Round($sw.Elapsed.TotalSeconds, 1)) s" | Out-File -Append $extrasLog
-    if (Test-Path "$base.win98.avi") {
+    if (Test-Path "$base.avi") {
         ffprobe -v error -count_packets -show_entries stream=codec_name,codec_tag_string,width,height,r_frame_rate,nb_frames,nb_read_packets,sample_rate,channels:format=duration,size `
-            -of compact "$base.win98.avi" 2>&1 | Out-File -Append $extrasLog
+            -of compact "$base.avi" 2>&1 | Out-File -Append $extrasLog
     }
     Copy-Item (Join-Path $src "sounds/index.tsv") "$base.index.tsv" -ErrorAction SilentlyContinue
     if (Test-Path "$base.sounds.zip") {
