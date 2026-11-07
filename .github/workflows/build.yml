@@ -222,6 +222,40 @@ jobs:
             } catch { "screenshot failed: $_" | Out-File -Append "$app/3dmovie.txt" }
           }
           "running after 20 s: $(-not $p.HasExited)" | Out-File -Append "$app/3dmovie.txt"
+          # Export from 3DMM: Movie Exporter runs without a window and 3DMM shows
+          # its progress. Dismiss the no-sound-card notice, then export the way
+          # File > Export does and photograph 3DMM while it works.
+          if (-not $p.HasExited) {
+            Add-Type -Namespace W -Name U -MemberDefinition @'
+          [DllImport("user32.dll", CharSet = CharSet.Auto)] public static extern IntPtr FindWindow(string cls, string title);
+          [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+          '@
+            [Windows.Forms.SendKeys]::SendWait("{ENTER}")
+            Start-Sleep -Seconds 8
+            $hwnd = [W.U]::FindWindow("3DMOVIE", $null)
+            "3DMM window: $hwnd" | Out-File -Append "$app/3dmovie.txt"
+            $sw = [Diagnostics.Stopwatch]::StartNew()
+            $ex = Start-Process -FilePath "package/3dmm-render/Movie Exporter.exe" -PassThru -ArgumentList @(
+              "--export", "`"$pwd/test-movies/City Tour.3mm`"", "--to", "`"$pwd/$app/from-3dmm/City Tour.mp4`"",
+              "--preset", "faithful", "--notify", "$([long]$hwnd)")
+            $k = 0
+            while (-not $ex.HasExited -and $sw.Elapsed.TotalSeconds -lt 300) {
+              Start-Sleep -Seconds 4
+              $k++
+              if ($k -le 12) {
+                try {
+                  $b = [Windows.Forms.Screen]::PrimaryScreen.Bounds
+                  $bmp = New-Object Drawing.Bitmap $b.Width, $b.Height
+                  [Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Location, [Drawing.Point]::Empty, $b.Size)
+                  $bmp.Save("$pwd/$app/3dmovie-export-$k.png")
+                } catch { }
+              }
+            }
+            "headless export: exited $($ex.HasExited) code $($ex.ExitCode) in $([Math]::Round($sw.Elapsed.TotalSeconds)) s; video: $(Test-Path "$app/from-3dmm/City Tour.mp4")" |
+              Tee-Object -Append "$app/3dmovie.txt"
+            Get-Content "$env:LOCALAPPDATA/McZee's Cut/Export log.txt" -ErrorAction SilentlyContinue | Out-File -Append "$app/3dmovie.txt"
+            Remove-Item -Recurse "$app/from-3dmm" -ErrorAction SilentlyContinue
+          }
           if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force } else { "exit code $($p.ExitCode)" | Out-File -Append "$app/3dmovie.txt" }
 
       - name: Full-quality renders on request

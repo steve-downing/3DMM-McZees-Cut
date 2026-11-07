@@ -147,7 +147,8 @@
 #define cidFrameThumb 50112
 #define cidSceneThumb 50113
 #define cidQuerySaveDocResult 50114
-#define cidExportMovie 50115 // McZee's Cut: File > Export
+#define cidExportMovie 50115    // McZee's Cut: File > Export
+#define cidExportProgress 50116 // McZee's Cut: Movie Exporter reported progress
 
 // Misc Studio Strings
 #define idsBrowserPage 0

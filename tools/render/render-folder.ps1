@@ -45,9 +45,23 @@ param(
     [switch]$ExtractSounds,
     [switch]$IncludeLibrarySounds,
     [switch]$KeepFrames,
-    [switch]$Force
+    [switch]$Force,
+    # for Movie Exporter's progress bar: prints "@progress render <percent>"
+    # while a movie renders and "@duration_ms <n>" after, and has the video
+    # encode write ffmpeg's -progress reports to -ProgressFile
+    [switch]$Progress,
+    [string]$ProgressFile
 )
 $ErrorActionPreference = "Stop"
+
+# regex matches in a file another process is still writing
+function Read-Matches([string]$Path, [string]$Pattern) {
+    try {
+        $fs = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
+        try { $text = (New-Object IO.StreamReader($fs)).ReadToEnd() } finally { $fs.Dispose() }
+        return ,([regex]::Matches($text, $Pattern))
+    } catch { return @() }
+}
 # "-Formats a,b" arrives as one string when run with powershell -File
 if ($Formats) { $Formats = @($Formats | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
 
@@ -147,12 +161,31 @@ foreach ($movie in $movies) {
     $rargs = @("`"$($movie.FullName)`"", "`"$work`"", "--root", "`"$Root`"", "--click-pause", "$ClickPause", "--end-hold", "$EndHold")
     if ($Stereo) { $rargs += @("--stereo", "--depth", "$Depth") }
     if ($Smooth) { $rargs += "--smooth" }
+    if ($Progress) { $rargs += "--progress" }
     if ($Fonts) { $rargs += @("--fonts", "`"$Fonts`"") }
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $proc = Start-Process -FilePath $Renderer -ArgumentList $rargs -PassThru -NoNewWindow `
         -RedirectStandardOutput (Join-Path $work "stdout.txt") -RedirectStandardError (Join-Path $work "stderr.txt")
     $null = $proc.Handle   # without this, ExitCode can come back empty
-    if (-not $proc.WaitForExit($TimeoutMinutes * 60 * 1000)) {
+    $stdout = Join-Path $work "stdout.txt"
+    $deadline = [DateTime]::Now.AddMinutes($TimeoutMinutes)
+    $lastPct = -1
+    $finished = $false
+    while (-not $finished -and [DateTime]::Now -lt $deadline) {
+        $finished = $proc.WaitForExit(500)
+        if ($Progress) {
+            $m = Read-Matches $stdout 'progress (\d+)'
+            if ($m.Count -and [int]$m[$m.Count - 1].Groups[1].Value -ne $lastPct) {
+                $lastPct = [int]$m[$m.Count - 1].Groups[1].Value
+                Write-Host "@progress render $lastPct"
+            }
+        }
+    }
+    if ($Progress) {
+        $m = Read-Matches $stdout 'duration_ms (\d+)'
+        if ($m.Count) { Write-Host "@duration_ms $($m[0].Groups[1].Value)" }
+    }
+    if (-not $finished) {
         $proc.Kill()
         $row.status = "timeout"
     } else {
@@ -172,7 +205,7 @@ foreach ($movie in $movies) {
 
     if ($row.status -eq "ok") {
         New-Item -ItemType Directory -Force (Split-Path -Parent $outBase) | Out-Null
-        & $encoder -RenderDir $work -OutBase $outBase -Formats $Formats -SoundFont $SoundFont `
+        & $encoder -RenderDir $work -OutBase $outBase -Formats $Formats -SoundFont $SoundFont -ProgressFile $ProgressFile `
             -FluidSynth $FluidSynth -MidiGain $MidiGain -AudioLevel $AudioLevel -Duck:$Duck -Channels $Channels -Scale $Scale `
             -CrtPreset $CrtPreset -CrtMask $CrtMask -CrtScanlines $CrtScanlines -CrtGlow $CrtGlow `
             -CrtCurvature $CrtCurvature -CrtChroma $CrtChroma -ExtractSounds:$ExtractSounds `

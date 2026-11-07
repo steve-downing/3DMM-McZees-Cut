@@ -15,7 +15,8 @@ red/cyan anaglyph, or plain 2D.
 The easy ways:
 
 - In 3D Movie Maker, the File button's **Export** turns the open movie into
-  a video.
+  a video, in the background, with a progress bar across the top of 3DMM's
+  screen.
 - **Movie Exporter.exe** does many movies at once: add movies, press **Make
   videos**.
 
@@ -26,6 +27,7 @@ Movie Exporter's command line, which 3DMM's Export button uses:
 
 ```
 "Movie Exporter.exe" --export <movie.3mm> --to <video file> --preset avi|faithful|faithful-crt|improved
+                     [--notify <window>]  # no window: report progress to 3DMM's window, close when done
 "Movie Exporter.exe" --prefetch        # no window: fetch ffmpeg if it's missing, then exit
 "Movie Exporter.exe" [movies or folders] [--out <folder>] [--style improved|faithful]
                      [--make mp4,crt,sbs,anaglyph,avi,sounds] [--go] [--close-when-done]

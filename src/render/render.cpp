@@ -12,6 +12,9 @@
     how far in front of it things come, as a percentage of picture width
     (defaults 2.5 and 1.5). --debug writes depth maps and depth stats.
 
+    --progress prints "progress <percent>" lines on stdout while it works,
+    and "duration_ms <n>" (the length of the video) when it's done.
+
     --smooth adds three in-between frames for every 6 fps step in which
     only actors moved: every actor part's transform is blended between the
     two frames, so motion plays at 24 fps.
@@ -73,6 +76,10 @@ RAPP::RAPP(void)
     _pctPop = 1.5;
     _fDebug = fFalse;
     _fSmooth = fFalse;
+    _fProgress = fFalse;
+    _pglcfrmBefore = pvNil;
+    _cfrmTotal = 0;
+    _pctLast = -1;
     _prgsnapPrev = pvNil;
     _prgsnapCur = pvNil;
     _csnapPrev = _csnapCur = _csnapMax = 0;
@@ -291,6 +298,8 @@ bool RAPP::_FParseCommandLine(void)
             _fDebug = fTrue;
         else if (0 == strcmp(psz, "--smooth"))
             _fSmooth = fTrue;
+        else if (0 == strcmp(psz, "--progress"))
+            _fProgress = fTrue;
         else if (carg == 0)
         {
             _stnMovie.SetSz(psz);
@@ -312,7 +321,7 @@ bool RAPP::_FParseCommandLine(void)
     {
         fprintf(stderr, "usage: 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>] "
                         "[--fonts <dir>] [--end-hold <sec>] [--max-frames <n>] [--stereo] [--depth <percent>] [--pop "
-                        "<percent>] [--smooth] [--debug]\n");
+                        "<percent>] [--smooth] [--progress] [--debug]\n");
         return fFalse;
     }
     return fTrue;
@@ -535,6 +544,8 @@ bool RAPP::_FLoadMovie(void)
         _LogEngineErrors("open");
         return fFalse;
     }
+    if (_fProgress)
+        _CountFrames(&fni);
 
     gcb.Set(CMH::HidUnique(), GOB::PgobScreen(), fgobNil, kginMark, &rcAbs, &rcRel);
     if (pvNil == _pmvie->PddgNew(&gcb))
@@ -632,6 +643,8 @@ bool RAPP::_FRender(void)
         _pmvie->SetFIdleSeen(fTrue);
         _Pump();
         _HandlePause();
+        if (_fProgress)
+            _ReportProgress();
     }
 
     // one last look, in case the final frame never got flushed
@@ -644,7 +657,95 @@ bool RAPP::_FRender(void)
     if (_fSmooth)
         _Log("smooth: %ld steps blended, %ld held (more than actor poses changed)", _cblendDone, _cblendHeld);
     _Log("done: %ld frames, %.2f seconds", _cfrmOut, _DtsOut() / 1000.0);
+    if (_fProgress)
+        _Stdout("progress 100\nduration_ms %lu\n", _DtsOut() + _dtsEndHold);
     return _lwExit == klwExitOk;
+}
+
+/***************************************************************************
+    Write a line to stdout (for --progress), straight to the handle so it
+    gets out right away.
+***************************************************************************/
+void RAPP::_Stdout(PSZ pszFormat, ...)
+{
+    achar sz[256];
+    va_list va;
+    DWORD cb;
+
+    va_start(va, pszFormat);
+    _vsnprintf(sz, sizeof(sz) - 1, pszFormat, va);
+    va_end(va);
+    sz[sizeof(sz) - 1] = 0;
+    WriteFile(GetStdHandle(STD_OUTPUT_HANDLE), sz, (DWORD)strlen(sz), &cb, NULL);
+}
+
+// a scene's header on file (SCENH in scene.cpp)
+struct SCENHF
+{
+    short bo;
+    short osk;
+    long nfrmLast;
+    long nfrmFirst;
+};
+
+/***************************************************************************
+    For --progress: how many frames each scene has, from the scene headers.
+***************************************************************************/
+void RAPP::_CountFrames(FNI *pfniMovie)
+{
+    PCFL pcfl;
+    CKI cki;
+    KID kid;
+    BLCK blck;
+    SCENHF scenh;
+    long chid;
+    long cfrm;
+
+    _cfrmTotal = 0;
+    if (pvNil == (_pglcfrmBefore = GL::PglNew(size(long))))
+        return;
+    if (pvNil == (pcfl = CFL::PcflOpen(pfniMovie, fcflNil)))
+        return;
+    if (pcfl->FGetCkiCtg(kctgMvie, 0, &cki))
+    {
+        for (chid = 0; pcfl->FGetKidChidCtg(kctgMvie, cki.cno, chid, kctgScen, &kid); chid++)
+        {
+            cfrm = 1;
+            if (pcfl->FFind(kid.cki.ctg, kid.cki.cno, &blck) && blck.FUnpackData() && blck.Cb() >= size(scenh) &&
+                blck.FReadRgb(&scenh, size(scenh), 0) && scenh.nfrmLast >= scenh.nfrmFirst)
+            {
+                cfrm = scenh.nfrmLast - scenh.nfrmFirst + 1;
+            }
+            if (!_pglcfrmBefore->FAdd(&_cfrmTotal))
+                break;
+            _cfrmTotal += cfrm;
+        }
+    }
+    ReleasePpo(&pcfl);
+    _Log("progress: %ld scenes, %ld frames", _pglcfrmBefore->IvMac(), _cfrmTotal);
+}
+
+/***************************************************************************
+    For --progress: print how far through the movie playback is.
+***************************************************************************/
+void RAPP::_ReportProgress(void)
+{
+    PSCEN pscen;
+    long iscen, cfrmBefore, pct;
+
+    if (_cfrmTotal <= 0 || pvNil == _pglcfrmBefore || pvNil == _pmvie || pvNil == (pscen = _pmvie->Pscen()))
+        return;
+    iscen = _pmvie->Iscen();
+    if (iscen < 0 || iscen >= _pglcfrmBefore->IvMac())
+        return;
+    _pglcfrmBefore->Get(iscen, &cfrmBefore);
+    pct = (cfrmBefore + LwMax(0, pscen->Nfrm() - pscen->NfrmFirst())) * 100 / _cfrmTotal;
+    pct = LwMin(99, LwMax(0, pct));
+    if (pct != _pctLast)
+    {
+        _pctLast = pct;
+        _Stdout("progress %ld\n", pct);
+    }
 }
 
 /***************************************************************************

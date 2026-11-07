@@ -143,6 +143,7 @@ class RAPP : public RAPP_PAR
     double _pctPop;
     bool _fDebug;
     bool _fSmooth;
+    bool _fProgress; // --progress: report how far along we are on stdout
 
     // engine objects
     PCFL _pcfl;
@@ -173,6 +174,9 @@ class RAPP : public RAPP_PAR
     bool _fStereoValid;
     ulong _luTboxSig;
     PGST _pgstMissingFonts;
+    PGL _pglcfrmBefore; // per scene: frames in the scenes before it
+    long _cfrmTotal;
+    long _pctLast;
     BMAT34 _bmat34Stereo;
     double _dxrEye;
     double _dxpFocal;
@@ -243,6 +247,9 @@ class RAPP : public RAPP_PAR
     void _WriteSoundIndex(void);
 
     void _Log(PSZ pszFormat, ...);
+    void _Stdout(PSZ pszFormat, ...);
+    void _CountFrames(FNI *pfniMovie);
+    void _ReportProgress(void);
     void _LogEngineErrors(PSZ pszContext);
     void _Event(PSZ pszFormat, ...);
 

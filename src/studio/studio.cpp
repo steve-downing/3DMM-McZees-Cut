@@ -1893,6 +1893,8 @@ static bool _FLaunchExporter(PSZ pszArgs)
 
     ClearPb(&si, size(si));
     si.cb = size(si);
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_SHOWNOACTIVATE; // never take the focus from 3DMM
     if (!CreateProcess(szExe, szCmd, pvNil, pvNil, FALSE, 0, pvNil, pvNil, &si, &pi))
         return fFalse;
     CloseHandle(pi.hThread);
@@ -1959,8 +1961,10 @@ bool STDIO::FCmdExportMovie(PCMD pcmd)
     fniVideo.GetStnPath(&stnVideo);
     if (stnMovie.Cch() + stnVideo.Cch() + 64 >= 1024)
         return fTrue;
-    wsprintf(szArgs, PszLit("--export \"%s\" --to \"%s\" --preset %s"), stnMovie.Psz(), stnVideo.Psz(),
-             rgszPreset[iType - 1]);
+    // --notify: Movie Exporter works without a window of its own and reports
+    // its progress to ours (see expprog.cpp)
+    wsprintf(szArgs, PszLit("--export \"%s\" --to \"%s\" --preset %s --notify %lu"), stnMovie.Psz(), stnVideo.Psz(),
+             rgszPreset[iType - 1], (ulong)(ULONG_PTR)vwig.hwndApp);
     if (!_FLaunchExporter(szArgs))
     {
         vapp.EnsureInteractive();

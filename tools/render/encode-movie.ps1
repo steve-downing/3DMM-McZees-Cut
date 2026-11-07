@@ -44,6 +44,8 @@ param(
     [ValidateSet("both", "stereo", "5.1")] [string]$Channels = "both",
     [int]$Scale = 2,
     [int]$Crf = 18,
+    # Movie Exporter's progress bar: the video encode reports its position here (ffmpeg -progress)
+    [string]$ProgressFile,
     # CRT effects (the "crt" format): see 3dmm-crt.exe
     [ValidateSet("pc", "trinitron", "tv", "hdr")] [string]$CrtPreset = "pc",
     [ValidateSet("", "shadow", "grille", "slot", "none")] [string]$CrtMask = "",
@@ -148,6 +150,8 @@ function Export-Sounds([string]$Zip) {
 # The "crt" format: 3dmm-crt.exe draws each frame as a 4K CRT image and
 # streams raw video to ffmpeg. Runs through a .cmd file so the binary pipe
 # works the same in Windows PowerShell 5.1 and PowerShell 7.
+$ffProgress = if ($ProgressFile) { @("-progress", $ProgressFile) } else { @() }
+
 function Invoke-CrtEncode([string]$Out) {
     $tool = $CrtTool
     if (-not $tool) {
@@ -176,7 +180,7 @@ function Invoke-CrtEncode([string]$Out) {
     }
     $ff = @("ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "rawvideo", "-pix_fmt", $info[2],
         "-s", "$($info[0])x$($info[1])", "-r", $info[3], "-i", "-") + $audioInputs + @("-map", "0:v") + $audioMaps +
-        $video + @("-movflags", "+faststart", "-shortest", $Out)
+        $video + $ffProgress + @("-movflags", "+faststart", "-shortest", $Out)
     $line = ((@($tool, $RenderDir) + $crtArgs | ForEach-Object { & $q $_ }) -join " ") + " | " +
         (($ff | ForEach-Object { & $q $_ }) -join " ")
     $cmdFile = Join-Path $RenderDir "crt-encode.cmd"
@@ -280,7 +284,7 @@ try {
                 $w98In = @("-i", $audioStereo)
                 $w98Map = @("-map", "1:a", "-c:a", "pcm_s16le", "-ar", "22050", "-ac", "2")
             }
-            ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i timeline.ffconcat @w98In -map 0:v @w98Map `
+            ffmpeg -hide_banner -loglevel error -y @ffProgress -f concat -safe 0 -i timeline.ffconcat @w98In -map 0:v @w98Map `
                 -vf "${crop2d}fps=$aviFps,format=yuv444p,mpdecimate=hi=1:lo=1:frac=0:max=$aviFps,pad=544:308:0:1,format=rgb24" -fps_mode vfr `
                 -c:v cinepak -max_extra_cb_iterations 0 -min_strips 3 -max_strips 3 $out
             if ($LASTEXITCODE -ne 0) { Write-Warning "encode failed: $out"; $failed++ }
@@ -295,7 +299,7 @@ try {
         if (-not $vf) { Write-Warning "$fmt needs a --stereo render; skipped"; continue }
         $vf = "$vf,scale=iw*${Scale}:ih*${Scale}:flags=neighbor,fps=$fps,format=yuv420p"
         $inputs = @("-f", "concat", "-safe", "0", "-i", "timeline.ffconcat") + $audioInputs
-        ffmpeg -hide_banner -loglevel error -y @inputs -vf $vf -map 0:v @audioMaps -c:v libx264 -crf $Crf -preset medium `
+        ffmpeg -hide_banner -loglevel error -y @ffProgress @inputs -vf $vf -map 0:v @audioMaps -c:v libx264 -crf $Crf -preset medium `
             -movflags +faststart -shortest $out
         if ($LASTEXITCODE -ne 0) { Write-Warning "encode failed: $out"; $failed++ }
     }

@@ -62,8 +62,10 @@ portfolio), then **Export**. Pick where to save it and a type:
 | MP4, faithful, 90s monitor look | The same, at 4K, looking like a mid-90s CRT |
 | MP4, improved (the default) | Smooth motion, and the music dips while characters talk |
 
-The video is made in a small window of its own while you carry on in 3DMM.
-If the movie has unsaved changes, 3DMM saves it first. The first export
+The video is made in the background while you carry on in 3DMM, with a
+progress bar across the top of the screen. If the movie has unsaved
+changes, 3DMM saves it first. If an export doesn't work, the bar says so
+and the details are in `%LOCALAPPDATA%\McZee's Cut\Export log.txt`. The first export
 downloads ffmpeg, about 150 MB; that starts as soon as you click Export.
 
 **Many movies at once:** run **Movie Exporter.exe**, next to `3dmovie.exe`.

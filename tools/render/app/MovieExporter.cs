@@ -43,6 +43,7 @@ static class Program
         if (args.Contains("--export"))
         {
             var ef = new ExportForm(args);
+            if (ef.Headless) return ef.RunHeadless();
             Application.Run(ef);
             return ef.ExitCode;
         }
@@ -778,6 +779,18 @@ class ExportForm : Form
     Process proc;
     string work;
 
+    // Launched by 3D Movie Maker (--notify <its window>): no window of our
+    // own, so 3DMM keeps the focus. Progress goes to 3DMM, which shows it;
+    // we close when done.
+    IntPtr notify = IntPtr.Zero;
+    public bool Headless { get { return notify != IntPtr.Zero; } }
+    string ffProgress;
+    double renderShare = 0.75, durationMs, renderPct;
+    bool encoding;
+    int lastPct = -1;
+    string lastState, lastText;
+    readonly System.Windows.Forms.Timer poll = new System.Windows.Forms.Timer { Interval = 500 };
+
     readonly Label title = new Label();
     readonly Label detail = new Label();
     readonly ProgressBar progress = new ProgressBar();
@@ -806,7 +819,15 @@ class ExportForm : Form
             else if (args[i] == "--preset" && next != null) { preset = next; i++; }
             else if (args[i] == "--close-when-done") closeWhenDone = true;
             else if (args[i] == "--screenshot" && next != null) { screenshot = Path.GetFullPath(next); i++; }
+            else if (args[i] == "--notify" && next != null)
+            {
+                long h;
+                if (long.TryParse(next, out h)) notify = new IntPtr(h);
+                i++;
+            }
         }
+        if (preset == "faithful-crt") renderShare = 0.3;   // the 4K CRT encode is most of the work
+        poll.Tick += delegate { PollEncode(); };
         if (!PresetNames.ContainsKey(preset)) preset = "improved";
         if (target == null && movie != null)
             target = Path.ChangeExtension(movie, preset == "avi" ? ".avi" : ".mp4");
@@ -891,7 +912,8 @@ class ExportForm : Form
         try { Tools.CopyShared(movie, Path.Combine(inDir, "movie.3mm")); }
         catch (Exception ex) { Fail("Can't read the movie: " + ex.Message); return; }
 
-        if (!Tools.Ready()) status.Text = "Getting ready (first time only): downloading ffmpeg...";
+        Report(0, "Exporting " + ShortName());
+        if (!Tools.Ready()) { status.Text = "Getting ready (first time only): downloading ffmpeg..."; Report(0, "Getting ready to export"); }
         var t = new Thread(() =>
         {
             bool ok = Tools.Ensure(line => BeginInvoke(new Action(() =>
@@ -914,8 +936,10 @@ class ExportForm : Form
     {
         string outDir = Path.Combine(work, "out");
         string formats = preset == "avi" ? "avi" : preset == "faithful-crt" ? "crt" : "2d";
+        ffProgress = Path.Combine(work, "ffmpeg-progress.txt");
         string args = " -InputDir " + Tools.Quote(Path.Combine(work, "in")) + " -OutputDir " + Tools.Quote(outDir) +
-                      " -Formats " + formats + (preset == "improved" ? " -Smooth -Duck" : "") + " -Force";
+                      " -Formats " + formats + (preset == "improved" ? " -Smooth -Duck" : "") + " -Force" +
+                      " -Progress -ProgressFile " + Tools.Quote(ffProgress);
         status.Text = preset == "faithful-crt" ? "Making the video (the 4K CRT look takes a while)..." : "Making the video...";
         Log("> render-folder.ps1" + args);
         var psi = new ProcessStartInfo("powershell.exe", "-NoProfile -ExecutionPolicy Bypass -File " + Tools.Quote(Tools.Script("render-folder.ps1")) + args)
@@ -924,10 +948,11 @@ class ExportForm : Form
             RedirectStandardOutput = true, RedirectStandardError = true,
         };
         proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
-        proc.OutputDataReceived += (s, e) => { if (e.Data != null) BeginInvoke(new Action(() => Log(e.Data))); };
+        proc.OutputDataReceived += (s, e) => { if (e.Data != null) BeginInvoke(new Action(() => OnLine(e.Data))); };
         proc.ErrorDataReceived += (s, e) => { if (e.Data != null) BeginInvoke(new Action(() => Log(e.Data))); };
-        proc.Exited += (s, e) => BeginInvoke(new Action(() => { proc = null; Done(outDir); }));
-        try { proc.Start(); proc.BeginOutputReadLine(); proc.BeginErrorReadLine(); }
+        proc.Exited += (s, e) => BeginInvoke(new Action(() => { proc = null; poll.Stop(); Done(outDir); }));
+        Report(0, "Exporting " + ShortName());
+        try { proc.Start(); proc.BeginOutputReadLine(); proc.BeginErrorReadLine(); poll.Start(); }
         catch (Exception ex) { proc = null; Fail("Couldn't start PowerShell: " + ex.Message); }
     }
 
@@ -954,6 +979,8 @@ class ExportForm : Form
         progress.Style = ProgressBarStyle.Continuous;
         progress.Value = 100;
         status.Text = "Done!";
+        Notify("done", 100, "Saved " + Shorten(Path.GetFileName(target), 26));
+        if (Headless) { Cleanup(); ExitLater(6000); return; }
         watchButton.Visible = showButton.Visible = true;
         closeButton.Text = "Close";
         Cleanup();
@@ -969,12 +996,131 @@ class ExportForm : Form
         progress.Value = 0;
         status.Text = message;
         status.ForeColor = Color.Firebrick;
+        if (Headless)
+        {
+            Log(message);
+            SaveLog();
+            Notify("fail", 0, "Export didn't work: " + Shorten(message, 44));
+            Cleanup();
+            ExitLater(20000);
+            return;
+        }
         closeButton.Text = "Close";
         Log(message);
         detailsBox.Checked = true;
         Cleanup();
         if (screenshot != null) Tools.SaveScreenshot(this, Path.ChangeExtension(screenshot, null) + "-done.png");
         if (closeWhenDone) Close();
+    }
+
+    // ---- progress -------------------------------------------------------
+
+    string ShortName()
+    {
+        return Shorten(movie != null ? Path.GetFileNameWithoutExtension(movie) : "your movie", 22);
+    }
+
+    static string Shorten(string s, int n) { return s.Length <= n ? s : s.Substring(0, n - 1) + "…"; }
+
+    // a line from render-folder.ps1: its "@" lines are progress
+    void OnLine(string line)
+    {
+        double v;
+        if (line.StartsWith("@progress render ") && double.TryParse(line.Substring(17), out v))
+        {
+            renderPct = v;
+            Report((int)(v * renderShare), "Exporting " + ShortName());
+            return;
+        }
+        if (line.StartsWith("@duration_ms ") && double.TryParse(line.Substring(13), out v)) { durationMs = v; encoding = true; return; }
+        Log(line);
+    }
+
+    // ffmpeg's -progress reports: how far into the video the encode is
+    void PollEncode()
+    {
+        if (!encoding || durationMs <= 0 || ffProgress == null) return;
+        try
+        {
+            string text;
+            using (var fs = new FileStream(ffProgress, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            using (var r = new StreamReader(fs)) text = r.ReadToEnd();
+            int i = text.LastIndexOf("out_time_us=", StringComparison.Ordinal);
+            if (i < 0) return;
+            int j = text.IndexOf('\n', i);
+            long us;
+            if (!long.TryParse((j < 0 ? text.Substring(i + 12) : text.Substring(i + 12, j - i - 12)).Trim(), out us)) return;
+            double f = Math.Max(0, Math.Min(1, us / 1000.0 / durationMs));
+            Report((int)(100 * renderShare + f * 100 * (0.99 - renderShare)), "Exporting " + ShortName());
+        }
+        catch { }
+    }
+
+    void Report(int pct, string text)
+    {
+        pct = Math.Max(0, Math.Min(100, pct));
+        if (pct < lastPct && text == lastText) return;   // never go backwards
+        if (progress.Style != ProgressBarStyle.Continuous && pct > 0) progress.Style = ProgressBarStyle.Continuous;
+        progress.Value = pct;
+        Notify("run", pct, text);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct COPYDATASTRUCT { public IntPtr dwData; public int cbData; public IntPtr lpData; }
+
+    [DllImport("user32.dll", CharSet = CharSet.Ansi)]
+    static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, IntPtr wParam, ref COPYDATASTRUCT lParam, uint flags, uint timeout, out IntPtr result);
+
+    // Tells 3D Movie Maker how the export is going: WM_COPYDATA, tagged MZEX,
+    // with "<our process id> <run|done|fail|hide> <percent> <text>"
+    void Notify(string state, int pct, string text)
+    {
+        if (!Headless) return;
+        if (state == lastState && pct == lastPct && text == lastText) return;
+        lastState = state; lastPct = pct; lastText = text;
+        byte[] b = Encoding.Default.GetBytes(Process.GetCurrentProcess().Id + " " + state + " " + pct + " " + text + "\0");
+        IntPtr p = Marshal.AllocHGlobal(b.Length);
+        try
+        {
+            Marshal.Copy(b, 0, p, b.Length);
+            var cds = new COPYDATASTRUCT { dwData = new IntPtr(0x58455A4D), cbData = b.Length, lpData = p };
+            IntPtr result;
+            SendMessageTimeout(notify, 0x004A /* WM_COPYDATA */, IntPtr.Zero, ref cds, 0x0002 /* SMTO_ABORTIFHUNG */, 2000, out result);
+        }
+        catch { }
+        finally { Marshal.FreeHGlobal(p); }
+    }
+
+    // keep the result up in 3DMM for a moment, then take it down and quit
+    void ExitLater(int ms)
+    {
+        var t = new System.Windows.Forms.Timer { Interval = ms };
+        t.Tick += delegate { t.Stop(); Notify("hide", 100, ""); Application.ExitThread(); };
+        t.Start();
+    }
+
+    // when 3DMM launched us, a failed export leaves its details here
+    string SaveLog()
+    {
+        try
+        {
+            string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "McZee's Cut");
+            Directory.CreateDirectory(dir);
+            string path = Path.Combine(dir, "Export log.txt");
+            File.WriteAllText(path, "Exporting " + movie + "\r\nto " + target + " (" + preset + ")\r\n\r\n" + log.Text);
+            return path;
+        }
+        catch { return null; }
+    }
+
+    public int RunHeadless()
+    {
+        IntPtr unused = Handle;   // a window handle (never shown) to receive our own callbacks
+        Application.ThreadException += (s, e) => { Notify("fail", 0, "Export didn't work: " + Shorten(e.Exception.Message, 60)); Notify("hide", 0, ""); Application.ExitThread(); };
+        AppDomain.CurrentDomain.UnhandledException += (s, e) => Notify("hide", 0, "");
+        BeginInvoke(new Action(Start));
+        Application.Run();
+        return ExitCode;
     }
 
     void Cleanup()

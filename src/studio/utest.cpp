@@ -17,6 +17,7 @@
 
 ***************************************************************************/
 #include "studio.h"
+#include "expprog.h"
 #include "socres.h"
 #include "mminstal.h"
 
@@ -67,6 +68,7 @@ ON_CID_GEN(cidEnableAccel, &APP::FCmdEnableAccel, pvNil)
 ON_CID_GEN(cidInvokeSplot, &APP::FCmdInvokeSplot, pvNil)
 ON_CID_GEN(cidExitStudio, &APP::FCmdExitStudio, pvNil)
 ON_CID_GEN(cidDeactivate, &APP::FCmdDeactivate, pvNil)
+ON_CID_GEN(cidExportProgress, &APP::FCmdExportProgress, pvNil)
 END_CMD_MAP_NIL()
 
 APP vapp;
@@ -4194,6 +4196,16 @@ void APP::UpdateHwnd(HWND hwnd, RC *prc, ulong grfapp)
     Handle Windows messages for the main app window. Return true iff the
     default window proc should _NOT_ be called.
 ***************************************************************************/
+/***************************************************************************
+    McZee's Cut: Movie Exporter reported progress (see expprog.cpp)
+***************************************************************************/
+bool APP::FCmdExportProgress(PCMD pcmd)
+{
+    AssertThis(0);
+    UpdateExportProgress();
+    return fTrue;
+}
+
 bool APP::_FFrameWndProc(HWND hwnd, uint wm, WPARAM wParam, LPARAM lw, long *plwRet)
 {
     AssertBaseThis(0);
@@ -4201,6 +4213,12 @@ bool APP::_FFrameWndProc(HWND hwnd, uint wm, WPARAM wParam, LPARAM lw, long *plw
 
     switch (wm)
     {
+    case WM_COPYDATA:
+        // Movie Exporter telling us how an export is going
+        if (FExportProgressMessage(wm, lw, plwRet))
+            return fTrue;
+        break;
+
     case WM_ERASEBKGND:
         // Tell windows that we handled the Erase so it doesn't do one.
         // In general we don't want to erase our background ahead of time.
