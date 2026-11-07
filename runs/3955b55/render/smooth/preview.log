@@ -1,0 +1,21 @@
+movie: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\test-movies\Hospital.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\build\stage
+smooth: on (three blended frames between 3DMM's, 24 fps)
+fonts: 177 TrueType faces available
+scenes: 8
+audio: 40 sounds, 69 cues
+smooth: 620 steps blended, 9 held (more than actor poses changed)
+done: 2806 frames, 136.56 seconds
+exit code 0
+audio: 15 speech, 49 effect and 5 music cues; mode auto
+dialogue: -16.4 LUFS
+effects:  -10.0 LUFS
+music target: -24.4 LUFS (8.0 LU under dialogue)
+  sounds/s005.mid.wav : measured -17.4 LUFS, applied -7.0 dB
+  sounds/s008.mid.wav : measured -19.8 LUFS, applied -4.6 dB
+  sounds/s020.mid.wav : measured -19.6 LUFS, applied -4.8 dB
+  sounds/s029.mid.wav : measured -14.5 LUFS, applied -9.9 dB
+  sounds/s034.mid.wav : measured -20.6 LUFS, applied -3.8 dB
+ducking: music -6.0 dB during 9 stretches of dialogue
+mix: measured -11.8 LUFS, applied -4.2 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -1.7 dBTP

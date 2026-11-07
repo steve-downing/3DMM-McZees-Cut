@@ -1,0 +1,258 @@
+     0.031 missing-font Futura
+     0.000 transition cut
+     0.000 play
+     1.520 sound s000 vlm=65536 loops=1 offset=0
+     1.850 textbox story "P "
+     2.020 textbox story "P "
+     2.020 textbox story "I "
+     2.185 textbox story "P "
+     2.185 textbox story "I "
+     2.185 textbox story "C "
+     2.350 textbox story "P "
+     2.350 textbox story "I "
+     2.350 textbox story "C "
+     2.350 textbox story "T "
+     2.520 textbox story "P "
+     2.520 textbox story "I "
+     2.520 textbox story "C "
+     2.520 textbox story "T "
+     2.520 textbox story "U "
+     2.685 textbox story "P "
+     2.685 textbox story "I "
+     2.685 textbox story "C "
+     2.685 textbox story "T "
+     2.685 textbox story "U "
+     2.685 textbox story "R "
+     2.850 textbox story "P "
+     2.850 textbox story "I "
+     2.850 textbox story "C "
+     2.850 textbox story "T "
+     2.850 textbox story "U "
+     2.850 textbox story "R "
+     2.850 textbox story "E "
+     3.020 textbox story "P "
+     3.020 textbox story "I "
+     3.020 textbox story "C "
+     3.020 textbox story "T "
+     3.020 textbox story "U "
+     3.020 textbox story "R "
+     3.020 textbox story "E "
+     3.020 textbox story "S "
+     3.185 textbox story "P "
+     3.185 textbox story "I "
+     3.185 textbox story "C "
+     3.185 textbox story "T "
+     3.185 textbox story "U "
+     3.185 textbox story "R "
+     3.185 textbox story "E "
+     3.185 textbox story "S "
+     3.185 textbox story "•      "
+     3.350 textbox story "P "
+     3.350 textbox story "I "
+     3.350 textbox story "C "
+     3.350 textbox story "T "
+     3.350 textbox story "U "
+     3.350 textbox story "R "
+     3.350 textbox story "E "
+     3.350 textbox story "S "
+     3.350 textbox story "•      "
+     3.350 textbox story "•      "
+     3.520 textbox story "P "
+     3.520 textbox story "I "
+     3.520 textbox story "C "
+     3.520 textbox story "T "
+     3.520 textbox story "U "
+     3.520 textbox story "R "
+     3.520 textbox story "E "
+     3.520 textbox story "S "
+     3.520 textbox story "•      "
+     3.520 textbox story "•      "
+     3.520 textbox story "•      "
+     4.850 textbox story "presents "
+     4.850 transition dissolve
+    10.855 textbox story "              The Book "
+    10.855 textbox story "presents "
+    10.855 transition dissolve
+    14.860 sound s001 vlm=52430 loops=1 offset=0
+    14.860 sound s002 vlm=52430 loops=1 offset=0
+    14.860 sound s003 vlm=52430 loops=1 offset=0
+    14.860 sound s001 vlm=52430 loops=1 offset=0
+    14.860 sound s002 vlm=52430 loops=1 offset=0
+    14.860 sound s003 vlm=52430 loops=1 offset=0
+    14.860 sound s001 vlm=52430 loops=1 offset=0
+    14.860 sound s002 vlm=52430 loops=1 offset=0
+    14.860 sound s003 vlm=52430 loops=1 offset=0
+    14.860 sound s004 vlm=52430 loops=1 offset=0
+    16.860 textbox story "              The Book "
+    16.860 transition dissolve
+    24.865 textbox story "                                  starri"
+    29.200 textbox story "                                     wit"
+    33.365 textbox story "                                      an"
+    37.535 textbox story "                               screenpla"
+    41.700 textbox story "                               produced "
+    48.365 textbox story "                               directed "
+    59.035 sound s005 vlm=65536 loops=1 offset=0
+    75.365 transition cut
+    75.535 sound s006 vlm=52430 loops=2147483647 offset=0
+    77.035 sound s007 vlm=65536 loops=1 offset=0
+    77.700 sound s008 vlm=65536 loops=1 offset=0
+    78.365 sound s007 vlm=65536 loops=1 offset=0
+    78.865 sound s008 vlm=65536 loops=1 offset=0
+    79.365 sound s009 vlm=21412 loops=1 offset=0
+    80.035 sound s010 vlm=17519 loops=1 offset=0
+    80.365 sound s011 vlm=65536 loops=1 offset=0
+    80.535 sound s009 vlm=21412 loops=1 offset=0
+    81.200 sound s010 vlm=17519 loops=1 offset=0
+    81.700 sound s009 vlm=21412 loops=1 offset=0
+    82.365 sound s010 vlm=17519 loops=1 offset=0
+    82.865 sound s009 vlm=21412 loops=1 offset=0
+    83.365 sound s012 vlm=65536 loops=1 offset=0
+    83.535 sound s010 vlm=17519 loops=1 offset=0
+    84.035 sound s009 vlm=21412 loops=1 offset=0
+    84.700 sound s010 vlm=17519 loops=1 offset=0
+    85.200 sound s009 vlm=21412 loops=1 offset=0
+    85.865 sound s010 vlm=17519 loops=1 offset=0
+    86.365 sound s013 vlm=65536 loops=1 offset=0
+    87.035 sound s014 vlm=65536 loops=1 offset=0
+    87.535 sound s015 vlm=65536 loops=1 offset=0
+    88.200 sound s013 vlm=65536 loops=1 offset=0
+    88.700 sound s016 vlm=65536 loops=1 offset=0
+    89.365 sound s014 vlm=65536 loops=1 offset=0
+    89.865 sound s015 vlm=65536 loops=1 offset=0
+    90.535 sound s016 vlm=65536 loops=1 offset=0
+    91.035 sound s014 vlm=65536 loops=1 offset=0
+    91.700 sound s013 vlm=65536 loops=1 offset=0
+    92.200 sound s016 vlm=65536 loops=1 offset=0
+    92.365 sound s017 vlm=65536 loops=1 offset=0
+    92.535 transition dissolve
+    96.540 sound s018 vlm=24008 loops=1 offset=0
+    97.375 sound s019 vlm=24008 loops=1 offset=0
+    98.210 sound s019 vlm=23359 loops=1 offset=0
+    99.375 sound s020 vlm=65536 loops=1 offset=0
+   102.710 sound s021 vlm=65536 loops=1 offset=0
+   104.210 sound s022 vlm=65536 loops=1 offset=0
+   104.210 transition cut
+   106.710 sound s023 vlm=65536 loops=1 offset=0
+   108.210 transition cut
+   108.375 sound s016 vlm=65536 loops=1 offset=0
+   108.375 sound s016 vlm=65536 loops=1 offset=0
+   108.375 sound s024 vlm=65536 loops=1 offset=0
+   108.375 sound s025 vlm=52430 loops=1 offset=0
+   110.210 transition cut
+   112.210 sound s026 vlm=65536 loops=1 offset=0
+   114.710 sound s027 vlm=52430 loops=2147483647 offset=0
+   114.875 sound s019 vlm=36336 loops=1 offset=0
+   115.375 sound s018 vlm=28550 loops=1 offset=0
+   116.040 sound s019 vlm=36336 loops=1 offset=0
+   116.540 sound s018 vlm=28550 loops=1 offset=0
+   117.210 sound s019 vlm=36336 loops=1 offset=0
+   117.710 sound s018 vlm=28550 loops=1 offset=0
+   118.375 sound s028 vlm=65536 loops=1 offset=0
+   120.875 sound s019 vlm=27901 loops=1 offset=0
+   121.375 sound s018 vlm=25954 loops=1 offset=0
+   122.040 sound s019 vlm=27901 loops=1 offset=0
+   122.540 sound s018 vlm=25954 loops=1 offset=0
+   123.210 sound s019 vlm=27901 loops=1 offset=0
+   123.710 sound s018 vlm=25954 loops=1 offset=0
+   126.040 sound s029 vlm=65536 loops=1 offset=0
+   126.040 sound s030 vlm=65536 loops=1 offset=0
+   127.875 sound s031 vlm=65536 loops=1 offset=0
+   130.040 sound s032 vlm=20115 loops=1 offset=0
+   132.710 sound s019 vlm=29848 loops=1 offset=0
+   133.210 sound s018 vlm=25954 loops=1 offset=0
+   133.875 sound s019 vlm=29848 loops=1 offset=0
+   134.375 sound s018 vlm=25954 loops=1 offset=0
+   135.040 sound s019 vlm=29848 loops=1 offset=0
+   135.875 sound s033 vlm=54505 loops=1 offset=0
+   138.710 sound s034 vlm=65536 loops=1 offset=0
+   139.210 sound s019 vlm=27252 loops=1 offset=0
+   139.710 sound s018 vlm=26603 loops=1 offset=0
+   140.375 sound s019 vlm=27252 loops=1 offset=0
+   140.875 sound s018 vlm=26603 loops=1 offset=0
+   143.210 sound s035 vlm=20115 loops=1 offset=0
+   143.710 sound s036 vlm=65536 loops=1 offset=0
+   144.710 sound s037 vlm=53207 loops=1 offset=0
+   144.875 sound s038 vlm=52430 loops=1 offset=0
+   144.875 sound s039 vlm=52430 loops=1 offset=0
+   145.710 sound s040 vlm=65536 loops=1 offset=0
+   147.540 sound s019 vlm=65536 loops=1 offset=0
+   148.040 sound s018 vlm=65536 loops=1 offset=0
+   148.375 sound s019 vlm=65536 loops=1 offset=0
+   148.875 sound s023 vlm=65536 loops=1 offset=0
+   148.875 sound s041 vlm=65536 loops=1 offset=0
+   149.540 transition cut
+   150.210 sound s018 vlm=36985 loops=1 offset=0
+   150.540 sound s019 vlm=33092 loops=1 offset=0
+   151.040 sound s018 vlm=33092 loops=1 offset=0
+   151.375 sound s019 vlm=33092 loops=1 offset=0
+   151.875 sound s018 vlm=33092 loops=1 offset=0
+   152.210 sound s019 vlm=33092 loops=1 offset=0
+   152.710 sound s018 vlm=33092 loops=1 offset=0
+   153.040 sound s019 vlm=33092 loops=1 offset=0
+   153.210 transition cut
+   153.375 sound s042 vlm=28550 loops=1 offset=0
+   154.040 sound s042 vlm=24657 loops=1 offset=0
+   155.375 sound s043 vlm=65536 loops=1 offset=0
+   155.540 sound s044 vlm=65536 loops=1 offset=0
+   160.210 sound s045 vlm=52430 loops=1 offset=0
+   160.540 sound s046 vlm=33092 loops=1 offset=0
+   160.875 sound s019 vlm=31145 loops=1 offset=0
+   161.375 sound s018 vlm=29848 loops=1 offset=0
+   162.540 sound s019 vlm=31145 loops=1 offset=0
+   163.040 sound s018 vlm=29848 loops=1 offset=0
+   164.210 sound s019 vlm=31145 loops=1 offset=0
+   166.540 transition cut
+   166.875 sound s019 vlm=23359 loops=1 offset=0
+   167.210 sound s018 vlm=24008 loops=1 offset=0
+   167.710 sound s019 vlm=23359 loops=1 offset=0
+   168.040 sound s018 vlm=24008 loops=1 offset=0
+   168.540 sound s019 vlm=23359 loops=1 offset=0
+   168.875 sound s018 vlm=24008 loops=1 offset=0
+   169.375 sound s047 vlm=65536 loops=1 offset=0
+   169.710 sound s048 vlm=65536 loops=1 offset=0
+   170.210 sound s047 vlm=65536 loops=1 offset=0
+   170.540 sound s049 vlm=24008 loops=1 offset=0
+   171.040 sound s050 vlm=23359 loops=1 offset=0
+   171.375 sound s049 vlm=24008 loops=1 offset=0
+   171.875 sound s050 vlm=23359 loops=1 offset=0
+   172.210 sound s049 vlm=24008 loops=1 offset=0
+   172.710 sound s050 vlm=23359 loops=1 offset=0
+   173.040 sound s049 vlm=24008 loops=1 offset=0
+   173.540 sound s050 vlm=23359 loops=1 offset=0
+   173.875 sound s049 vlm=24008 loops=1 offset=0
+   174.375 sound s050 vlm=23359 loops=1 offset=0
+   174.710 sound s049 vlm=24008 loops=1 offset=0
+   175.210 sound s050 vlm=23359 loops=1 offset=0
+   175.540 sound s049 vlm=24008 loops=1 offset=0
+   176.040 sound s050 vlm=23359 loops=1 offset=0
+   176.375 sound s049 vlm=24008 loops=1 offset=0
+   176.875 sound s050 vlm=23359 loops=1 offset=0
+   177.210 sound s049 vlm=24008 loops=1 offset=0
+   177.710 sound s050 vlm=23359 loops=1 offset=0
+   178.040 sound s049 vlm=24008 loops=1 offset=0
+   179.710 sound s051 vlm=65536 loops=1 offset=0
+   179.710 sound s051 vlm=65536 loops=1 offset=0
+   179.710 sound s051 vlm=65536 loops=1 offset=0
+   185.040 sound s050 vlm=20763 loops=1 offset=0
+   185.540 sound s049 vlm=18817 loops=1 offset=0
+   185.875 sound s050 vlm=20763 loops=1 offset=0
+   186.375 sound s049 vlm=18817 loops=1 offset=0
+   186.710 sound s052 vlm=65536 loops=1 offset=0
+   189.375 sound s053 vlm=65536 loops=1 offset=0
+   194.875 sound s046 vlm=65536 loops=1 offset=0
+   199.710 transition cut
+   201.210 sound s054 vlm=23359 loops=1 offset=0
+   201.210 sound s054 vlm=23359 loops=1 offset=0
+   201.210 sound s054 vlm=23359 loops=1 offset=0
+   201.210 sound s054 vlm=23359 loops=1 offset=0
+   211.210 sound s040 vlm=65536 loops=1 offset=0
+   215.210 transition dissolve
+   219.215 sound s055 vlm=52430 loops=1 offset=0
+   219.215 textbox story "No 3D characters were hurt in the making"
+   219.215 textbox story "Any similarity between the characters, a"
+   219.215 transition dissolve
+   235.055 transition dissolve
+   241.060 textbox story "                The End "
+   241.060 transition dissolve
+   248.235 unused-sound s056
+   248.235 end

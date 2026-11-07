@@ -1,0 +1,80 @@
+6 movies under D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\test-movies
+[1/6] City Tour.3mm
+audio: 0 speech, 0 effect and 1 music cues; mode auto
+dialogue: none
+effects:  none
+music target: -16.0 LUFS (no dialogue or effects)
+  sounds/s000.mid.wav : measured -18.5 LUFS, applied 2.5 dB
+mix: measured -16.6 LUFS, applied 0.6 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -1.0 dBTP
+[2/6] Hospital.3mm
+audio: 15 speech, 49 effect and 5 music cues; mode auto
+dialogue: -16.4 LUFS
+effects:  -10.0 LUFS
+music target: -24.4 LUFS (8.0 LU under dialogue)
+  sounds/s005.mid.wav : measured -17.4 LUFS, applied -7.0 dB
+  sounds/s008.mid.wav : measured -19.8 LUFS, applied -4.6 dB
+  sounds/s020.mid.wav : measured -19.6 LUFS, applied -4.8 dB
+  sounds/s029.mid.wav : measured -14.5 LUFS, applied -9.9 dB
+  sounds/s034.mid.wav : measured -20.6 LUFS, applied -3.8 dB
+ducking: music -6.0 dB during 9 stretches of dialogue
+mix: measured -11.8 LUFS, applied -4.2 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -1.7 dBTP
+[3/6] Jungle.3mm
+audio: 0 speech, 5 effect and 1 music cues; mode auto
+dialogue: none
+effects:  -22.3 LUFS
+music target: -26.3 LUFS (4 LU under effects (no dialogue))
+  sounds/s000.mid.wav : measured -27.1 LUFS, applied 0.8 dB
+mix: measured -25.8 LUFS, applied 9.8 dB toward -16.0 LUFS
+final stereo: -16.1 LUFS, true peak -0.6 dBTP
+[4/6] Space.3mm
+audio: 4 speech, 41 effect and 4 music cues; mode auto
+dialogue: -21.9 LUFS
+effects:  -12.2 LUFS
+music target: -29.9 LUFS (8.0 LU under dialogue)
+  sounds/s000.mid.wav : measured -15.4 LUFS, applied -14.5 dB
+  sounds/s003.mid.wav : measured -19.6 LUFS, applied -10.3 dB
+  sounds/s013.mid.wav : measured -27.1 LUFS, applied -2.8 dB
+  sounds/s021.mid.wav : measured -21.7 LUFS, applied -8.2 dB
+ducking: music -6.0 dB during 4 stretches of dialogue
+mix: measured -12.7 LUFS, applied -3.3 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -1.0 dBTP
+[5/6] The Book.3mm
+audio: 15 speech, 125 effect and 4 music cues; mode auto
+dialogue: -27.4 LUFS
+effects:  -16.4 LUFS
+music target: -35.4 LUFS (8.0 LU under dialogue)
+  sounds/s038.mid.wav : measured -16.7 LUFS, applied -18.7 dB
+  sounds/s039.mid.wav : measured -20.9 LUFS, applied -14.5 dB
+  sounds/s045.mid.wav : measured -15.5 LUFS, applied -19.9 dB
+  sounds/s055.mid.wav : measured -15.4 LUFS, applied -20.0 dB
+ducking: music -6.0 dB during 15 stretches of dialogue
+mix: measured -18.3 LUFS, applied 2.3 dB toward -16.0 LUFS
+final stereo: -16.6 LUFS, true peak -0.7 dBTP
+[6/6] Venus31.3mm
+audio: 3 speech, 78 effect and 12 music cues; mode auto
+dialogue: -10.4 LUFS
+effects:  -9.0 LUFS
+music target: -18.4 LUFS (8.0 LU under dialogue)
+  sounds/s000.mid.wav : measured -14.5 LUFS, applied -3.9 dB
+  sounds/s001.mid.wav : measured -21.0 LUFS, applied 2.6 dB
+  sounds/s002.mid.wav : measured -16.9 LUFS, applied -1.5 dB
+  sounds/s003.mid.wav : measured -21.8 LUFS, applied 3.4 dB
+  sounds/s007.mid.wav : measured -20.9 LUFS, applied 2.5 dB
+  sounds/s014.mid.wav : measured -20.4 LUFS, applied 2.0 dB
+  sounds/s021.mid.wav : measured -15.0 LUFS, applied -3.4 dB
+  sounds/s025.mid.wav : measured -16.1 LUFS, applied -2.3 dB
+  sounds/s028.mid.wav : measured -20.1 LUFS, applied 1.7 dB
+  sounds/s029.mid.wav : measured -17.6 LUFS, applied -0.8 dB
+  sounds/s031.mid.wav : measured -20.5 LUFS, applied 2.1 dB
+ducking: music -6.0 dB during 2 stretches of dialogue
+mix: measured -11.1 LUFS, applied -4.9 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -0.9 dBTP
+ok               6
+
+Fonts that weren't available (text fell back to the system font):
+     1  Futura
+Put the font files in a folder and pass -Fonts <folder>.
+
+Report: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\ci-out\batch\report.csv

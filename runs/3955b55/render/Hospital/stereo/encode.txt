@@ -1,0 +1,9 @@
+audio: 1 speech, 17 effect and 2 music cues; mode auto
+dialogue: -18.0 LUFS
+effects:  -9.1 LUFS
+music target: -26.0 LUFS (8.0 LU under dialogue)
+  sounds/s005.mid.wav : measured -17.4 LUFS, applied -8.6 dB
+  sounds/s008.mid.wav : measured -19.8 LUFS, applied -6.2 dB
+ducking: music -6.0 dB during 1 stretches of dialogue
+mix: measured -9.8 LUFS, applied -6.2 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -5.4 dBTP

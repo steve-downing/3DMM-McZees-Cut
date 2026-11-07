@@ -1,0 +1,40 @@
+     0.000 transition cut
+     0.000 sound s000 vlm=65536 loops=1 offset=0
+     0.000 play
+     4.850 stereo view: converge=2.0 near=2.0 far=-1.0 focal=403px eye=0.067 shift=7px
+     4.850 camera hither=1.0000 yon=5000.0000 fov=41.53deg
+     4.850 bkgd Z deciles 65535 65535 65535 65535 65535 65535 65535 65535 65535 65535 65535
+     4.850 actor Z deciles 1 21 44 78 109 141 183 235 295 370 527
+calib camera-to-screen row0 1.48366 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.63762 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+calib actor depth=1 viewz=-1.1914 screen x=0.1 y=0.3 z/w=-1.0094 w=-223.0000 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16318.5078 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.6797 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+     4.850 transition dissolve
+     8.855 sound s001 vlm=32768 loops=1 offset=0
+    20.855 transition dissolve
+    24.860 sound s002 vlm=32768 loops=1 offset=0
+    24.860 sound s003 vlm=52430 loops=2147483647 offset=0
+    32.530 transition cut
+    32.695 sound s002 vlm=32768 loops=1 offset=0
+    36.195 sound s004 vlm=32768 loops=1 offset=0
+    41.695 transition cut
+    44.360 sound s004 vlm=65536 loops=1 offset=0
+    47.530 unused-sound s005
+    47.530 unused-sound s006
+    47.530 end

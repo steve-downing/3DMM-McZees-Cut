@@ -1,0 +1,5 @@
+audio: 0 speech, 1 effect and 0 music cues; mode auto
+dialogue: none
+effects:  -24.7 LUFS
+mix: measured -24.7 LUFS, applied 8.7 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -3.7 dBTP
