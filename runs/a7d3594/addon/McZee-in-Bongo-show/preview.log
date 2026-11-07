@@ -1,0 +1,16 @@
+movie: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\addon-in\actor-test\McZee-in-Bongo-show.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\build\stage-addon
+smooth: on (three blended frames between 3DMM's, 24 fps)
+fonts: 177 TrueType faces available
+scenes: 2
+audio: 12 sounds, 41 cues
+smooth: 93 steps blended, 0 held (more than actor poses changed)
+done: 435 frames, 28.02 seconds
+exit code 0
+audio: 2 speech, 38 effect and 1 music cues; mode auto
+dialogue: -13.3 LUFS
+effects:  -9.1 LUFS
+music target: -21.3 LUFS (8.0 LU under dialogue)
+  sounds/s000.mid.wav : measured -19.6 LUFS, applied -1.7 dB
+mix: measured -12.2 LUFS, applied -3.8 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -1.0 dBTP

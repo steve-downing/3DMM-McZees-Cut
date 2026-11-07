@@ -1,0 +1,358 @@
+     0.000 stereo view: converge=65.2 near=54.0 far=-1.0 focal=316px eye=2.806 shift=7px
+     0.000 camera hither=1.0000 yon=5000.0000 fov=51.71deg
+     0.000 bkgd Z deciles 31403 31852 32110 32242 32319 32354 32397 32725 32734 65535 65535
+     0.000 actor Z deciles 31737 31755 31761 31766 31770 31775 31778 31785 31792 31806 31839
+calib camera-to-screen row0 1.16103 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.06404 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+calib actor depth=1 viewz=-65.3697 screen x=0.3 y=2.4 z/w=-1.0106 w=-196.0000 pixel=(272,150) Z=32340
+calib actor depth=1 viewz=-65.3698 screen x=0.0 y=0.0 z/w=-1.0005 w=-16340.1523 pixel=(272,152) Z=32336
+calib actor depth=1 viewz=-65.3701 screen x=0.0 y=0.0 z/w=-1.0005 w=-16238.9375 pixel=(272,152) Z=32336
+calib actor depth=1 viewz=-65.3704 screen x=0.0 y=0.0 z/w=-1.0005 w=-16239.1328 pixel=(272,152) Z=32336
+calib actor depth=1 viewz=-65.3707 screen x=0.0 y=0.0 z/w=-1.0005 w=-16239.1328 pixel=(272,152) Z=32336
+calib actor depth=1 viewz=-65.3709 screen x=0.0 y=0.0 z/w=-1.0005 w=-16239.1328 pixel=(272,152) Z=32336
+calib actor depth=1 viewz=-65.3713 screen x=0.0 y=0.0 z/w=-1.0005 w=-16239.1328 pixel=(272,152) Z=32336
+calib actor depth=1 viewz=-65.3716 screen x=0.0 y=0.0 z/w=-1.0005 w=-16239.1328 pixel=(272,152) Z=32336
+calib actor depth=1 viewz=-65.3720 screen x=0.0 y=0.0 z/w=-1.0005 w=-16239.1328 pixel=(272,152) Z=32336
+calib actor depth=1 viewz=-65.3723 screen x=0.0 y=0.0 z/w=-1.0005 w=-16239.1328 pixel=(272,152) Z=32336
+calib actor depth=1 viewz=-65.3726 screen x=0.0 y=0.0 z/w=-1.0005 w=-16239.1328 pixel=(272,152) Z=32336
+calib actor depth=1 viewz=-65.3730 screen x=0.0 y=0.0 z/w=-1.0005 w=-16239.1328 pixel=(272,152) Z=32336
+calib actor depth=1 viewz=-65.3734 screen x=0.0 y=0.0 z/w=-1.0005 w=-16239.1328 pixel=(272,152) Z=32336
+     0.000 transition cut
+     0.000 sound s000 vlm=65536 loops=1 offset=0
+     0.000 play
+     3.185 transition dissolve
+     7.360 sound s001 vlm=32768 loops=2147483647 offset=0
+     7.360 sound s002 vlm=32768 loops=2147483647 offset=0
+    11.525 sound s003 vlm=65536 loops=1 offset=0
+    11.525 stereo view: converge=57.0 near=29.5 far=1090.5 focal=296px eye=1.682 shift=4px
+    11.525 camera hither=1.0000 yon=5000.0000 fov=54.70deg
+    11.525 bkgd Z deciles 30368 31183 31301 31422 31464 31474 31534 31693 31772 31782 32738
+    11.525 actor Z deciles 31495 31500 31534 31568 31613 31632 31680 31727 31740 31808 32041
+calib camera-to-screen row0 1.08777 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 1.93381 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+calib actor depth=1 viewz=-83.3637 screen x=0.1 y=0.1 z/w=-1.0106 w=-196.0000 pixel=(272,152) Z=32737
+calib actor depth=2 viewz=-83.3637 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-83.3637 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-83.3637 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-83.3637 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-83.3637 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-83.3637 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-83.3637 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-83.3637 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=1 viewz=-58.5800 screen x=0.0 y=0.0 z/w=-1.0005 w=-16319.3633 pixel=(272,152) Z=32737
+calib actor depth=1 viewz=-51.1445 screen x=0.0 y=0.0 z/w=-1.0005 w=-16216.1055 pixel=(272,152) Z=32737
+calib actor depth=1 viewz=-51.2547 screen x=0.0 y=0.0 z/w=-1.0005 w=-16216.2617 pixel=(272,152) Z=32737
+calib actor depth=1 viewz=-56.1643 screen x=0.0 y=0.0 z/w=-1.0005 w=-16216.2617 pixel=(272,152) Z=32737
+calib actor depth=2 viewz=-57.1310 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-54.3158 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-54.1301 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-57.1788 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-54.4114 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-52.6515 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=1 viewz=-57.0329 screen x=0.0 y=0.0 z/w=-1.0005 w=-16216.2617 pixel=(272,152) Z=32737
+calib actor depth=2 viewz=-62.1907 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-60.3114 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-58.5399 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-57.6045 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-62.2522 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-60.9079 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-58.3827 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-57.8561 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=1 viewz=-63.5767 screen x=0.0 y=0.0 z/w=-1.0005 w=-16216.2617 pixel=(272,152) Z=32737
+calib actor depth=2 viewz=-63.5767 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-65.8172 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-66.0344 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-66.0634 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-57.9380 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-65.1244 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=1 viewz=-64.9884 screen x=0.0 y=0.0 z/w=-1.0005 w=-16216.2617 pixel=(272,152) Z=32737
+calib actor depth=1 viewz=-70.3581 screen x=0.0 y=0.0 z/w=-1.0005 w=-16216.2617 pixel=(272,152) Z=32737
+calib actor depth=1 viewz=-65.5343 screen x=0.0 y=0.0 z/w=-1.0005 w=-16216.2617 pixel=(272,152) Z=32737
+calib actor depth=2 viewz=-65.1730 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-63.0903 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-65.4272 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-66.0385 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=1 viewz=-65.5497 screen x=0.0 y=0.0 z/w=-1.0005 w=-16216.2617 pixel=(272,152) Z=32737
+calib actor depth=2 viewz=-63.5382 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-61.9317 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-59.2841 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-63.9731 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-62.3654 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-59.7117 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-65.5497 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=1 viewz=-63.2378 screen x=0.0 y=0.0 z/w=-1.0005 w=-16216.2617 pixel=(272,152) Z=32737
+calib actor depth=2 viewz=-63.2378 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-61.6044 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-63.0114 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-62.9234 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-62.9234 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=2 viewz=-63.0399 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+calib actor depth=3 viewz=-63.0399 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=32737
+    11.525 transition cut
+    11.690 sound s004 vlm=34390 loops=2147483647 offset=0
+    11.690 sound s001 vlm=32768 loops=2147483647 offset=0
+    11.690 sound s002 vlm=32768 loops=2147483647 offset=0
+    11.690 sound s005 vlm=58398 loops=2147483647 offset=0
+    13.025 stereo view: converge=41.1 near=30.6 far=79.8 focal=320px eye=3.041 shift=12px
+    13.025 camera hither=1.0000 yon=5000.0000 fov=51.05deg
+    13.025 bkgd Z deciles 28603 31195 31344 31408 31477 31554 31638 31721 31790 31860 32160
+    13.025 actor Z deciles 30950 31011 31061 31102 31148 31185 31218 31259 31307 31396 31544
+calib camera-to-screen row0 1.17822 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.09464 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+calib actor depth=1 viewz=23.3929 screen x=0.7 y=-0.6 z/w=-1.0106 w=-196.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=23.3929 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=23.3929 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=23.3929 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=23.3929 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=23.3929 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=23.3929 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=23.3929 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=23.3929 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-47.9298 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16358.9258 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-50.8798 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.5781 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-49.8658 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-46.2161 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-46.0086 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-47.8424 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-48.0172 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-45.1384 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-46.9018 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-48.1721 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-45.6441 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-41.4379 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-43.3449 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-44.1974 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-44.8738 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-43.0274 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-45.2746 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-46.6118 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-45.0985 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-40.9144 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-40.9144 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-40.7623 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-38.8117 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-38.8010 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-44.7914 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-39.0111 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-46.7054 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-45.0241 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-41.1234 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-40.8335 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-43.7818 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-42.3658 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-44.5245 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-41.1152 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-40.8178 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-42.9840 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-44.3228 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-36.8461 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-36.6853 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-38.1519 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-41.1152 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-38.4617 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-38.4617 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-38.6684 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-47.6801 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-38.5966 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-38.5966 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-36.5860 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-36.5860 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-48.8585 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-48.8140 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-44.8206 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-45.6107 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-47.3607 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-44.0767 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-46.1513 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-42.6482 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-39.9255 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-39.2380 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-38.9356 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-42.5681 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-43.6630 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-43.6542 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-42.2917 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=1 viewz=-39.6049 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16257.6875 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-39.6049 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-40.5060 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-40.5662 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-38.1371 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=3 viewz=-38.0479 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-40.0061 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+calib actor depth=2 viewz=-39.8634 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31560
+    16.360 sound s006 vlm=65536 loops=1 offset=0
+    16.360 stereo view: converge=15.1 near=11.8 far=36.9 focal=265px eye=1.312 shift=12px
+    16.360 camera hither=1.0000 yon=5000.0000 fov=60.00deg
+    16.360 bkgd Z deciles 26561 27893 28197 28506 28776 29078 29515 30205 30765 30933 65535
+    16.360 actor Z deciles 27650 28105 28267 28316 28367 28442 28586 28828 30120 30221 30399
+calib camera-to-screen row0 0.97441 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 1.73228 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+calib actor depth=1 viewz=-17.8914 screen x=0.0 y=0.1 z/w=-1.0106 w=-196.0000 pixel=(272,152) Z=28296
+calib actor depth=1 viewz=-15.2679 screen x=0.0 y=0.0 z/w=-1.0005 w=-16291.5000 pixel=(272,152) Z=28296
+calib actor depth=1 viewz=-16.8147 screen x=0.0 y=0.0 z/w=-1.0005 w=-16190.0312 pixel=(272,152) Z=28296
+calib actor depth=2 viewz=-18.1289 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-17.7458 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=3 viewz=-17.8676 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-15.7726 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-15.3048 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=3 viewz=-15.0078 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=1 viewz=-16.9424 screen x=0.0 y=0.0 z/w=-1.0005 w=-16190.2227 pixel=(272,152) Z=28296
+calib actor depth=2 viewz=-15.4200 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-14.7085 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=3 viewz=-14.1889 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=3 viewz=-14.1072 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-19.8691 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-21.2941 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=3 viewz=-21.0059 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-17.0627 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=1 viewz=-17.1873 screen x=0.0 y=0.0 z/w=-1.0005 w=-16190.2188 pixel=(272,152) Z=28296
+calib actor depth=2 viewz=-17.1873 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-19.2337 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-16.7242 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=3 viewz=-16.6076 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-16.4414 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-17.4365 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=1 viewz=-32.2665 screen x=0.0 y=0.0 z/w=-1.0005 w=-16190.2188 pixel=(272,152) Z=28296
+calib actor depth=1 viewz=-33.3143 screen x=0.0 y=0.0 z/w=-1.0005 w=-16190.2188 pixel=(272,152) Z=28296
+calib actor depth=1 viewz=-28.7921 screen x=0.0 y=0.0 z/w=-1.0005 w=-16190.2188 pixel=(272,152) Z=28296
+calib actor depth=2 viewz=-28.8196 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-29.8542 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-29.3566 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-30.6154 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=1 viewz=-27.0590 screen x=0.0 y=0.0 z/w=-1.0005 w=-16190.2188 pixel=(272,152) Z=28296
+calib actor depth=2 viewz=-27.4734 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-28.4532 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=3 viewz=-28.9074 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-26.5633 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-27.1833 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=3 viewz=-26.7703 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-28.3199 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=1 viewz=-25.7530 screen x=0.0 y=0.0 z/w=-1.0005 w=-16190.2188 pixel=(272,152) Z=28296
+calib actor depth=2 viewz=-25.7530 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-25.2794 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=3 viewz=-25.3242 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-26.1114 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=3 viewz=-26.1035 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-24.3757 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+calib actor depth=2 viewz=-24.0536 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28250
+    16.360 transition fade-black
+    20.365 sound s007 vlm=65536 loops=1 offset=0
+    20.365 sound s008 vlm=54505 loops=2147483647 offset=0
+    28.700 sound s009 vlm=65536 loops=1 offset=0
+    31.865 sound s010 vlm=65536 loops=1 offset=0
+    32.535 sound s011 vlm=65536 loops=1 offset=0
+    32.865 stereo view: converge=32.0 near=5.4 far=58.8 focal=265px eye=0.199 shift=1px
+    32.865 camera hither=1.0000 yon=5000.0000 fov=60.00deg
+    32.865 bkgd Z deciles 19896 23095 25867 29338 29796 30498 30829 31240 31411 31554 65535
+    32.865 actor Z deciles 30646 30681 30693 30705 30717 30734 30763 30788 30831 30864 30993
+calib camera-to-screen row0 0.97441 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 1.73228 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+calib actor depth=1 viewz=-36.4263 screen x=0.0 y=0.2 z/w=-1.0106 w=-196.0000 pixel=(272,152) Z=31572
+calib actor depth=1 viewz=-36.0910 screen x=0.0 y=0.0 z/w=-1.0005 w=-16294.1484 pixel=(272,152) Z=31572
+calib actor depth=1 viewz=-34.7688 screen x=0.0 y=0.0 z/w=-1.0005 w=-16193.0508 pixel=(272,152) Z=31572
+calib actor depth=2 viewz=-35.4197 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=2 viewz=-34.3066 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=2 viewz=-34.1398 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=2 viewz=-33.2160 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=1 viewz=-33.3879 screen x=0.0 y=0.0 z/w=-1.0005 w=-16193.1562 pixel=(272,152) Z=31572
+calib actor depth=2 viewz=-32.3171 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=2 viewz=-31.7697 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=3 viewz=-31.5454 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=2 viewz=-34.5470 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=2 viewz=-36.6600 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=3 viewz=-36.2523 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=2 viewz=-34.4359 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=1 viewz=-32.5542 screen x=0.0 y=0.0 z/w=-1.0005 w=-16193.1562 pixel=(272,152) Z=31572
+calib actor depth=2 viewz=-32.5542 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=2 viewz=-33.5032 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=3 viewz=-33.5426 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=2 viewz=-31.5869 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=3 viewz=-31.5539 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=2 viewz=-31.2612 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+calib actor depth=2 viewz=-31.7445 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=31573
+    33.200 sound s010 vlm=65536 loops=1 offset=0
+    33.700 sound s011 vlm=65536 loops=1 offset=0
+    34.365 sound s010 vlm=65536 loops=1 offset=0
+    34.865 sound s011 vlm=65536 loops=1 offset=0
+    35.365 stereo view: converge=6.8 near=5.0 far=27.3 focal=265px eye=0.468 shift=9px
+    35.365 camera hither=1.0000 yon=5000.0000 fov=60.00deg
+    35.365 bkgd Z deciles 14775 20946 23470 27861 28785 29053 29549 29828 29981 30208 65535
+    35.365 actor Z deciles 20963 21539 21966 22365 22742 23199 23623 24074 24502 25030 27493
+calib camera-to-screen row0 0.97441 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 1.73228 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+calib actor depth=1 viewz=8.8855 screen x=0.1 y=-0.1 z/w=-1.0106 w=-196.0000 pixel=(272,153) Z=28938
+calib actor depth=1 viewz=6.5340 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16304.4375 pixel=(272,153) Z=28938
+calib actor depth=1 viewz=5.3207 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16201.2930 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=5.8269 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=7.3452 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=3 viewz=7.5718 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=3.7444 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=5.1636 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=3 viewz=5.9361 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=1 viewz=4.8689 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16201.4570 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=0.2010 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=0.0770 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=3 viewz=0.9675 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=3 viewz=1.4671 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=3.9870 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=5.4094 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=3 viewz=7.1066 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=4.4429 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=1 viewz=0.9866 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16201.4531 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=0.9866 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=0.6900 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-0.8414 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=3 viewz=-1.0067 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=3.8739 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=0.9824 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=1 viewz=-6.7272 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16201.4531 pixel=(272,153) Z=28938
+calib actor depth=1 viewz=-7.0209 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16201.4531 pixel=(272,153) Z=28938
+calib actor depth=1 viewz=-6.8936 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16201.4531 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-7.2848 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-8.4517 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-6.5197 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-9.0973 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=1 viewz=-7.6381 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16201.4531 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-6.2018 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-5.0596 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=3 viewz=-4.8667 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-8.2613 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-9.0175 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=3 viewz=-11.0227 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-6.4977 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=1 viewz=-7.4674 screen x=0.0 y=-0.0 z/w=-1.0005 w=-16201.4531 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-7.4674 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-7.8561 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=3 viewz=-7.8441 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-6.8533 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=3 viewz=-6.8238 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-9.0853 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+calib actor depth=2 viewz=-9.0099 screen x=0.0 y=0.0 z/w=0.0000 w=0.0000 pixel=(272,153) Z=28938
+    35.535 sound s010 vlm=65536 loops=1 offset=0
+    37.365 sound s012 vlm=65536 loops=1 offset=0
+    39.365 unused-sound s013
+    39.365 unused-sound s014
+    39.365 unused-sound s015
+    39.365 unused-sound s016
+    39.365 unused-sound s017
+    39.365 unused-sound s018
+    39.365 unused-sound s019
+    39.365 unused-sound s020
+    39.365 unused-sound s021
+    39.365 unused-sound s022
+    39.365 unused-sound s023
+    39.365 unused-sound s024
+    39.365 unused-sound s025
+    39.365 end
