@@ -1,0 +1,29 @@
+     0.000 transition cut
+     0.000 sound s000 vlm=65536 loops=1 offset=0
+     0.000 play
+     0.350 stereo view: converge=25.9 near=25.4 far=-1.0 focal=403px eye=0.872 shift=7px
+     0.350 camera hither=1.0000 yon=5000.0000 fov=41.53deg
+     0.350 bkgd Z deciles 65535 65535 65535 65535 65535 65535 65535 65535 65535 65535 65535
+     0.350 actor Z deciles 30199 30209 30218 30228 30237 30247 30256 30272 30396 30398 30596
+calib camera-to-screen row0 1.48366 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.63762 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+calib actor depth=1 viewz=-27.2918 screen x=0.1 y=0.2 z/w=-1.0070 w=-303.9609 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-27.2918 screen x=0.0 y=0.0 z/w=-1.0005 w=-16310.3789 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-27.2918 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.6914 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-27.2918 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-27.2918 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.7629 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-28.7629 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
+     1.020 sound s001 vlm=65536 loops=1 offset=0
+     1.020 sound s002 vlm=65536 loops=1 offset=0
+     1.020 sound s003 vlm=65536 loops=1 offset=0
+     1.020 sound s004 vlm=65536 loops=1 offset=0
+     1.020 sound s005 vlm=65536 loops=1 offset=0
+     3.850 textbox credits "                In the year 1995, movies"
+    26.935 unused-sound s006
+    26.935 unused-sound s007
+    26.935 unused-sound s008
+    26.935 unused-sound s009
+    26.935 end

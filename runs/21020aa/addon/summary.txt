@@ -1,0 +1,7 @@
+
+movie                   frames addonFrames identical worstPsnr worstFrame
+-----                   ------ ----------- --------- --------- ----------
+Bongo.3mm                  157         157       137     58.00 f000108.bmp
+McZee-in-Bongo-show.3mm    435           -         -     shown 
+
+
