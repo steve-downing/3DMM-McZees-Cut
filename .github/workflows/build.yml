@@ -9,9 +9,54 @@ permissions:
   contents: write
 
 jobs:
+  actors:
+    name: Actor pipeline (Blender)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Blender's Python module
+        run: |
+          sudo apt-get update -q && sudo apt-get install -yq libegl1 libgl1 libglx-mesa0 libgl1-mesa-dri libxkbcommon0 libxi6 libxrender1 libsm6 > /dev/null
+          pip install -q bpy==5.2.3 numpy pillow
+
+      - name: Round trips (3DMM -> Blender -> 3DMM)
+        run: |
+          mkdir -p ci-out/actors
+          set -o pipefail
+          status=0
+          for a in Bongo Gustave Safe "Bino BeGood" Spaceship Explosio Earth; do
+            python tools/actors/roundtrip.py "$a" "work/$a" 2>&1 | grep -v "Deprecation\|use_nodes\|^Fra:" | tee -a ci-out/actors/roundtrip.log || status=1
+          done
+          exit $status
+
+      - name: Build the add-on test
+        if: always()
+        run: |
+          mkdir -p actor-test
+          cp work/Bongo/bongo.3cn work/Bongo/bongo.3th actor-test/
+          cp work/Bongo/thumbnail.png ci-out/actors/bongo-thumbnail.png || true
+          cp cd3/SAMPLES/BONGO.3MM actor-test/Bongo.3mm
+          python tools/actors/retarget_movie.py actor-test/Bongo.3mm actor-test/Bongo-addon.3mm --from Bongo --to actor-test/bongo.3cn
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: actor-test
+          path: |
+            actor-test/
+            ci-out/actors/
+
   compile:
     name: Compile project
     runs-on: windows-2022
+    needs: actors
+    if: ${{ !cancelled() }}
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -40,6 +85,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./tools/render/render-ci.ps1 -BuildDir build -MovieDir test-movies -OutDir ci-out/render
+
+      - name: Get the add-on actor test
+        id: addon
+        if: steps.compile.outcome == 'success' && needs.actors.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: actor-test
+          path: addon-in
+
+      - name: Add-on actor plays like the original
+        if: steps.addon.outcome == 'success'
+        shell: pwsh
+        run: |
+          Copy-Item -Recurse addon-in/ci-out/actors ci-out/ -ErrorAction SilentlyContinue
+          ./tools/actors/addon-test.ps1 -BuildDir build -AddonDir addon-in/actor-test -OutDir ci-out/addon
 
       - name: Package McZee's Cut
         id: package

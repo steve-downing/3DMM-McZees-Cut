@@ -1,0 +1,67 @@
+# CI check for add-on actors: 3DMM loads an exported actor and plays it the
+# same as the original.
+#
+# -AddonDir holds an exported actor (.3cn + .3th), the sample movie it came
+# from, and that movie retargeted at the exported actor (retarget_movie.py,
+# named <movie>-addon.3mm). Renders both movies with the add-on in the content
+# folder and compares every frame.
+param(
+    [string]$BuildDir = "build",
+    [Parameter(Mandatory)] [string]$AddonDir,
+    [string]$OutDir = "ci-out/addon"
+)
+$ErrorActionPreference = "Stop"
+$repo = Resolve-Path "$PSScriptRoot/../.."
+$build = Resolve-Path $BuildDir
+New-Item -ItemType Directory -Force $OutDir | Out-Null
+$OutDir = Resolve-Path $OutDir
+
+$stage = Join-Path $build "stage-addon"
+$product = Join-Path $stage "3D Movie Maker"
+New-Item -ItemType Directory -Force $product | Out-Null
+Copy-Item "$repo/content-files/*.3cn", "$repo/content-files/*.3th" $product
+Copy-Item "$AddonDir/*.3cn", "$AddonDir/*.3th" $product
+$chk = Get-ChildItem -Recurse "$build/chomp/studio" -Filter "utest.chk" | Select-Object -First 1
+Copy-Item $chk.FullName (Join-Path $product "3DMovie.chk")
+$exe = (Get-ChildItem -Recurse $build -Filter "3dmm-render.exe" | Select-Object -First 1).FullName
+"content folder:" | Write-Host; Get-ChildItem $product | Format-Table Name, Length | Out-String | Write-Host
+
+$work = Join-Path ($env:RUNNER_TEMP ?? $build) "addon-work"
+$results = @()
+foreach ($addon in Get-ChildItem $AddonDir -Filter "*-addon.3mm") {
+    $orig = Join-Path $AddonDir ($addon.Name -replace '-addon\.3mm$', '.3mm')
+    $dirs = @{}
+    foreach ($m in @($orig, $addon.FullName)) {
+        $d = Join-Path $work ([IO.Path]::GetFileNameWithoutExtension($m))
+        New-Item -ItemType Directory -Force $d | Out-Null
+        $p = Start-Process -FilePath $exe -PassThru -NoNewWindow `
+            -ArgumentList @("`"$m`"", "`"$d`"", "--root", "`"$stage`"", "--max-frames", "400") `
+            -RedirectStandardOutput "$d.out.txt" -RedirectStandardError "$d.err.txt"
+        $null = $p.Handle
+        if (-not $p.WaitForExit(600000)) { $p.Kill(); throw "$m timed out" }
+        Copy-Item "$d.out.txt", "$d.err.txt" $OutDir
+        if ($p.ExitCode -ne 0) { Get-Content "$d.err.txt" | Write-Host; throw "$m exit $($p.ExitCode)" }
+        $dirs[$m] = $d
+    }
+    $a = Get-ChildItem "$($dirs[$orig])/frames" -Filter *.bmp | Sort-Object Name
+    $b = Get-ChildItem "$($dirs[$addon.FullName])/frames" -Filter *.bmp | Sort-Object Name
+    $same = 0; $worst = [double]::PositiveInfinity; $worstFrame = ""
+    foreach ($i in 0..([Math]::Min($a.Count, $b.Count) - 1)) {
+        if ((Get-FileHash $a[$i].FullName).Hash -eq (Get-FileHash $b[$i].FullName).Hash) { $same++; continue }
+        $log = & ffmpeg -hide_banner -i $a[$i].FullName -i $b[$i].FullName -lavfi psnr -f null - 2>&1 | Out-String
+        $psnr = if ($log -match 'average:(inf|[\d\.]+)') { if ($matches[1] -eq 'inf') { 99 } else { [double]$matches[1] } } else { 0 }
+        if ($psnr -lt $worst) { $worst = $psnr; $worstFrame = $a[$i].Name }
+    }
+    $r = [pscustomobject]@{ movie = $orig | Split-Path -Leaf; frames = $a.Count; addonFrames = $b.Count; identical = $same
+                            worstPsnr = if ($worstFrame) { [Math]::Round($worst, 1) } else { 'all identical' }; worstFrame = $worstFrame }
+    $results += $r
+    # side by side of the worst (or middle) frame for a look
+    $show = if ($worstFrame) { $worstFrame } else { $a[[int]($a.Count / 2)].Name }
+    & ffmpeg -hide_banner -loglevel error -y -i (Join-Path "$($dirs[$orig])/frames" $show) -i (Join-Path "$($dirs[$addon.FullName])/frames" $show) `
+        -filter_complex hstack (Join-Path $OutDir "$($addon.BaseName)-compare.png")
+}
+$results | Format-Table | Out-String | Tee-Object -FilePath (Join-Path $OutDir "summary.txt") | Write-Host
+foreach ($r in $results) {
+    if ($r.frames -eq 0 -or $r.frames -ne $r.addonFrames) { throw "$($r.movie): $($r.frames) frames vs $($r.addonFrames) with the add-on" }
+    if ($r.worstFrame -and $r.worstPsnr -lt 40) { throw "$($r.movie): frame $($r.worstFrame) differs (PSNR $($r.worstPsnr) dB)" }
+}

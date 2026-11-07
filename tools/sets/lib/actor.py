@@ -81,7 +81,8 @@ class Template:
         a = s._kidref('ACTN', anid); akids = s.B.c.chunks[a]['kids']
         cels = gg(s._kid('GGCL', 0, akids)); xf = [mat34(e) for e in gl(s._kid('GLXF', 0, akids))]
         fixed, var = cels[icel % len(cels)]
-        cps = [struct.unpack('<hh', var[i * 4:i * 4 + 4]) for i in range(len(var) // 4)]
+        # 3DMM reads one entry per body part; a few stock cels carry extras
+        cps = [struct.unpack('<hh', var[i * 4:i * 4 + 4]) for i in range(len(s.parent))]
         return [(None if ch == -1 else ch, xf[im]) for ch, im in cps], len(cels)
 
     def material(s, ref):
@@ -263,7 +264,7 @@ def rig(t):
         out = []
         for fixed, var in cels:
             row = []
-            for part in range(len(var) // 4):
+            for part in range(len(t.parent)):         # 3DMM ignores extra entries
                 chid, im = struct.unpack('<hh', var[part * 4:part * 4 + 4])
                 if chid == -1: row.append([-2, im]); continue
                 ref = t._kidref('BMDL', chid)
