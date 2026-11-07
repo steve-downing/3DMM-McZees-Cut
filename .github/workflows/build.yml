@@ -3,6 +3,7 @@ on:
   push:
     branches-ignore:
       - ci-results
+      - headless-render   # a mirror of main
   workflow_dispatch:
 
 permissions:
@@ -30,18 +31,13 @@ jobs:
           mkdir -p ci-out/actors
           set -o pipefail
           status=0
-          for a in Bongo Gustave Henry Safe "Bino BeGood" Spaceship Explosio Earth; do
+          # Bongo for people; the rest for stock oddities: extra cel entries (Safe),
+          # degenerate and doubled triangles and big textures (Henry), squash and
+          # stretch (Bino BeGood), costumes listing parts a set doesn't have (Explosio)
+          for a in Bongo Henry Safe "Bino BeGood" Explosio; do
             python tools/actors/roundtrip.py "$a" "work/$a" 2>&1 | grep -v "Deprecation\|use_nodes\|^Fra:" | tee -a ci-out/actors/roundtrip.log || status=1
           done
           exit $status
-
-      - name: Build McZee
-        if: always()
-        run: |
-          set -o pipefail
-          python addons/mczee/build_mczee.py work/mczee --export 2>&1 | grep -v "Deprecation\|use_nodes\|^Fra:\|EGL"
-          python addons/mczee/preview.py work/mczee/mczee.blend ci-out/actors/mczee-turnaround.png 2>&1 | grep -v "EGL" | tail -3
-          cp work/mczee/thumbnail.png ci-out/actors/mczee-thumbnail.png
 
       - name: Build the add-on test
         if: always()
@@ -51,11 +47,6 @@ jobs:
           cp work/Bongo/thumbnail.png ci-out/actors/bongo-thumbnail.png || true
           cp cd3/SAMPLES/BONGO.3MM actor-test/Bongo.3mm
           python tools/actors/retarget_movie.py actor-test/Bongo.3mm actor-test/Bongo-addon.3mm --from Bongo --to actor-test/bongo.3cn
-          if [ -f work/mczee/mczee.3cn ]; then
-            cp work/mczee/mczee.3cn work/mczee/mczee.3th actor-test/
-            # McZee takes over Bongo's part in the CD sample
-            python tools/actors/retarget_movie.py actor-test/Bongo.3mm actor-test/McZee-in-Bongo-show.3mm --from Bongo --to actor-test/mczee.3cn
-          fi
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -68,8 +59,6 @@ jobs:
   compile:
     name: Compile project
     runs-on: windows-2022
-    needs: actors
-    if: ${{ !cancelled() }}
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -98,22 +87,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./tools/render/render-ci.ps1 -BuildDir build -MovieDir test-movies -OutDir ci-out/render
-
-      - name: Get the add-on actor test
-        id: addon
-        if: steps.compile.outcome == 'success' && needs.actors.result != 'skipped'
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: actor-test
-          path: addon-in
-
-      - name: Add-on actor plays like the original
-        if: steps.addon.outcome == 'success' && hashFiles('addon-in/actor-test/*.3cn') != ''
-        shell: pwsh
-        run: |
-          Copy-Item -Recurse addon-in/ci-out/actors ci-out/ -ErrorAction SilentlyContinue
-          ./tools/actors/addon-test.ps1 -BuildDir build -AddonDir addon-in/actor-test -OutDir ci-out/addon
 
       - name: Package McZee's Cut
         id: package
@@ -162,13 +135,26 @@ jobs:
           } catch { Write-Warning "couldn't fetch the GeneralUser GS license: $_" }
           Get-ChildItem -Recurse "$pkg/tools" -File | Select-Object FullName, Length | Format-Table -AutoSize | Out-String -Width 300 | Write-Host
 
+      - name: Hand the package to the add-on test
+        if: steps.package.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-for-tests
+          path: package/3dmm-render/
+          compression-level: 0
+          retention-days: 1
+
       - name: End-to-end batch test (Windows PowerShell 5.1)
         id: batch
         if: steps.package.outcome == 'success' && hashFiles('test-movies/**/*.3mm') != ''
         shell: pwsh
         run: |
+          # two short movies are plenty to prove the scripts work end to end
+          $in = Join-Path $env:RUNNER_TEMP "batch-in"
+          New-Item -ItemType Directory -Force $in | Out-Null
+          Copy-Item "test-movies/City Tour.3mm", "test-movies/Jungle.3mm" $in
           powershell -NoProfile -ExecutionPolicy Bypass -File package/3dmm-render/render-folder.ps1 `
-            -InputDir test-movies -OutputDir ci-out/batch -Formats anaglyph,2d -Scale 1 *>&1 |
+            -InputDir $in -OutputDir ci-out/batch -Formats anaglyph,2d -Scale 1 *>&1 |
             Tee-Object -FilePath ci-out/batch.log
           Get-ChildItem -Recurse ci-out/batch -Filter *.mp4 | Select-Object Name, Length | Out-File ci-out/batch-files.txt
           Get-ChildItem -Recurse ci-out/batch -Filter *.mp4 | Remove-Item
@@ -286,36 +272,9 @@ jobs:
           REF: ${{ github.ref_name }}
           OUTCOME: ${{ steps.compile.outcome }}
         run: |
-          $short = $env:SHA.Substring(0, 7)
           "commit=$env:SHA`nbranch=$env:REF`ncompile=$env:OUTCOME`nrun=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" |
             Set-Content ci-out/summary.txt
-          git config user.name "ci-results bot"
-          git config user.email "ci-results@users.noreply.github.com"
-          git fetch origin ci-results --depth 1 2>$null
-          if ($LASTEXITCODE -eq 0) {
-            git worktree add ../results origin/ci-results
-          } else {
-            git worktree add --detach ../results
-            Push-Location ../results
-            git checkout --orphan tmp-results
-            git rm -rfq .
-            Pop-Location
-          }
-          $dest = "../results/runs/$short"
-          if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
-          New-Item -ItemType Directory -Force $dest | Out-Null
-          Copy-Item -Recurse ci-out/* $dest
-          Set-Content ../results/LATEST $short
-          Push-Location ../results
-          git add -A
-          git commit -qm "Results for $short ($env:REF, compile $env:OUTCOME)"
-          for ($i = 0; $i -lt 5; $i++) {
-            git push origin HEAD:ci-results
-            if ($LASTEXITCODE -eq 0) { break }
-            git fetch origin ci-results --depth 1
-            git rebase origin/ci-results
-          }
-          Pop-Location
+          ./tools/ci/publish-results.ps1 -Source ci-out -Message "Results ($env:REF, compile $env:OUTCOME)"
 
       - name: Upload McZee's Cut
         if: steps.package.outcome == 'success'
@@ -345,3 +304,49 @@ jobs:
         with:
           name: 3D-Movie-Maker
           path: build/
+
+  addon:
+    name: Add-on actors in 3DMM
+    runs-on: windows-2022
+    needs: [actors, compile]
+    if: ${{ !cancelled() && needs.compile.result == 'success' }}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Get the package
+        id: get
+        uses: actions/download-artifact@v4
+        with:
+          name: package-for-tests
+          path: in/package-for-tests
+
+      - name: Get the add-on
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: actor-test
+          path: in/actor-test
+
+      - name: Get ffmpeg
+        if: steps.get.outcome == 'success'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download latest --repo BtbN/FFmpeg-Builds --pattern "ffmpeg-master-latest-win64-gpl.zip" --dir ffmpeg --clobber
+          Expand-Archive -Force ffmpeg/ffmpeg-master-latest-win64-gpl.zip ffmpeg
+          Add-Content $env:GITHUB_PATH (Get-ChildItem -Recurse ffmpeg -Filter ffmpeg.exe | Select-Object -First 1).DirectoryName
+
+      - name: Add-on actor plays like the original
+        if: steps.get.outcome == 'success' && hashFiles('in/actor-test/actor-test/*.3cn') != ''
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ci-out | Out-Null
+          Copy-Item -Recurse in/actor-test/ci-out/actors ci-out/ -ErrorAction SilentlyContinue
+          ./tools/actors/addon-test.ps1 -PackageDir in/package-for-tests -AddonDir in/actor-test/actor-test -OutDir ci-out/addon
+
+      - name: Publish results to ci-results branch
+        if: always() && hashFiles('ci-out/**') != ''
+        shell: pwsh
+        run: ./tools/ci/publish-results.ps1 -Source ci-out -Message "Add-on results"

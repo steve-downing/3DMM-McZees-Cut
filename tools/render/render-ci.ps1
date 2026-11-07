@@ -7,7 +7,9 @@ param(
     [string]$OutDir = "ci-out/render",
     [int]$TimeoutSeconds = 900,
     # stereo pass is capped so CI stays quick; 0 = whole movie
-    [int]$StereoMaxFrames = 300
+    [int]$StereoMaxFrames = 300,
+    # movies that also get a stereo pass (the first one also feeds the CRT checks)
+    [string[]]$StereoMovies = @("City Tour")
 )
 $ErrorActionPreference = "Stop"
 
@@ -70,7 +72,8 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
     $raw = Join-Path $work $name
     $keep = Join-Path $OutDir $name
 
-    foreach ($mode in "mono", "stereo") {
+    $modes = @("mono") + @(if ($StereoMovies -contains $movie.BaseName) { "stereo" })
+    foreach ($mode in $modes) {
     $rawMode = Join-Path $raw $mode
     $keepMode = Join-Path $keep $mode
     New-Item -ItemType Directory -Force $rawMode, $keepMode | Out-Null

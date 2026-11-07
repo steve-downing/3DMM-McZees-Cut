@@ -1,5 +1,7 @@
 # full-quality renders for review (see build.yml): one test-movies file
-# name per line; lines starting with - are render-folder.ps1 options for all
--Smooth
--Formats 2d,avi
-Hospital.3mm
+# name per line; lines starting with - are render-folder.ps1 options for all,
+# e.g.
+#   -Smooth
+#   -Formats 2d,avi
+#   Hospital.3mm
+# Empty (only comments) means none: this step takes about 12 minutes.

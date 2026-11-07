@@ -6,28 +6,28 @@
 #                      actor; rendered next to <movie>.3mm, every frame compared
 #   <name>-show.3mm    a movie starring a new actor; rendered (smooth) into a
 #                      contact sheet, sample frames and a preview video
+#
+# -PackageDir is a packaged McZee's Cut (3dmm-render.exe, Microsoft Kids\...).
 param(
-    [string]$BuildDir = "build",
+    [Parameter(Mandatory)] [string]$PackageDir,
     [Parameter(Mandatory)] [string]$AddonDir,
     [string]$OutDir = "ci-out/addon"
 )
 $ErrorActionPreference = "Stop"
-$repo = Resolve-Path "$PSScriptRoot/../.."
-$build = Resolve-Path $BuildDir
+$pkg = Resolve-Path $PackageDir
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $OutDir = Resolve-Path $OutDir
 
-$stage = Join-Path $build "stage-addon"
+$tmp = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath() }
+$stage = Join-Path $tmp "stage-addon"
 $product = Join-Path $stage "3D Movie Maker"
 New-Item -ItemType Directory -Force $product | Out-Null
-Copy-Item "$repo/content-files/*.3cn", "$repo/content-files/*.3th" $product
+Copy-Item (Join-Path $pkg "Microsoft Kids/3D Movie Maker/*") $product
 Copy-Item "$AddonDir/*.3cn", "$AddonDir/*.3th" $product
-$chk = Get-ChildItem -Recurse "$build/chomp/studio" -Filter "utest.chk" | Select-Object -First 1
-Copy-Item $chk.FullName (Join-Path $product "3DMovie.chk")
-$exe = (Get-ChildItem -Recurse $build -Filter "3dmm-render.exe" | Select-Object -First 1).FullName
+$exe = Join-Path $pkg "3dmm-render.exe"
 "content folder:" | Write-Host; Get-ChildItem $product | Format-Table Name, Length | Out-String | Write-Host
 
-$work = Join-Path ($env:RUNNER_TEMP ?? $build) "addon-work"
+$work = Join-Path $tmp "addon-work"
 $results = @()
 foreach ($addon in Get-ChildItem $AddonDir -Filter "*-addon.3mm") {
     $orig = Join-Path $AddonDir ($addon.Name -replace '-addon\.3mm$', '.3mm')
@@ -62,7 +62,7 @@ foreach ($addon in Get-ChildItem $AddonDir -Filter "*-addon.3mm") {
         -filter_complex hstack (Join-Path $OutDir "$($addon.BaseName)-compare.png")
 }
 # movies starring new actors: just show them
-$tools = Join-Path $build "tools"
+$tools = Join-Path $pkg "tools"
 $soundFont = Join-Path $tools "GeneralUser-GS.sf2"
 $fluid = Get-ChildItem -Recurse $tools -Filter fluidsynth.exe -ErrorAction SilentlyContinue | Select-Object -First 1
 foreach ($show in Get-ChildItem $AddonDir -Filter "*-show.3mm") {
@@ -89,7 +89,7 @@ foreach ($show in Get-ChildItem $AddonDir -Filter "*-show.3mm") {
     }
     $enc = @{ RenderDir = $d; OutBase = (Join-Path $keep "preview"); Formats = "2d"; Crf = 26 }
     if ($fluid -and (Test-Path $soundFont)) { $enc.SoundFont = $soundFont; $enc.FluidSynth = $fluid.FullName }
-    & "$repo/tools/render/encode-movie.ps1" @enc *>&1 | Out-File (Join-Path $keep "encode.txt")
+    & (Join-Path $pkg "encode-movie.ps1") @enc *>&1 | Out-File (Join-Path $keep "encode.txt")
     $results += [pscustomobject]@{ movie = $show.Name; frames = $frames.Count; addonFrames = '-'; identical = '-'; worstPsnr = 'shown'; worstFrame = '' }
 }
 
