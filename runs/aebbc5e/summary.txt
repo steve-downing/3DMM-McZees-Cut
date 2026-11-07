@@ -1,0 +1,4 @@
+commit=aebbc5e409de6b223c33259352960a1049298b46
+branch=main
+compile=success
+run=https://github.com/steve-downing/3DMM-McZees-Cut/actions/runs/42411578447

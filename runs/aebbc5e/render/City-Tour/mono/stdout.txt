@@ -1,0 +1,7 @@
+movie: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\test-movies\City Tour.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\build\stage
+fonts: 177 TrueType faces available
+scenes: 4
+audio: 1 sounds, 1 cues
+done: 223 frames, 68.37 seconds
+exit code 0
