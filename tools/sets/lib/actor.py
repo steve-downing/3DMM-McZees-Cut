@@ -184,17 +184,77 @@ def to_meshes(parts, M=np.eye(4), name='actor'):
     return [('%s_part%02d' % (name, i), part_mesh(V, UV, F, sm, m, cache, M)) for V, UV, F, sm, m, i in parts]
 
 def rig(t):
-    """Everything needed to play an actor: every (body part, model) pair any cel uses,
-    as a trimesh scene of meshes named m0, m1, ... in the model's own space, and a
-    description of the body tree and every action's cels:
-      parents[part]               parent part, or -1 for the actor root
-      actions[k].xf               base64 little-endian float16, 12 per matrix: BRender 3x4
-                                  matrices, 4 rows of 3 (row-vector convention)
-      actions[k].cels[c][part]    [mesh index or -1, index into xf]: the part's model and
-                                  its transform relative to its parent for that cel"""
-    import trimesh
-    mats, acc = t.costume()
-    scene = trimesh.Scene(); meshes = {}; cache = {}
+    """Everything needed to play an actor in any costume. Returns a trimesh scene and a
+    description (JSON-able):
+
+    Scene: meshes m0, m1, ... = every (body part, model) pair any cel or costume uses,
+    in the model's own space, with the model's raw texture coordinates; and one tiny
+    placeholder mesh mat0, mat1, ... per costume material, to carry its color or texture.
+
+      parents[part]            parent part, or -1 for the actor root
+      meshes                   how many m<k> meshes there are
+      mats[k].uvxf             that material's texture transform (6 numbers, rows of a
+                               3x2 matrix: [u v 1] @ M) or null
+      sets[s].label            where the body part set sits (Head, Top, Bottom, ...)
+      sets[s].parts            its body parts, in order
+      sets[s].options[o]       a costume: mats (material per part in the set, -1 none) and
+                               acc (accessory mesh per part, shown where a cel says so, or -1)
+      actions[k].xf            base64 little-endian float16, 12 per matrix: BRender 3x4
+                               matrices, 4 rows of 3 (row-vector convention)
+      actions[k].cels[c][part] [mesh, xf index]: mesh is m<k>, -1 for none, or -2 for the
+                               part's costume accessory"""
+    import trimesh, base64
+    scene = trimesh.Scene(); meshes = {}
+    plain = trimesh.visual.material.PBRMaterial(baseColorFactor=[1, 1, 1, 1], roughnessFactor=0.85, metallicFactor=0.0)
+    def mesh_index(part, ref):
+        if (part, ref) not in meshes:
+            V, UV, F, sm = model(t.B.get(*ref))
+            if len(F) == 0: meshes[(part, ref)] = -1
+            else:
+                k = sum(1 for v in meshes.values() if v >= 0)
+                N = smooth_by_groups(V, F, sm).reshape(-1, 3)
+                P = V[F].reshape(-1, 3); uv = UV[F].reshape(-1, 2)
+                vis = trimesh.visual.TextureVisuals(uv=np.c_[uv[:, 0], 1 - uv[:, 1]], material=plain)
+                m = trimesh.Trimesh(P, np.arange(len(P)).reshape(-1, 3), vertex_normals=N, visual=vis, process=False)
+                scene.add_geometry(m, geom_name='m%d' % k, node_name='m%d' % k)
+                meshes[(part, ref)] = k
+        return meshes[(part, ref)]
+    # costumes: every option of every body part set
+    mats, mat_index, cache = [], {}, {}
+    def material_index(ref):
+        if ref not in mat_index:
+            m = t.material(ref); k = len(mats)
+            tri = trimesh.Trimesh([[0, -50, 0], [0.01, -50, 0], [0, -49.99, 0]], [[0, 1, 2]], process=False)
+            stub = part_mesh(np.array(tri.vertices), np.zeros((3, 2)), np.array([[0, 1, 2]]), np.zeros(1, int), m, cache)
+            scene.add_geometry(stub, geom_name='mat%d' % k, node_name='mat%d' % k)
+            mats.append(dict(uvxf=[round(float(v), 6) for v in m['uvxf'].ravel()] if 'uvxf' in m else None))
+            mat_index[ref] = k
+        return mat_index[ref]
+    rest, _ = t.cel(0, 0)
+    world = {}
+    def W(i):
+        if i not in world: world[i] = rest[i][1] @ W(t.parent[i]) if t.parent[i] >= 0 else rest[i][1]
+        return world[i]
+    ys = [W(i)[3, 1] for i in range(len(t.parent))]; top = max(ys) or 1
+    sets = []
+    for ibset, cmids in enumerate(t.costumes):
+        parts = [i for i, b in enumerate(t.bset) if b == ibset]
+        opts = []
+        for cmid in cmids:
+            ref = t._kidref('CMTL', cmid); ckids = t.B.c.chunks[ref]['kids']
+            mi, ai = [], []
+            for k, p in enumerate(parts):
+                m = t._kidref('MTRL', k, ckids); a = t._kidref('BMDL', k, ckids)
+                mi.append(material_index(m) if m else -1)
+                ai.append(mesh_index(p, a) if a else -1)
+            opts.append(dict(mats=mi, acc=ai))
+        h = np.mean([ys[p] for p in parts]) / top
+        label = 'Head' if h > 0.8 else 'Top' if h > 0.5 else 'Bottom' if h > 0.2 else 'Feet'
+        sets.append(dict(label=label, parts=parts, options=opts))
+    seen = {}
+    for st in sets:                                   # Head, Head 2, ...
+        seen[st['label']] = seen.get(st['label'], 0) + 1
+        if seen[st['label']] > 1: st['label'] += ' %d' % seen[st['label']]
     actions = []
     for anid in sorted(t.actions):
         a = t._kidref('ACTN', anid); akids = t.B.c.chunks[a]['kids']
@@ -205,20 +265,12 @@ def rig(t):
             row = []
             for part in range(len(var) // 4):
                 chid, im = struct.unpack('<hh', var[part * 4:part * 4 + 4])
-                ref = t._kidref('BMDL', chid) if chid != -1 else acc[part]
-                if ref is None: row.append([-1, im]); continue
-                if (part, ref) not in meshes:
-                    V, UV, F, sm = model(t.B.get(*ref))
-                    if len(F) == 0: meshes[(part, ref)] = -1
-                    else:
-                        k = len([v for v in meshes.values() if v >= 0])
-                        scene.add_geometry(part_mesh(V, UV, F, sm, mats[part], cache), geom_name='m%d' % k, node_name='m%d' % k)
-                        meshes[(part, ref)] = k
-                row.append([meshes[(part, ref)], im])
+                if chid == -1: row.append([-2, im]); continue
+                ref = t._kidref('BMDL', chid)
+                row.append([mesh_index(part, ref) if ref else -1, im])
             out.append(row)
-        import base64
         actions.append(dict(name=t.actions[anid].rstrip(' *'), xf=base64.b64encode(xf.astype('<f2').tobytes()).decode(), cels=out))
-    return scene, dict(parents=t.parent, actions=actions, meshes=len([v for v in meshes.values() if v >= 0]))
+    return scene, dict(parents=t.parent, meshes=sum(1 for v in meshes.values() if v >= 0), mats=mats, sets=sets, actions=actions)
 
 if __name__ == '__main__':
     t = Template(sys.argv[1])

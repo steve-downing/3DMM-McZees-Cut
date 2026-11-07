@@ -74,7 +74,9 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
 #actor-row select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .btn.play { width: 34px; height: 30px; font-size: 0.85rem; padding: 0; }
 .pick { display: inline-flex; align-items: center; gap: 8px; }
-#frame-pick { flex: 1 1 260px; }
+#frame-pick { flex: 1 1 320px; }
+#costumes { flex-wrap: wrap; }
+#costumes select { max-width: 9.5em; }
 #frame { accent-color: var(--gold); flex: 1 1 120px; min-width: 90px; max-width: 360px; }
 #frame-n { font: 500 0.8rem/1 var(--display); letter-spacing: 0.04em; color: var(--muted); min-width: 5.5em; font-variant-numeric: tabular-nums; }
 @media (hover: none), (max-width: 700px) {
@@ -135,7 +137,12 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
     <span class="pick" id="frame-pick" hidden>
       <button type="button" class="btn play" id="play" aria-label="Play">▶</button>
       <input id="frame" type="range" min="0" max="0" value="0" aria-label="Frame">
-      <span id="frame-n"></span></span>
+      <span id="frame-n"></span>
+      <span class="seg"><button type="button" id="smooth" aria-pressed="false" title="Blend between 3DMM's frames and play at 24 fps instead of 6">Smooth</button></span></span>
+  </div>
+  <div class="row" id="costume-row" hidden>
+    <span class="label">Costume</span>
+    <span id="costumes" class="pick"></span>
   </div>
   <div id="cams"></div>
 </div>
@@ -308,67 +315,128 @@ setStyle('toon');
 
 // --- actors ---------------------------------------------------------------
 // One of 3DMM's actors at a time, standing in the aisle facing the rear. Each actor
-// ships as actors/<id>.glb.txt (every model its actions use, in model space, with its
-// default costume) and actors/<id>.json (the body-part tree, and for every action the
-// cels: which model each part shows and its transform relative to its parent).
+// ships as actors/<id>.glb.txt (every model its actions and costumes use, in model space,
+// plus one placeholder per costume material) and actors/<id>.json (body-part tree,
+// costumes, and for every action the cels: which model each part shows and its
+// transform relative to its parent). See rig() in tools/sets/lib/actor.py.
 const actorSel = document.getElementById('actor'), actionSel = document.getElementById('action');
 const frameIn = document.getElementById('frame'), frameN = document.getElementById('frame-n'), playBtn = document.getElementById('play');
 const actionPick = document.getElementById('action-pick'), framePick = document.getElementById('frame-pick');
+const costumeRow = document.getElementById('costume-row'), costumesEl = document.getElementById('costumes'), smoothBtn = document.getElementById('smooth');
 // keep the touch pad clear of the bottom strip, whatever its height
 new ResizeObserver(() => { document.getElementById('pad').style.bottom = 'calc(' + (document.getElementById('strip').offsetHeight + 24) + 'px + env(safe-area-inset-bottom, 0px))'; }).observe(document.getElementById('strip'));
 const ACTOR_SPOT = { x: -0.5, z: 9.0, yaw: Math.PI / 2 };     // aisle, between the tables; models face -x, so this faces the rear
-let actor = null, actorReq = 0, playTimer = null;
+let actor = null, actorReq = 0, playing = null, smooth = false;   // playing: { t0, pos0 } in cels
 
 function f16(h) {
   const s = h & 0x8000 ? -1 : 1, e = (h >> 10) & 31, f = h & 1023;
   return e === 0 ? s * f * 2 ** -24 : e === 31 ? (f ? NaN : s * Infinity) : s * 2 ** (e - 15) * (1 + f / 1024);
 }
-function decodeXf(b64) {
-  const bin = atob(b64), n = bin.length / 2, out = new Float32Array(n);
-  for (let i = 0; i < n; i++) out[i] = f16(bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8));
-  return out;
+function actionXf(act) {
+  // decoded once per action: each matrix as a three.js Matrix4, plus its position / rotation / scale for blending
+  if (act._m) return act._m;
+  const bin = atob(act.xf), n = bin.length / 24, x = new Float32Array(12);
+  act._m = [];
+  for (let k = 0; k < n; k++) {
+    for (let i = 0; i < 12; i++) x[i] = f16(bin.charCodeAt(24 * k + 2 * i) | (bin.charCodeAt(24 * k + 2 * i + 1) << 8));
+    // BRender rows (row vectors, v' = v M) -> three.js column-vector matrix
+    const m = new THREE.Matrix4().set(x[0], x[3], x[6], x[9], x[1], x[4], x[7], x[10], x[2], x[5], x[8], x[11], 0, 0, 0, 1);
+    const p = new THREE.Vector3(), q = new THREE.Quaternion(), s = new THREE.Vector3();
+    m.decompose(p, q, s);
+    // squash-and-stretch cels can shear, which position/rotation/scale can't hold: keep the
+    // remainder and blend it too, so blended poses still land exactly on every cel
+    const res = new Float32Array(16), r = new THREE.Matrix4().compose(p, q, s);
+    for (let i = 0; i < 16; i++) res[i] = m.elements[i] - r.elements[i];
+    act._m.push({ m, p, q, s, res });
+  }
+  return act._m;
+}
+function partMesh(p, m) { return m === -2 ? actor.acc[p] : m; }
+function showMesh(p, m) {
+  if (actor.shown[p] === m) return;
+  if (actor.shown[p] >= 0) actor.meshes[actor.shown[p]].visible = false;
+  if (m >= 0) actor.meshes[m].visible = true;
+  actor.shown[p] = m;
+}
+const _p = new THREE.Vector3(), _q = new THREE.Quaternion(), _s = new THREE.Vector3();
+// pose at cel c, blended a fraction t toward the next cel (models switch halfway)
+function pose(c, t) {
+  const act = actor.meta.actions[actor.action], n = act.cels.length, xf = actionXf(act);
+  const a = act.cels[c], b = act.cels[(c + 1) % n];
+  a.forEach(([ma, xa], p) => {
+    const node = actor.nodes[p], A = xf[xa], B = xf[b[p][1]];
+    if (t > 0 && xa !== b[p][1] && A.q.angleTo(B.q) < 2.0) {     // big flips (over ~115 degrees) snap instead of spinning
+      _p.lerpVectors(A.p, B.p, t); _q.slerpQuaternions(A.q, B.q, t); _s.lerpVectors(A.s, B.s, t);
+      node.matrix.compose(_p, _q, _s);
+      const e = node.matrix.elements;
+      for (let i = 0; i < 16; i++) e[i] += (1 - t) * A.res[i] + t * B.res[i];
+    } else node.matrix.copy(t >= 0.5 ? B.m : A.m);
+    node.matrixWorldNeedsUpdate = true;
+    showMesh(p, partMesh(p, t >= 0.5 ? b[p][0] : ma));
+  });
+  renderer.shadowMap.needsUpdate = true; invalidate();
 }
 function setFrame(c) {
   if (!actor) return;
-  const act = actor.meta.actions[actor.action], n = act.cels.length;
-  c = ((c % n) + n) % n; actor.cel = c;
-  const xf = act._xf || (act._xf = decodeXf(act.xf));
-  act.cels[c].forEach(([m, xi], p) => {
-    const node = actor.nodes[p], r = xi * 12;
-    // BRender rows (row vectors, v' = v M) -> three.js column-vector matrix
-    node.matrix.set(xf[r], xf[r + 3], xf[r + 6], xf[r + 9],
-                    xf[r + 1], xf[r + 4], xf[r + 7], xf[r + 10],
-                    xf[r + 2], xf[r + 5], xf[r + 8], xf[r + 11],
-                    0, 0, 0, 1);
-    node.matrixWorldNeedsUpdate = true;
-    if (actor.shown[p] !== m) {
-      if (actor.shown[p] >= 0) actor.meshes[actor.shown[p]].visible = false;
-      if (m >= 0) actor.meshes[m].visible = true;
-      actor.shown[p] = m;
-    }
-  });
+  const n = actor.meta.actions[actor.action].cels.length;
+  c = ((c % n) + n) % n; actor.cel = c; actor.t = 0;
+  pose(c, 0);
   frameIn.value = c; frameN.textContent = 'Frame ' + (c + 1) + ' / ' + n;
-  renderer.shadowMap.needsUpdate = true; invalidate();
 }
 function setPlaying(on) {
-  clearInterval(playTimer); playTimer = null;
-  if (on && actor && actor.meta.actions[actor.action].cels.length > 1) playTimer = setInterval(() => setFrame(actor.cel + 1), 1000 / 6);
-  playBtn.textContent = playTimer ? '❚❚' : '▶';
-  playBtn.setAttribute('aria-label', playTimer ? 'Pause' : 'Play');
+  playing = on && actor && actor.meta.actions[actor.action].cels.length > 1 ? { t0: performance.now(), pos0: actor.cel + actor.t } : null;
+  playBtn.textContent = playing ? '❚❚' : '▶';
+  playBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+  invalidate();
 }
+// called from the render loop: 3DMM plays 6 cels a second; smooth adds 3 blended poses between cels (24 fps)
+function tickActor(now) {
+  if (!playing || !actor) return;
+  const n = actor.meta.actions[actor.action].cels.length;
+  const pos = playing.pos0 + (now - playing.t0) / 1000 * 6, sub = smooth ? 4 : 1;
+  const q = Math.floor(pos * sub) / sub, c = Math.floor(q) % n, t = q - Math.floor(q);
+  if (c !== actor.cel || t !== actor.t) {
+    if (c !== actor.cel) { frameIn.value = c; frameN.textContent = 'Frame ' + (c + 1) + ' / ' + n; }
+    actor.cel = c; actor.t = t; pose(c, t);
+  }
+}
+smoothBtn.addEventListener('click', () => {
+  smooth = !smooth; smoothBtn.setAttribute('aria-pressed', String(smooth));
+  if (playing) setPlaying(true);
+});
 function setAction(k) {
   if (!actor) return;
   actor.action = k; actionSel.value = k;
   const n = actor.meta.actions[k].cels.length;
-  framePick.hidden = n < 2;
-  frameIn.max = n - 1;
-  if (n < 2) setPlaying(false);
+  framePick.hidden = n < 2; frameIn.max = n - 1;
   setFrame(0);
+  setPlaying(!!playing);   // restart the clock from the first cel (or stop, for one-cel actions)
+}
+function setCostume(s, o) {
+  const set = actor.meta.sets[s], opt = set.options[o];
+  set.parts.forEach((p, k) => {
+    const mat = opt.mats[k] >= 0 ? actor.mats[opt.mats[k]] : null;
+    actor.partMat[p] = mat;
+    actor.acc[p] = opt.acc[k];
+    for (const m of actor.partMeshes[p]) if (mat) actor.meshes[m].traverse(c => { if (c.isMesh) c.material = mat; });
+  });
+  if (actor.t !== undefined) pose(actor.cel, actor.t || 0);
+}
+function buildCostumeUI() {
+  costumesEl.innerHTML = '';
+  actor.meta.sets.forEach((set, s) => {
+    if (set.options.length < 2) return;
+    const sel = document.createElement('select'); sel.setAttribute('aria-label', set.label);
+    set.options.forEach((_, o) => { const op = document.createElement('option'); op.value = o; op.textContent = set.label + ' ' + (o + 1) + '/' + set.options.length; sel.append(op); });
+    sel.addEventListener('change', () => setCostume(s, +sel.value));
+    costumesEl.append(sel);
+  });
+  costumeRow.hidden = !costumesEl.children.length;
 }
 function clearActor() {
   setPlaying(false);
   if (actor) { scene.remove(actor.root); actor.root.traverse(o => { if (o.isMesh) o.geometry.dispose(); }); actor = null; }
-  actionPick.hidden = true; framePick.hidden = true;
+  actionPick.hidden = true; framePick.hidden = true; costumeRow.hidden = true;
   renderer.shadowMap.needsUpdate = true; invalidate();
 }
 async function loadActor(id) {
@@ -384,6 +452,17 @@ async function loadActor(id) {
     for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
     const g = await loader.parseAsync(buf.buffer, '');
     if (req !== actorReq) return;
+    // costume materials, each with its own texture transform
+    const mats = meta.mats.map((mm, k) => {
+      const o = g.scene.getObjectByName('mat' + k); let mat = null;
+      o.traverse(c => { if (c.isMesh && !mat) mat = c.material; });
+      mat = mat.clone(); mat.side = THREE.DoubleSide;
+      if (mat.map) {
+        mat.map = mat.map.clone(); mat.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        if (mm.uvxf) { const u = mm.uvxf; mat.map.matrixAutoUpdate = false; mat.map.matrix.set(u[0], u[2], u[4], u[1], u[3], u[5], 0, 0, 1); }
+      }
+      return mat;
+    });
     const root = new THREE.Group();
     root.position.set(ACTOR_SPOT.x, 0, ACTOR_SPOT.z); root.rotation.y = ACTOR_SPOT.yaw;
     const nodes = meta.parents.map(() => { const n = new THREE.Group(); n.matrixAutoUpdate = false; return n; });
@@ -391,19 +470,21 @@ async function loadActor(id) {
     // which body part each mesh belongs to (a mesh is one model on one part)
     const meshPart = new Array(meta.meshes).fill(-1);
     for (const a of meta.actions) for (const cel of a.cels) cel.forEach(([m], p) => { if (m >= 0) meshPart[m] = p; });
+    for (const set of meta.sets) for (const opt of set.options) set.parts.forEach((p, k) => { if (opt.acc[k] >= 0) meshPart[opt.acc[k]] = p; });
+    const partMeshes = meta.parents.map(() => []);
     const meshes = [];
     for (let k = 0; k < meta.meshes; k++) {
       const o = g.scene.getObjectByName('m' + k);
       o.position.set(0, 0, 0); o.rotation.set(0, 0, 0); o.scale.set(1, 1, 1);
-      o.traverse(c => { if (!c.isMesh) return;
-        c.material.side = THREE.DoubleSide;
-        if (c.material.map) c.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        c.castShadow = true; c.receiveShadow = true; });
+      o.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
       o.visible = false; meshes.push(o);
-      if (meshPart[k] >= 0) nodes[meshPart[k]].add(o);
+      if (meshPart[k] >= 0) { nodes[meshPart[k]].add(o); partMeshes[meshPart[k]].push(k); }
     }
     scene.add(root);
-    actor = { root, nodes, meshes, meta, shown: meta.parents.map(() => -1), action: 0, cel: 0 };
+    actor = { root, nodes, meshes, mats, meta, partMeshes, partMat: [], acc: meta.parents.map(() => -1),
+              shown: meta.parents.map(() => -1), action: 0, cel: 0, t: 0 };
+    meta.sets.forEach((_, s) => setCostume(s, 0));
+    buildCostumeUI();
     actionSel.innerHTML = meta.actions.map((a, k) => '<option value="' + k + '">' + a.name + '</option>').join('');
     actionPick.hidden = false;
     setAction(0);
@@ -419,13 +500,14 @@ fetch('actors/index.json').then(r => r.ok ? r.json() : []).then(list => {
 actorSel.addEventListener('change', () => loadActor(actorSel.value));
 actionSel.addEventListener('change', () => setAction(+actionSel.value));
 frameIn.addEventListener('input', () => { setPlaying(false); setFrame(+frameIn.value); });
-playBtn.addEventListener('click', () => setPlaying(!playTimer));
+playBtn.addEventListener('click', () => setPlaying(!playing));
 
 // start where 3DMM's first camera stood
 { const p = camPose(0); camera.position.copy(p.pos); yaw = p.yaw; pitch = p.pitch; roll = p.roll; camera.fov = p.fov; camera.updateProjectionMatrix(); setCurrent(0); }
 
 let last = performance.now();
 renderer.setAnimationLoop(now => {
+  tickActor(now);
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (anim) {
     let t = Math.min(1, (now - anim.t0) / anim.dur); const s = t * t * (3 - 2 * t);

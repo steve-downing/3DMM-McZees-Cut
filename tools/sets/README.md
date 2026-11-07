@@ -67,14 +67,19 @@ python lib/actor.py Gustave
 The explorer's actor picker uses `viewer/export_actors.py <dir>`. For each of
 the 45 actors in the game's actor browser, it exports two files:
 
-- a `.glb` holding every model that actor's actions use, in the model's own
-  space, wearing the default costume
-- a `.json` with the body-part tree and every action's cels: which model
-  each part shows, and its transform relative to its parent part (float16)
+- a `.glb` holding every model that actor's actions and costumes use, in the
+  model's own space, plus one placeholder mesh per costume material
+- a `.json` with the body-part tree, the costume choices for each body part
+  set, and every action's cels: which model each part shows, and its transform
+  relative to its parent part (float16)
 
 `rig()` in `lib/actor.py` documents the format. Pass that folder as the fourth
 argument to `build_site.py`. The page loads one actor at a time on demand, and
-poses each frame by swapping models and setting part matrices, as 3DMM does.
+poses each frame by swapping models and setting part matrices, as 3DMM does. Its Smooth
+button blends between cels and plays at 24 fps instead of 3DMM's 6. Each part's
+position and scale are blended, its rotation is slerped, and any shear in
+squash-and-stretch cels is blended too. Models switch halfway between cels, and
+flips of more than about 115° snap rather than spin.
 
 `python airplane/actors.py` writes a static pose of two actors standing in the
 aisle (`out/actors.glb`). `viewer/shoot.js` accepts it as an optional fourth
