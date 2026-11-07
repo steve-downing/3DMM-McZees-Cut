@@ -65,6 +65,28 @@ Check that untouched scenes keep their extra chunks.
   never collide.
 - Costume browser thumbnails for add-on actors.
 
+## New content from other games
+
+Converters run on the user's own copies of the games; none of their assets
+go in this repo or its downloads.
+
+- **Background writer.** The piece everything below needs: write BKGD
+  chunks (a picture and a depth map per camera, camera, lights, palette)
+  into an add-on .3cn/.3th, from a 3D scene rendered in Blender.
+- **Minecraft (Java Edition) characters.** Skins and mobs are already rigid
+  boxes, which is exactly how 3DMM actors work. Build the box models from
+  Minecraft's model dimensions and the player's own skin PNG, with a
+  procedural action set (walk, run, jump, sit, wave, talk...). Mob
+  textures come from the user's Minecraft install.
+- **Minecraft worlds as sets.** Read a region of a world save (Anvil
+  .mca files, e.g. from our own server), build it in Blender and render
+  it as a 3DMM background from several camera angles. The real 3D stays
+  available for VR.
+- **Cartooners and Cartooners in Space.** Figure out their file formats,
+  then turn sprites into "paper cutout" actors (flat cards that swap
+  pictures per cel, the way 3DMM swaps models) and backgrounds into sets.
+  Also: original characters and sets in a Cartooners style.
+
 ## Export
 
 - The Save As and Export dialogs: the old portfolio skin and the newer
