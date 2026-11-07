@@ -1,0 +1,7 @@
+movie: addon-in\actor-test\Bongo.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\build\stage-addon
+fonts: 177 TrueType faces available
+scenes: 2
+audio: 12 sounds, 41 cues
+done: 157 frames, 28.02 seconds
+exit code 0

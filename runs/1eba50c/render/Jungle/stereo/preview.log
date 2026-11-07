@@ -1,0 +1,193 @@
+movie: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\test-movies\Jungle.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\build\stage
+stereo: side-by-side, depth 2.50%, pop 1.50%
+fonts: 177 TrueType faces available
+font: @Dotum
+font: @DotumChe
+font: @Gulim
+font: @GulimChe
+font: @Malgun Gothic
+font: @Malgun Gothic Semilight
+font: @Microsoft JhengHei
+font: @Microsoft JhengHei Light
+font: @Microsoft JhengHei UI
+font: @Microsoft JhengHei UI Light
+font: @Microsoft YaHei
+font: @Microsoft YaHei Light
+font: @Microsoft YaHei UI
+font: @Microsoft YaHei UI Light
+font: @MingLiU
+font: @MingLiU_HKSCS
+font: @MingLiU_HKSCS-ExtB
+font: @MingLiU-ExtB
+font: @MS Gothic
+font: @MS PGothic
+font: @MS UI Gothic
+font: @NSimSun
+font: @PMingLiU
+font: @PMingLiU-ExtB
+font: @SimSun
+font: @SimSun-ExtB
+font: @SimSun-ExtG
+font: @Yu Gothic
+font: @Yu Gothic Light
+font: @Yu Gothic Medium
+font: @Yu Gothic UI
+font: @Yu Gothic UI Light
+font: @Yu Gothic UI Semibold
+font: @Yu Gothic UI Semilight
+font: Arabic Transparent
+font: Arial
+font: Arial Baltic
+font: Arial Black
+font: Arial CE
+font: Arial CYR
+font: Arial Greek
+font: Arial TUR
+font: Bahnschrift
+font: Bahnschrift Condensed
+font: Bahnschrift Light
+font: Bahnschrift Light Condensed
+font: Bahnschrift Light SemiCondensed
+font: Bahnschrift SemiBold
+font: Bahnschrift SemiBold Condensed
+font: Bahnschrift SemiBold SemiConden
+font: Bahnschrift SemiCondensed
+font: Bahnschrift SemiLight
+font: Bahnschrift SemiLight Condensed
+font: Bahnschrift SemiLight SemiConde
+font: Calibri
+font: Calibri Light
+font: Cambria
+font: Cambria Math
+font: Candara
+font: Candara Light
+font: Cascadia Code
+font: Cascadia Code ExtraLight
+font: Cascadia Code Light
+font: Cascadia Code SemiBold
+font: Cascadia Code SemiLight
+font: Cascadia Mono
+font: Cascadia Mono ExtraLight
+font: Cascadia Mono Light
+font: Cascadia Mono SemiBold
+font: Cascadia Mono SemiLight
+font: Comic Sans MS
+font: Consolas
+font: Constantia
+font: Corbel
+font: Corbel Light
+font: Courier New
+font: Courier New Baltic
+font: Courier New CE
+font: Courier New CYR
+font: Courier New Greek
+font: Courier New TUR
+font: Dotum
+font: DotumChe
+font: Ebrima
+font: Franklin Gothic Medium
+font: Gabriola
+font: Gadugi
+font: Georgia
+font: Gulim
+font: GulimChe
+font: Impact
+font: Ink Free
+font: Javanese Text
+font: Leelawadee UI
+font: Leelawadee UI Semilight
+font: Lucida Console
+font: Lucida Sans Unicode
+font: Malgun Gothic
+font: Malgun Gothic Semilight
+font: Marlett
+font: Microsoft Himalaya
+font: Microsoft JhengHei
+font: Microsoft JhengHei Light
+font: Microsoft JhengHei UI
+font: Microsoft JhengHei UI Light
+font: Microsoft New Tai Lue
+font: Microsoft PhagsPa
+font: Microsoft Sans Serif
+font: Microsoft Tai Le
+font: Microsoft YaHei
+font: Microsoft YaHei Light
+font: Microsoft YaHei UI
+font: Microsoft YaHei UI Light
+font: Microsoft Yi Baiti
+font: MingLiU
+font: MingLiU_HKSCS
+font: MingLiU_HKSCS-ExtB
+font: MingLiU-ExtB
+font: Mongolian Baiti
+font: MS Gothic
+font: MS PGothic
+font: MS UI Gothic
+font: MV Boli
+font: Myanmar Text
+font: Nirmala UI
+font: Nirmala UI Semilight
+font: NSimSun
+font: Palatino Linotype
+font: PMingLiU
+font: PMingLiU-ExtB
+font: Segoe MDL2 Assets
+font: Segoe Print
+font: Segoe Script
+font: Segoe UI
+font: Segoe UI Black
+font: Segoe UI Emoji
+font: Segoe UI Historic
+font: Segoe UI Light
+font: Segoe UI Semibold
+font: Segoe UI Semilight
+font: Segoe UI Symbol
+font: SimSun
+font: SimSun-ExtB
+font: SimSun-ExtG
+font: Sitka Banner
+font: Sitka Banner Semibold
+font: Sitka Display
+font: Sitka Display Semibold
+font: Sitka Heading
+font: Sitka Heading Semibold
+font: Sitka Small
+font: Sitka Small Semibold
+font: Sitka Subheading
+font: Sitka Subheading Semibold
+font: Sitka Text
+font: Sitka Text Semibold
+font: Sylfaen
+font: Symbol
+font: System
+font: Tahoma
+font: Times New Roman
+font: Times New Roman Baltic
+font: Times New Roman CE
+font: Times New Roman CYR
+font: Times New Roman Greek
+font: Times New Roman TUR
+font: Trebuchet MS
+font: Verdana
+font: Webdings
+font: Wingdings
+font: Yu Gothic
+font: Yu Gothic Light
+font: Yu Gothic Medium
+font: Yu Gothic UI
+font: Yu Gothic UI Light
+font: Yu Gothic UI Semibold
+font: Yu Gothic UI Semilight
+scenes: 8
+stopping at --max-frames 300
+audio: 2 sounds, 2 cues
+done: 300 frames, 44.37 seconds
+exit code 0
+audio: 0 speech, 1 effect and 1 music cues; mode auto
+dialogue: none
+effects:  -23.0 LUFS
+music target: -27.0 LUFS (4 LU under effects (no dialogue))
+  sounds/s000.mid.wav : measured -27.1 LUFS, applied 0.1 dB
+mix: measured -26.3 LUFS, applied 10.3 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -1.0 dBTP
