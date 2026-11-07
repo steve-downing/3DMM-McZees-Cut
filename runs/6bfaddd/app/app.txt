@@ -1,0 +1,11 @@
+exit 0 in 89 s
+
+Name            Length
+----            ------
+City Tour.avi 11795372
+City Tour.log      705
+City Tour.mp4 18685189
+report.csv         154
+
+"movie","status","exit","frames","seconds","missing","missingFonts","outputs"
+"City Tour.3mm","ok","0","223","0.7","","","City Tour.mp4; City Tour.avi"
