@@ -183,8 +183,8 @@ renderer stays faithful to 3DMM.
 
 ### Rendering in GitHub Actions
 
-Every push builds and packages the renderer. If you put movies in
-`test-movies/`, CI also renders quick previews of them. To get full-length
+Every push builds and packages the renderer, then renders quick previews
+of the movies in `test-movies/`: six of the sample movies from the 3DMM CD. To get full-length
 videos of particular movies, list them in `ci-render-requests.txt`, one file
 name per line. Lines starting with `-` are options for all of them, such as
 `-Smooth`. The results are pushed to the `ci-results` branch. On a public

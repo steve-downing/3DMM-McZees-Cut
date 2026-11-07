@@ -138,7 +138,7 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
 
 # --smooth: one movie with blended in-betweens; a strip of consecutive frames
 # shows whether the blends look right
-$dm = Get-ChildItem $MovieDir -Filter "Dueling Morons.3mm" | Select-Object -First 1
+$dm = Get-ChildItem $MovieDir -Filter "Hospital.3mm" | Select-Object -First 1
 if ($dm) {
     $raw = Join-Path $work "smooth"
     $keep = Join-Path $OutDir "smooth"
@@ -192,7 +192,7 @@ if ($crtExe -and $firstMono) {
 $extras = Join-Path $OutDir "extras"
 New-Item -ItemType Directory -Force $extras | Out-Null
 $extrasLog = Join-Path $extras "extras.txt"
-foreach ($case in @(@{ dir = "Super-Bag-Man"; formats = "avi" }, @{ dir = "Dueling-Morons"; formats = "none" })) {
+foreach ($case in @(@{ dir = "City-Tour"; formats = "avi" }, @{ dir = "Hospital"; formats = "none" })) {
     $src = Join-Path $work "$($case.dir)/mono"
     if (-not (Test-Path $src)) { continue }
     $base = Join-Path $extras $case.dir
@@ -226,7 +226,7 @@ if ((Test-Path $gmdls) -and $first) {
 
 # font handling: a copy of a movie whose text box asks for "Courier Prime"
 # (not installed on Windows), rendered without and then with -fonts
-$src = Join-Path $MovieDir "Tamer 4 - Jeff Tamer, Ph.D..3mm"
+$src = Join-Path $MovieDir "Hospital.3mm"
 if (Test-Path $src) {
     $ft = Join-Path $work "fonttest"
     $fontDir = Join-Path $ft "fonts"

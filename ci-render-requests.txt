@@ -1,3 +1,4 @@
 # full-quality renders for review (see build.yml): one test-movies file
 # name per line; lines starting with - are render-folder.ps1 switches for all
 -Smooth
+Hospital.3mm
