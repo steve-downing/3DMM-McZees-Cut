@@ -1507,7 +1507,9 @@ bool RAPP::_FEmitFrame(byte *prgb, ulong dtsOut)
 long RAPP::_IPoseModel(BACT *pbact)
 {
     br_model *pbmdl = pbact->model;
-    long imdl, iv;
+    long imdl, iv, cv, cf;
+    br_vertex *prgv;
+    br_face *prgf;
     PMODL pmodl;
 
     if (pvNil == pbmdl || pvNil == _pglpbmdlPoses)
@@ -1521,16 +1523,29 @@ long RAPP::_IPoseModel(BACT *pbact)
         return -1;
     pmodl = MODL::PmodlFromBmdl(pbmdl);
     pmodl->AddRef(); // keep it, so its address can't be reused for another model
-    fprintf(_pfilePoses, "M %ld %d %d\n", imdl, pbmdl->nvertices, pbmdl->nfaces);
-    for (iv = 0; iv < pbmdl->nvertices; iv++)
+    // 3DMM's own models are stored ready to draw: their geometry is in the
+    // prepared arrays, and the plain ones are empty
+    prgv = pbmdl->vertices;
+    prgf = pbmdl->faces;
+    cv = pbmdl->nvertices;
+    cf = pbmdl->nfaces;
+    if (cv == 0 && pbmdl->nprepared_vertices > 0 && pvNil != pbmdl->prepared_vertices && pvNil != pbmdl->prepared_faces)
     {
-        br_vertex *pv = &pbmdl->vertices[iv];
+        prgv = pbmdl->prepared_vertices;
+        prgf = pbmdl->prepared_faces;
+        cv = pbmdl->nprepared_vertices;
+        cf = pbmdl->nprepared_faces;
+    }
+    fprintf(_pfilePoses, "M %ld %ld %ld\n", imdl, cv, cf);
+    for (iv = 0; iv < cv; iv++)
+    {
+        br_vertex *pv = &prgv[iv];
         fprintf(_pfilePoses, "%.4f %.4f %.4f %.4f %.4f\n", BrScalarToFloat(pv->p.v[0]), BrScalarToFloat(pv->p.v[1]),
                 BrScalarToFloat(pv->p.v[2]), BrScalarToFloat(pv->map.v[0]), BrScalarToFloat(pv->map.v[1]));
     }
-    for (iv = 0; iv < pbmdl->nfaces; iv++)
+    for (iv = 0; iv < cf; iv++)
     {
-        br_face *pf = &pbmdl->faces[iv];
+        br_face *pf = &prgf[iv];
         fprintf(_pfilePoses, "%d %d %d %d\n", pf->vertices[0], pf->vertices[1], pf->vertices[2], pf->smoothing);
     }
     return imdl;
