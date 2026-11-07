@@ -55,8 +55,9 @@ jobs:
           Copy-Item (Get-ChildItem -Recurse build/chomp/studio -Filter utest.chk | Select-Object -First 1).FullName "$pkg/3D Movie Maker/3DMovie.chk"
           # the app, built with the C# compiler that ships with Windows
           $csc = Join-Path $env:WINDIR "Microsoft.NET\Framework\v4.0.30319\csc.exe"
-          & $csc /nologo /langversion:5 /target:winexe /optimize "/out:$pkg/McZee's Cut.exe" `
-            /r:System.Windows.Forms.dll /r:System.Drawing.dll tools/render/app/McZeesCut.cs
+          # (this csc reads "/" in paths as option markers: use backslashes)
+          & $csc /nologo /langversion:5 /target:winexe /optimize "/out:package\3dmm-render\McZee's Cut.exe" `
+            /r:System.Windows.Forms.dll /r:System.Drawing.dll tools\render\app\McZeesCut.cs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: End-to-end batch test (Windows PowerShell 5.1)
