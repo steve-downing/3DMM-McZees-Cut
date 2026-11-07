@@ -1,0 +1,21 @@
+
+Name           Length
+----           ------
+index.tsv         491
+s000.mid         1487
+s000.mid.wav  2576428
+s001.mid         2418
+s001.mid.wav 10143788
+s002.mid         1949
+s002.mid.wav  9525292
+s003.mid         2221
+s003.mid.wav 10143788
+s004.mid         1024
+s004.mid.wav  8114220
+s005.mid          737
+s005.mid.wav  1390636
+s006.wav         4655
+s007.wav        37646
+s008.wav        14185
+s009.wav        65323
+
