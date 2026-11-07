@@ -129,6 +129,7 @@ class Export:
         uvl = me.uv_layers.active
         sg = me.attributes.get('smoothing_group')
         me.calc_loop_triangles()
+        fans = s._fans(me) if sg is None else None
         verts = {}; V = []; UV = []; F = []; SM = []
         for tri in me.loop_triangles:
             poly = me.polygons[tri.polygon_index]
@@ -138,9 +139,7 @@ class Export:
             for li, vi in zip(tri.loops, tri.vertices):
                 uv = tuple(uvl.data[li].uv) if uvl else (0.0, 0.0)
                 # sharp edges: give each side its own vertex so BRender doesn't smooth across
-                side = 0
-                if sg is None and poly.use_smooth:
-                    side = s._side(me, tri.polygon_index, vi)
+                side = fans[(tri.polygon_index, vi)] if fans is not None and poly.use_smooth else 0
                 key = (vi, round(uv[0], 6), round(uv[1], 6), side)
                 if key not in verts:
                     verts[key] = len(V)
@@ -151,32 +150,30 @@ class Export:
         oe.to_mesh_clear()
         return np.array(V), np.array(UV), np.array(F), np.array(SM)
 
-    def _side(s, me, pi, vi):
-        """which smooth fan around vertex vi (split by sharp edges) face pi is in"""
-        key = id(me)
-        if getattr(s, '_fans_key', None) != key:
-            s._fans_key = key; s._fans = {}
-            sharp = me.attributes.get('sharp_edge')
-            sharp = {i for i, d in enumerate(sharp.data) if d.value} if sharp else set()
-            ek = {tuple(sorted(e.vertices)): e.index for e in me.edges}
-            by_v = {}
-            for p in me.polygons:
-                for v in p.vertices: by_v.setdefault(v, []).append(p.index)
-            for v, faces in by_v.items():
-                comp = {f: f for f in faces}
-                def find(x):
-                    while comp[x] != x: x = comp[x]
-                    return x
-                for a in faces:
-                    ea = {tuple(sorted(e)) for e in me.polygons[a].edge_keys if v in e}
-                    for b in faces:
-                        if b <= a: continue
-                        eb = {tuple(sorted(e)) for e in me.polygons[b].edge_keys if v in e}
-                        shared = ea & eb
-                        if shared and not any(ek[e] in sharp for e in shared):
-                            comp[find(a)] = find(b)
-                for f in faces: s._fans[(f, v)] = find(f)
-        return s._fans[(pi, vi)]
+    @staticmethod
+    def _fans(me):
+        """for each (face, vertex): which smooth fan around the vertex the face is in (sharp edges split fans)"""
+        sharp = me.attributes.get('sharp_edge')
+        sharp = {i for i, d in enumerate(sharp.data) if d.value} if sharp else set()
+        ek = {tuple(sorted(e.vertices)): e.index for e in me.edges}
+        by_v = {}
+        for p in me.polygons:
+            for v in p.vertices: by_v.setdefault(v, []).append(p.index)
+        fans = {}
+        for v, faces in by_v.items():
+            comp = {f: f for f in faces}
+            def find(x):
+                while comp[x] != x: x = comp[x]
+                return x
+            edges = {f: {tuple(sorted(e)) for e in me.polygons[f].edge_keys if v in e} for f in faces}
+            for a in faces:
+                for b in faces:
+                    if b <= a: continue
+                    shared = edges[a] & edges[b]
+                    if shared and not any(ek[e] in sharp for e in shared):
+                        comp[find(a)] = find(b)
+            for f in faces: fans[(f, v)] = find(f)
+        return fans
 
     def bmdl(s, o, i, W):
         V, UV, F, SM = s.model_of(o, i, W)

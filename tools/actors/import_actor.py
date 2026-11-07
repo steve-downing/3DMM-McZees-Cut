@@ -88,7 +88,7 @@ def set_labels(t):
     labels, seen = [], {}
     for ibset in range(len(t.costumes)):
         parts = [i for i, b in enumerate(t.bset) if b == ibset]
-        h = np.mean([ys[p] for p in parts]) / top if parts else 0
+        h = max(ys[p] for p in parts) / top if parts else 0     # by its highest joint: hands go with heads
         lab = 'Head' if h > 0.8 else 'Top' if h > 0.5 else 'Bottom' if h > 0.2 else 'Feet'
         seen[lab] = seen.get(lab, 0) + 1
         labels.append(lab if seen[lab] == 1 else '%s%d' % (lab, seen[lab]))
