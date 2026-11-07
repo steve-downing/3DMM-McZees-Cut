@@ -1,0 +1,6 @@
+movie: addon-in\actor-test\Bongo.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\build\stage-addon
+fonts: 177 TrueType faces available
+couldn't open the movie
+open: engine error code 400
+exit code 3
