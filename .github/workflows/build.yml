@@ -232,7 +232,7 @@ jobs:
           '@
             [Windows.Forms.SendKeys]::SendWait("{ENTER}")
             Start-Sleep -Seconds 8
-            $hwnd = [W.U]::FindWindow("3DMOVIE", $null)
+            $hwnd = [W.U]::FindWindow("3DMOVIE", [NullString]::Value)   # a plain $null arrives as ""
             "3DMM window: $hwnd" | Out-File -Append "$app/3dmovie.txt"
             $sw = [Diagnostics.Stopwatch]::StartNew()
             $ex = Start-Process -FilePath "package/3dmm-render/Movie Exporter.exe" -PassThru -ArgumentList @(
@@ -253,6 +253,7 @@ jobs:
             }
             "headless export: exited $($ex.HasExited) code $($ex.ExitCode) in $([Math]::Round($sw.Elapsed.TotalSeconds)) s; video: $(Test-Path "$app/from-3dmm/City Tour.mp4")" |
               Tee-Object -Append "$app/3dmovie.txt"
+            if (-not $ex.HasExited) { Stop-Process -Id $ex.Id -Force }
             Get-Content "$env:LOCALAPPDATA/McZee's Cut/Export log.txt" -ErrorAction SilentlyContinue | Out-File -Append "$app/3dmovie.txt"
             Remove-Item -Recurse "$app/from-3dmm" -ErrorAction SilentlyContinue
           }
