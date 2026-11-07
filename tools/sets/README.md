@@ -215,3 +215,24 @@ textures. That's why the cabin was rebuilt from measured parts.
 - **Camera 7.** Camera 7 sits just outside the cabin's simplified
   overhead-bin corner. The explorer pushes its near clipping plane out at
   that camera (the `NEAR` table in `index.html`).
+
+## Play a movie's scene in 3D
+
+`viewer/scene.html` plays one scene of a movie in the rebuilt cabin: the
+movie's own cameras, or walk around (and VR, where the browser allows it)
+while it plays, with the soundtrack.
+
+```sh
+# 1. capture: render the movie with pose capture (Windows, McZee's Cut package)
+powershell -File render-folder.ps1 -InputDir movies -OutputDir out -Smooth -Poses
+# 2. one scene (numbered from 1) -> the player's data, with its sound cut from the video
+python viewer/export_scene.py "out/My Movie.poses.zip" 13 scene --video "out/My Movie.mp4" --name "My Movie"
+# 3. the page and its files, ready to publish or serve
+python viewer/build_scene_site.py scene site
+```
+
+The capture (`3dmm-render --poses`) records what 3DMM's own engine drew,
+frame by frame: every actor's every body part, its model, material and
+place. So stock actors, add-on actors and 3D text all play back exactly,
+smooth mode included. Only scenes on the airplane set have a 3D set so far.
+

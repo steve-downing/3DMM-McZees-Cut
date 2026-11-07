@@ -1,0 +1,407 @@
+<title>Cabin Scene in 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* A 3DMM scene playing in the rebuilt cartoon cabin. Same look as the set explorer (index.html):
+   the 3D view fills the screen, a transport strip runs along the bottom. Single dark look, by choice. */
+:root {
+  --ink: #12111a;
+  --panel: rgba(24, 22, 36, 0.86);
+  --line: rgba(236, 232, 245, 0.14);
+  --fg: #ece8f5;
+  --muted: #a39fb6;
+  --gold: #d9b45a;
+  --teal: #4f9e88;
+  --display: "Archivo Narrow", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--ink); color: var(--fg); font-family: var(--body); overflow: hidden; }
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#stage canvas:active { cursor: grabbing; }
+
+.hud { position: fixed; z-index: 2; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+#title { top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px));
+  padding: 10px 14px; max-width: min(420px, calc(100% - 32px)); }
+#title h1 { margin: 0; font: 700 1.25rem/1.1 var(--display); letter-spacing: 0.01em; text-wrap: balance; }
+#title p { margin: 4px 0 0; font-size: 0.8rem; color: var(--muted); line-height: 1.4; }
+#title .tag { font: 500 0.7rem/1 var(--display); text-transform: uppercase; letter-spacing: 0.12em; color: var(--gold); }
+
+#help { top: calc(12px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  padding: 10px 14px; font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+#help kbd { font: 700 0.72rem/1 var(--body); color: var(--fg); border: 1px solid var(--line); border-bottom-width: 2px;
+  border-radius: 4px; padding: 1px 5px; }
+
+#strip { left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  width: min(980px, calc(100% - 32px)); padding: 10px 12px; display: grid; gap: 10px; }
+#strip .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.label { font: 500 0.72rem/1 var(--display); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+#time { font: 500 0.85rem/1 var(--display); letter-spacing: 0.04em; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 7.5em; }
+#scrub { accent-color: var(--gold); flex: 1 1 200px; min-width: 120px; }
+.btn { background: rgba(236, 232, 245, 0.08); color: var(--fg); border: 1px solid var(--line); border-radius: 8px;
+  font: 700 1rem/1 var(--body); cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; }
+.btn:active, .btn.on { background: var(--teal); }
+.btn.play { width: 40px; height: 34px; font-size: 0.95rem; padding: 0; }
+.btn:focus-visible, input:focus-visible, .seg button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { font: 700 0.75rem/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+  background: transparent; border: 0; padding: 7px 10px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--gold); color: #1b1726; }
+#vr { font: 700 0.75rem/1 var(--display); letter-spacing: 0.06em; text-transform: uppercase; padding: 8px 12px; margin-left: auto; }
+
+#pad { right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(150px + env(safe-area-inset-bottom, 0px)); padding: 8px; display: none;
+  grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); gap: 6px; }
+#loading { position: fixed; inset: 0; display: grid; place-items: center; font: 500 1rem var(--display);
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); z-index: 1; pointer-events: none; text-align: center; padding: 16px; }
+#start { position: fixed; inset: 0; z-index: 3; display: grid; place-items: center; background: rgba(18, 17, 26, 0.55); }
+#start button { font: 700 1.1rem/1 var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: #1b1726;
+  background: var(--gold); border: 0; border-radius: 999px; padding: 16px 26px; cursor: pointer; box-shadow: 0 6px 24px rgba(0,0,0,.45); }
+#start button:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
+@media (hover: none), (max-width: 700px) {
+  #help { display: none; }
+  #pad { display: grid; }
+}
+@media (max-width: 520px) { #title p { display: none; } }
+</style>
+
+<div id="stage"></div>
+<div id="loading">Loading the scene…</div>
+<div id="start" hidden><button type="button" id="start-btn">▶ Play the scene</button></div>
+
+<div id="title" class="hud">
+  <div class="tag" id="tag">3D Movie Maker scene · in 3D</div>
+  <h1 id="name">A scene, in 3D</h1>
+  <p>Played by 3D Movie Maker's own engine and recorded pose by pose, then staged in the rebuilt cartoon cabin. Walk around while it plays, or follow the movie's own cameras.</p>
+</div>
+
+<div id="help" class="hud">
+  <div>Drag to look around</div>
+  <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to move</div>
+  <div><kbd>Q</kbd> <kbd>E</kbd> down / up · <kbd>Shift</kbd> faster</div>
+  <div><kbd>Space</kbd> play / pause · <kbd>C</kbd> movie camera</div>
+</div>
+
+<div id="pad" class="hud" aria-label="Move">
+  <button class="btn" data-k="KeyQ" aria-label="Down">▾</button>
+  <button class="btn" data-k="KeyW" aria-label="Forward">▲</button>
+  <button class="btn" data-k="KeyE" aria-label="Up">▴</button>
+  <button class="btn" data-k="KeyA" aria-label="Left">◀</button>
+  <button class="btn" data-k="KeyS" aria-label="Back">▼</button>
+  <button class="btn" data-k="KeyD" aria-label="Right">▶</button>
+</div>
+
+<div id="strip" class="hud">
+  <div class="row">
+    <button type="button" class="btn play" id="play" aria-label="Play">▶</button>
+    <input id="scrub" type="range" min="0" max="1000" value="0" step="1" aria-label="Position in the scene">
+    <span id="time">0:00.0 / 0:00.0</span>
+  </div>
+  <div class="row">
+    <span class="label">View</span>
+    <div class="seg" role="group" aria-label="View">
+      <button type="button" id="view-movie" aria-pressed="true" title="Cut along with the movie's cameras">Movie camera</button>
+      <button type="button" id="view-free" aria-pressed="false" title="Walk around while it plays">Walk around</button>
+    </div>
+    <div class="seg"><button type="button" id="loop" aria-pressed="true">Loop</button></div>
+    <button type="button" class="btn" id="vr" hidden>Enter VR</button>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { addSurfaceTexture, makeSkyMaterial, makeSky } from './surface.js';
+
+// the cabin's nine camera views (index = 3DMM's camera number): vertical fov, position, rotation rows
+const CAMS = [{"fov":78.322,"pos":[-18.8661,14.7356,26.3896],"rot":[[0.76547,0.0,0.64323],[0.25063,0.92081,-0.29828],[-0.59233,0.38965,0.7049]]},{"fov":48.082,"pos":[2.9867,15.0424,-17.0295],"rot":[[-0.9951,0.0,-0.09834],[-0.01984,0.97931,0.20058],[0.09631,0.20157,-0.97456]]},{"fov":53.009,"pos":[-18.8391,12.8824,22.8379],"rot":[[0.57831,0.0,0.81569],[0.09409,0.99316,-0.06673],[-0.81017,0.11536,0.5744]]},{"fov":53.009,"pos":[-21.1851,11.759,20.8769],"rot":[[0.13014,0.0,0.99138],[0.0979,0.99503,-0.01286],[-0.9865,0.09875,0.1295]]},{"fov":32.542,"pos":[4.6273,8.7634,21.1018],"rot":[[0.02452,0.0,-0.99963],[0.08409,0.99631,0.00206],[0.996,-0.08414,0.02444]]},{"fov":29.515,"pos":[-5.1183,12.3242,22.863],"rot":[[0.8877,0.0,-0.46004],[-0.05339,0.9931,-0.10301],[0.45688,0.11603,0.88162]]},{"fov":16.436,"pos":[21.675,19.9418,4.6803],"rot":[[-0.38568,0.0,-0.92249],[-0.22585,0.96945,0.09441],[0.89435,0.24481,-0.37392]]},{"fov":41.534,"pos":[-16.3792,11.596,21.9666],"rot":[[0.18062,0.0,-0.98337],[0.21274,0.97617,0.03906],[0.95998,-0.21634,0.17633]]},{"fov":55.662,"pos":[0.0,18.9633,23.8528],"rot":[[0.99994,0.0,0.0],[0.0,0.95938,-0.2816],[0.0,0.28162,0.95938]]}];
+const NEAR = { 6: 2.2 };   // camera 7 sits just outside the simplified bin corner: clip that wall away
+
+const $ = id => document.getElementById(id);
+const loadingEl = $('loading');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.4;
+renderer.xr.enabled = true;
+$('stage').appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x12111a);
+// everything lives in 3DMM's units (about 10 cm); VR shrinks the world to meters
+const world = new THREE.Group(); scene.add(world);
+world.add(makeSky(THREE));
+const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 400);
+camera.rotation.order = 'YXZ';
+const rig = new THREE.Group(); rig.add(camera); scene.add(rig);   // VR moves the rig; on screen it stays put
+
+world.add(new THREE.HemisphereLight(0xfff6e8, 0xc9b8a8, 1.9));
+const sun = new THREE.DirectionalLight(0xfff0d6, 1.3);
+sun.position.set(-14, 40, 18); sun.target.position.set(0, 0, 5);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
+Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 90 });
+world.add(sun, sun.target);
+const lamp = new THREE.PointLight(0xfff2dd, 120, 60, 1.6); lamp.position.set(0, 22, 5); world.add(lamp);
+
+function resize() {
+  if (renderer.xr.isPresenting) return;
+  renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+// ---- loading -----------------------------------------------------------------
+const loader = new GLTFLoader();
+const text = name => fetch(name).then(r => { if (!r.ok) throw new Error(name + ': HTTP ' + r.status); return r.text(); });
+function b64bytes(b64) { const bin = atob(b64.trim()), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); return buf; }
+
+async function loadCabin() {
+  const g = await loader.parseAsync(b64bytes(await text('toon.glb.txt')).buffer, '');
+  g.scene.traverse(o => {
+    if (!o.isMesh) return;
+    const nm = o.name + (o.parent ? o.parent.name : '');
+    const glow = /glow/.test(nm), sky = /sky/.test(nm);
+    o.material = sky ? makeSkyMaterial(THREE) : glow ? new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false })
+      : addSurfaceTexture(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
+    o.castShadow = !glow && !/^cabin/.test(nm);
+    o.receiveShadow = true;
+  });
+  world.add(g.scene);
+}
+
+// The scene (see export_scene.py): frames with their time and the movie's camera, and per
+// frame, per actor on stage, per body part: which model and material, and its world matrix.
+let S = null;   // { meta, models: [Object3D], mats: [Material], actors: [{ group, parts: [{ node, meshes: {} }] }], offs }
+async function loadScene() {
+  const [meta, glb, bin] = await Promise.all([text('scene.json').then(JSON.parse), text('scene.glb.txt'), text('scene.bin.txt')]);
+  const g = await loader.parseAsync(b64bytes(glb).buffer, '');
+  const models = [];
+  for (let k = 0; k < meta.models; k++) {
+    let mesh = null; g.scene.getObjectByName('m' + k).traverse(c => { if (c.isMesh && !mesh) mesh = c; });
+    models.push(mesh);
+  }
+  const mats = meta.mats.map((mm, k) => {
+    let mat = null; g.scene.getObjectByName('mat' + k).traverse(c => { if (c.isMesh && !mat) mat = c.material; });
+    mat = mat.clone(); mat.side = THREE.DoubleSide;
+    if (mat.map) {
+      mat.map = mat.map.clone(); mat.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      if (mm.uvxf) { const u = mm.uvxf; mat.map.matrixAutoUpdate = false; mat.map.matrix.set(u[0], u[2], u[4], u[1], u[3], u[5], 0, 0, 1); }
+    }
+    return mat;
+  });
+  const bytes = b64bytes(bin);
+  const ids = new Int16Array(bytes.buffer, 0, meta.ids_bytes / 2);
+  const xf = new Float32Array(bytes.buffer, meta.xf_offset, (bytes.length - meta.xf_offset) / 4);
+  // where each frame's records start
+  const offs = []; let o = 0;
+  for (const f of meta.frames) { offs.push(o); for (const a of f.actors) o += meta.actors[a].parts; }
+  const actors = meta.actors.map(a => {
+    const group = new THREE.Group(); group.visible = false; world.add(group);
+    const parts = [];
+    for (let p = 0; p < a.parts; p++) {
+      const node = new THREE.Group(); node.matrixAutoUpdate = false; group.add(node);
+      parts.push({ node, meshes: {}, shown: null });
+    }
+    return { group, parts };
+  });
+  S = { meta, models, mats, ids, xf, offs, actors, frame: -1 };
+  $('name').textContent = meta.name;
+  $('tag').textContent = '3D Movie Maker · scene ' + meta.scene + ' · ' + meta.actors.map(a => a.name).join(', ');
+  document.title = meta.name + ' in 3D';
+}
+
+// ---- playing --------------------------------------------------------------------
+function partMesh(part, m, mat) {
+  let mesh = part.meshes[m];
+  if (!mesh) {
+    mesh = new THREE.Mesh(S.models[m].geometry, mat);
+    mesh.castShadow = mesh.receiveShadow = true; mesh.visible = false;
+    part.node.add(mesh); part.meshes[m] = mesh;
+  }
+  return mesh;
+}
+function showFrame(i) {
+  if (!S || i === S.frame) return;
+  S.frame = i;
+  const f = S.meta.frames[i], on = new Set(f.actors);
+  S.actors.forEach((a, k) => { a.group.visible = on.has(k); });
+  let r = S.offs[i];
+  for (const k of f.actors) {
+    for (const part of S.actors[k].parts) {
+      const m = S.ids[2 * r], t = S.ids[2 * r + 1], x = S.xf.subarray(12 * r, 12 * r + 12);
+      // BRender rows (row vectors, v' = v M) -> three.js column-vector matrix
+      part.node.matrix.set(x[0], x[3], x[6], x[9], x[1], x[4], x[7], x[10], x[2], x[5], x[8], x[11], 0, 0, 0, 1);
+      part.node.matrixWorldNeedsUpdate = true;
+      const mesh = m >= 0 ? partMesh(part, m, S.mats[t] || S.mats[0]) : null;
+      if (mesh && t >= 0 && mesh.material !== S.mats[t]) mesh.material = S.mats[t];
+      if (part.shown !== mesh) { if (part.shown) part.shown.visible = false; if (mesh) mesh.visible = true; part.shown = mesh; }
+      r++;
+    }
+  }
+  renderer.shadowMap.needsUpdate = true;
+  if (followMovie && !renderer.xr.isPresenting && f.cam >= 0 && f.cam < CAMS.length) setCam(f.cam);
+}
+function frameAt(ms) {   // the last frame that starts at or before ms
+  const fr = S.meta.frames; let lo = 0, hi = fr.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (fr[mid].t <= ms) lo = mid; else hi = mid - 1; }
+  return lo;
+}
+
+const audio = new Audio(); audio.preload = 'auto';
+let playing = false, clock0 = 0, pos0 = 0, loop = true;
+function now() { return audio.src && !audio.paused ? audio.currentTime * 1000 : playing ? pos0 + performance.now() - clock0 : pos0; }
+function setPlaying(on) {
+  if (!S) return;
+  const t = now();
+  playing = on; pos0 = t >= S.meta.duration ? 0 : t; clock0 = performance.now();
+  if (audio.src) { if (on) { audio.currentTime = pos0 / 1000; audio.play().catch(() => {}); } else audio.pause(); }
+  $('play').textContent = on ? '❚❚' : '▶'; $('play').setAttribute('aria-label', on ? 'Pause' : 'Play');
+}
+function seek(ms) {
+  pos0 = Math.max(0, Math.min(S.meta.duration, ms)); clock0 = performance.now();
+  if (audio.src) audio.currentTime = pos0 / 1000;
+}
+function fmt(ms) { const s = ms / 1000; return Math.floor(s / 60) + ':' + (s % 60).toFixed(1).padStart(4, '0'); }
+$('play').addEventListener('click', () => setPlaying(!playing));
+$('scrub').addEventListener('input', () => { seek($('scrub').value / 1000 * S.meta.duration); });
+$('loop').addEventListener('click', () => { loop = !loop; $('loop').setAttribute('aria-pressed', String(loop)); });
+audio.addEventListener('ended', () => { if (loop) { seek(0); audio.play().catch(() => {}); } else setPlaying(false); });
+
+// ---- the camera: the movie's, or yours ------------------------------------------
+let followMovie = true, yaw = 0, pitch = 0, roll = 0;
+function setCam(i) {
+  const c = CAMS[i], r = c.rot;
+  const m = new THREE.Matrix4().makeBasis(new THREE.Vector3(...r[0]), new THREE.Vector3(...r[1]), new THREE.Vector3(...r[2]));
+  const e = new THREE.Euler().setFromRotationMatrix(m, 'YXZ');
+  camera.position.set(...c.pos); yaw = e.y; pitch = e.x; roll = e.z;
+  camera.fov = c.fov; camera.near = NEAR[i] || 0.05; camera.updateProjectionMatrix();
+}
+function setFollow(on) {
+  followMovie = on;
+  $('view-movie').setAttribute('aria-pressed', String(on)); $('view-free').setAttribute('aria-pressed', String(!on));
+  if (on && S && S.frame >= 0) { const c = S.meta.frames[S.frame].cam; if (c >= 0) setCam(c); }
+}
+$('view-movie').addEventListener('click', () => setFollow(true));
+$('view-free').addEventListener('click', () => setFollow(false));
+function leaveMovieCam() {
+  if (!followMovie) return;
+  setFollow(false);
+  if (camera.near !== 0.05) { camera.near = 0.05; camera.updateProjectionMatrix(); }
+}
+const keys = new Set();
+addEventListener('keydown', e => {
+  if (/^(INPUT|SELECT|BUTTON)$/.test(e.target.tagName) && e.code === 'Space') return;
+  if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); return; }
+  if (e.code === 'KeyC') { setFollow(!followMovie); return; }
+  keys.add(e.code);
+});
+addEventListener('keyup', e => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+document.querySelectorAll('#pad .btn').forEach(b => {
+  const k = b.dataset.k;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); keys.add(k); b.classList.add('on'); b.setPointerCapture(e.pointerId); });
+  const up = () => { keys.delete(k); b.classList.remove('on'); };
+  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+});
+let drag = null;
+const cv = renderer.domElement;
+cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY }; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', e => {
+  if (!drag) return;
+  leaveMovieCam();
+  const k = 0.0042 * (camera.fov / 60);
+  yaw += (e.clientX - drag.x) * k; pitch += (e.clientY - drag.y) * k; pitch = Math.max(-1.5, Math.min(1.5, pitch));
+  drag = { x: e.clientX, y: e.clientY }; roll *= 0.9;
+});
+cv.addEventListener('pointerup', () => { drag = null; });
+cv.addEventListener('wheel', e => { e.preventDefault(); leaveMovieCam();
+  camera.position.addScaledVector(new THREE.Vector3(0, 0, -1).applyEuler(camera.rotation), -e.deltaY * 0.01); }, { passive: false });
+
+// ---- VR -------------------------------------------------------------------------------
+// The world shrinks to meters, you stand in the aisle, and the left stick walks.
+const vrBtn = $('vr');
+if (navigator.xr) navigator.xr.isSessionSupported('immersive-vr').then(ok => { vrBtn.hidden = !ok; }).catch(() => {});
+let xrSession = null;
+vrBtn.addEventListener('click', async () => {
+  if (xrSession) { xrSession.end(); return; }
+  try {
+    xrSession = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor'] });
+    renderer.xr.setReferenceSpaceType('local-floor');
+    await renderer.xr.setSession(xrSession);
+    world.scale.setScalar(0.1);
+    rig.position.set(-0.05, 0, 1.3);          // the aisle, toward the back, facing the front
+    rig.rotation.set(0, 0, 0);
+    vrBtn.textContent = 'Exit VR';
+    if (!playing) setPlaying(true);
+    xrSession.addEventListener('end', () => {
+      xrSession = null; world.scale.setScalar(1); rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0);
+      vrBtn.textContent = 'Enter VR'; resize();
+    });
+  } catch (err) { console.error(err); xrSession = null; }
+});
+function vrMove(dt) {
+  const s = renderer.xr.getSession(); if (!s) return;
+  for (const src of s.inputSources) {
+    const gp = src.gamepad; if (!gp || gp.axes.length < 4) continue;
+    const x = gp.axes[2], y = gp.axes[3];
+    if (src.handedness === 'left' && Math.hypot(x, y) > 0.15) {
+      const head = renderer.xr.getCamera(); const d = new THREE.Vector3(); head.getWorldDirection(d); d.y = 0; d.normalize();
+      const side = new THREE.Vector3(-d.z, 0, d.x);
+      rig.position.addScaledVector(d, -y * 1.4 * dt).addScaledVector(side, x * 1.4 * dt);
+    }
+    if (src.handedness === 'right' && Math.abs(x) > 0.6) {
+      if (!src._turned) { rig.rotation.y -= Math.sign(x) * Math.PI / 6; src._turned = true; }
+    } else if (src.handedness === 'right') src._turned = false;
+  }
+}
+
+// ---- the loop -------------------------------------------------------------------------
+let last = performance.now(), lastScrub = -1;
+renderer.setAnimationLoop(t => { try { frame(t); } catch (err) { console.error(err); } });
+function frame(t) {
+  const dt = Math.min(0.05, (t - last) / 1000); last = t;
+  if (S) {
+    let ms = now();
+    if (playing && !audio.src && ms >= S.meta.duration) { if (loop) { seek(0); ms = 0; } else { setPlaying(false); ms = S.meta.duration; } }
+    showFrame(frameAt(Math.min(ms, S.meta.duration - 1)));
+    const v = Math.round(ms / S.meta.duration * 1000);
+    if (v !== lastScrub && document.activeElement !== $('scrub')) { $('scrub').value = v; lastScrub = v; }
+    $('time').textContent = fmt(Math.min(ms, S.meta.duration)) + ' / ' + fmt(S.meta.duration);
+  }
+  if (renderer.xr.isPresenting) { vrMove(dt); renderer.render(scene, camera); return; }
+  const mv = new THREE.Vector3(
+    (keys.has('KeyD') || keys.has('ArrowRight')) - (keys.has('KeyA') || keys.has('ArrowLeft')),
+    keys.has('KeyE') - keys.has('KeyQ'),
+    (keys.has('KeyS') || keys.has('ArrowDown')) - (keys.has('KeyW') || keys.has('ArrowUp')));
+  if (mv.lengthSq() > 0) {
+    leaveMovieCam();
+    if (camera.fov !== 60) { camera.fov += (60 - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); }
+    roll *= 0.9;
+    const speed = (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 24 : 8) * dt;
+    camera.position.addScaledVector(new THREE.Vector3(mv.x, 0, mv.z).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw), speed);
+    camera.position.y += mv.y * speed;
+  }
+  camera.rotation.set(pitch, yaw, roll);
+  renderer.render(scene, camera);
+}
+
+// ---- start ------------------------------------------------------------------------------
+setCam(0);
+Promise.all([loadCabin(), loadScene(), text('scene.mp3.txt').then(b64 => {
+  audio.src = URL.createObjectURL(new Blob([b64bytes(b64)], { type: 'audio/mpeg' }));
+}).catch(() => {})]).then(() => {
+  loadingEl.hidden = true;
+  showFrame(0);
+  $('start').hidden = false; $('start-btn').focus();
+}).catch(err => { loadingEl.textContent = "Couldn't load the scene: " + err.message; });
+$('start-btn').addEventListener('click', () => { $('start').hidden = true; setPlaying(true); });
+</script>
