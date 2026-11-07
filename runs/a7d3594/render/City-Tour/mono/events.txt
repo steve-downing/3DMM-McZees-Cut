@@ -10,6 +10,7 @@
     24.025 textbox story "The Park "
     30.695 textbox story "The Restaurant "
     35.695 textbox story "The Mall "
+    38.860 textbox story "The Mall "
     38.860 transition dissolve
     52.865 transition dissolve
     63.540 textbox story "The End "

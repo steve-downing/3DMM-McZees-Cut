@@ -1,7 +1,7 @@
 prefetch: exit 0
-window: exit 0 in 86 s
-export improved: exit 0 in 11 s
-export avi: exit 0 in 78 s
+window: exit 0 in 140 s
+export improved: exit 0 in 18 s
+export avi: exit 0 in 124 s
 
 Name                          Length
 ----                          ------
@@ -13,4 +13,4 @@ My City Tour (avi).avi      11603768
 My City Tour (improved).mp4 18685189
 
 "movie","status","exit","frames","seconds","missing","missingFonts","outputs"
-"City Tour.3mm","ok","0","223","0.6","","","City Tour.mp4; City Tour.avi"
+"City Tour.3mm","ok","0","223","1.8","","","City Tour.mp4; City Tour.avi"
