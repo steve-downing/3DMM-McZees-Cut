@@ -9,6 +9,11 @@ on:
 permissions:
   contents: write
 
+# a new push replaces the run in progress (and its download) on the same branch
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   actors:
     name: Actor pipeline (Blender)
@@ -295,8 +300,20 @@ jobs:
           $notes = "Unzip, then run **3dmovie.exe** for 3D Movie Maker (File > Export makes videos), or **Movie Exporter.exe** " +
             "to turn a folder of movies into videos. The first export downloads ffmpeg (about 150 MB). " +
             "Windows may warn that the apps are unrecognized: choose More info, then Run anyway.`n`nBuilt from $env:GITHUB_SHA."
-          gh release delete latest --yes --cleanup-tag 2>$null
-          gh release create latest McZees-Cut.zip --title "McZee's Cut (latest build)" --notes $notes --target $env:GITHUB_SHA --latest
+          # only the newest commit on main publishes; update in place, so there's
+          # never a moment without a download
+          $head = (git ls-remote origin refs/heads/main) -split "\s+" | Select-Object -First 1
+          if ($head -ne $env:GITHUB_SHA) { Write-Host "main has moved on to $head; not publishing"; exit 0 }
+          gh release view latest --json tagName 2>$null | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create latest McZees-Cut.zip --title "McZee's Cut (latest build)" --notes $notes --target $env:GITHUB_SHA --latest
+            exit $LASTEXITCODE
+          }
+          gh release upload latest McZees-Cut.zip --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release edit latest --notes $notes --latest
+          gh api -X PATCH "repos/${{ github.repository }}/git/refs/tags/latest" -f sha=$env:GITHUB_SHA -F force=true | Out-Null
+          if ($LASTEXITCODE -ne 0) { Write-Warning "couldn't move the latest tag (the download is updated)" }
 
       - name: Upload build
         if: steps.compile.outcome == 'success'
