@@ -98,6 +98,10 @@ class BWLD : public BWLD_PAR
 
     // Actor stuff
     void AddActor(BACT *pbact);
+    PBACT PbactWorld(void)
+    {
+        return &_bactWorld;
+    }
     bool FClickedActor(long xp, long yp, BACT **ppbact);
     void IterateActorsInPt(br_pick2d_cbfn *pfnCallback, void *pvArg, long xp, long yp);
     void SetBeginRenderCallback(PFNBEGINREND pfnbeginrend)

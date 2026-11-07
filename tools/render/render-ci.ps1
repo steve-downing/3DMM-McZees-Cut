@@ -136,6 +136,30 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
     }
 }
 
+# --smooth: one movie with blended in-betweens; a strip of consecutive frames
+# shows whether the blends look right
+$dm = Get-ChildItem $MovieDir -Filter "Dueling Morons.3mm" | Select-Object -First 1
+if ($dm) {
+    $raw = Join-Path $work "smooth"
+    $keep = Join-Path $OutDir "smooth"
+    New-Item -ItemType Directory -Force $raw, $keep | Out-Null
+    $sw = [Diagnostics.Stopwatch]::StartNew()
+    $p = Start-Process -FilePath $exe.FullName -PassThru -NoNewWindow -Wait `
+        -ArgumentList @("`"$($dm.FullName)`"", "`"$raw`"", "--root", "`"$stage`"", "--smooth") `
+        -RedirectStandardOutput (Join-Path $keep "stdout.txt") -RedirectStandardError (Join-Path $keep "stderr.txt")
+    "exit $($p.ExitCode) in $([Math]::Round($sw.Elapsed.TotalSeconds, 1)) s" | Out-File (Join-Path $keep "smooth.txt")
+    foreach ($f in "render.log", "events.txt", "timeline.ffconcat") { if (Test-Path "$raw/$f") { Copy-Item "$raw/$f" $keep } }
+    $frames = @(Get-ChildItem "$raw/frames" -Filter *.bmp -ErrorAction SilentlyContinue | Sort-Object Name)
+    if ($frames.Count -gt 16) {
+        $list = Join-Path $raw "strip.txt"
+        $mid = [int]($frames.Count / 2)
+        ($frames[$mid..($mid + 7)] | ForEach-Object { "file '$($_.FullName -replace '\\','/')'" }) | Set-Content $list
+        ffmpeg -hide_banner -loglevel error -y -f concat -safe 0 -i $list -vf "tile=4x2" -frames:v 1 (Join-Path $keep "strip.png")
+        & "$PSScriptRoot/encode-movie.ps1" -RenderDir $raw -OutBase (Join-Path $keep "preview") -Formats 2d `
+            -SoundFont $soundFont -FluidSynth $fluidPath -Scale 1 -Crf 28 *>&1 | Out-File (Join-Path $keep "encode.txt")
+    }
+}
+
 # CRT effects: full-res stills for each preset, and a short encode
 $crtExe = Get-ChildItem -Recurse $build -Filter 3dmm-crt.exe | Select-Object -First 1
 $firstMono = Get-ChildItem $work -Directory | Select-Object -First 1

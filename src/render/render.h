@@ -142,6 +142,7 @@ class RAPP : public RAPP_PAR
     double _pctDepth;
     double _pctPop;
     bool _fDebug;
+    bool _fSmooth;
 
     // engine objects
     PCFL _pcfl;
@@ -177,6 +178,24 @@ class RAPP : public RAPP_PAR
     double _dxpFocal;
     long _dxpShift;
 
+    // --smooth: every BRender actor's transform and model, as last shown and
+    // as about to be shown, for drawing in-between frames
+    struct SNAPA
+    {
+        BACT *pbact;
+        br_transform t;
+        br_model *pbmdl; // holds a reference to its MODL while in a snapshot
+    };
+    SNAPA *_prgsnapPrev;
+    SNAPA *_prgsnapCur;
+    long _csnapPrev;
+    long _csnapCur;
+    long _csnapMax;
+    bool _fSnapPrevValid;
+    ulong _dtsPrevEmit;
+    long _cblendDone;
+    long _cblendHeld;
+
     // audio
     PGL _pglsndf;
     PGL _pglcue;
@@ -201,6 +220,11 @@ class RAPP : public RAPP_PAR
     void _DrawFlatStereo(PMVU pmvu);
     void _LogTextBoxes(void);
     void _DumpStereoDebug(PBWLD pbwld);
+    bool _FSnapshot(PBWLD pbwld, SNAPA *prgsnap, long *pcsnap);
+    void _ReleaseSnapshot(SNAPA *prgsnap, long *pcsnap);
+    void _PoseBetween(double t);
+    void _RenderInto(PMVU pmvu, byte *prgb);
+    void _EmitInBetweens(PMVU pmvu, ulong dtsOut);
     // stereo frames are left eye | right eye | the plain 2-D view
     long _DxpOut(void)
     {

@@ -12,6 +12,10 @@
     how far in front of it things come, as a percentage of picture width
     (defaults 2.5 and 1.5). --debug writes depth maps and depth stats.
 
+    --smooth adds three in-between frames for every 6 fps step in which
+    only actors moved: every actor part's transform is blended between the
+    two frames, so motion plays at 24 fps.
+
     --root is the folder that contains the "3D Movie Maker" content folder
     (normally "C:\Program Files (x86)\Microsoft Kids"); it defaults to the
     folder the renderer lives in.
@@ -23,6 +27,7 @@
         render.log              diagnostics
 ***************************************************************************/
 #include <stdio.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,6 +72,13 @@ RAPP::RAPP(void)
     _pctDepth = 2.5;
     _pctPop = 1.5;
     _fDebug = fFalse;
+    _fSmooth = fFalse;
+    _prgsnapPrev = pvNil;
+    _prgsnapCur = pvNil;
+    _csnapPrev = _csnapCur = _csnapMax = 0;
+    _fSnapPrevValid = fFalse;
+    _dtsPrevEmit = 0;
+    _cblendDone = _cblendHeld = 0;
     _fStereoValid = fFalse;
     _luTboxSig = 0;
     _pgstMissingFonts = pvNil;
@@ -259,6 +271,8 @@ bool RAPP::_FParseCommandLine(void)
             _pctPop = atof(__argv[++iarg]);
         else if (0 == strcmp(psz, "--debug"))
             _fDebug = fTrue;
+        else if (0 == strcmp(psz, "--smooth"))
+            _fSmooth = fTrue;
         else if (carg == 0)
         {
             _stnMovie.SetSz(psz);
@@ -280,7 +294,7 @@ bool RAPP::_FParseCommandLine(void)
     {
         fprintf(stderr, "usage: 3dmm-render <movie.3mm> <outdir> [--root <dir>] [--click-pause <sec>] "
                         "[--fonts <dir>] [--end-hold <sec>] [--max-frames <n>] [--stereo] [--depth <percent>] [--pop "
-                        "<percent>] [--debug]\n");
+                        "<percent>] [--smooth] [--debug]\n");
         return fFalse;
     }
     return fTrue;
@@ -326,6 +340,8 @@ bool RAPP::_FOpenOutput(void)
     _Log("content root: %s", _stnRoot.Psz());
     if (_fStereo)
         _Log("stereo: side-by-side, depth %.2f%%, pop %.2f%%", _pctDepth, _pctPop);
+    if (_fSmooth)
+        _Log("smooth: on (three blended frames between 3DMM's, 24 fps)");
     return fTrue;
 }
 
@@ -531,6 +547,14 @@ bool RAPP::_FLoadMovie(void)
     _prgbCur = (byte *)malloc(cpx * 3);
     _prgbScratch = (byte *)malloc(cpx * 3);
     _prgsuDissolve = (ushort *)malloc(cpx * size(ushort));
+    if (_fSmooth)
+    {
+        _csnapMax = 4096;
+        _prgsnapPrev = (SNAPA *)malloc(_csnapMax * size(SNAPA));
+        _prgsnapCur = (SNAPA *)malloc(_csnapMax * size(SNAPA));
+        if (pvNil == _prgsnapPrev || pvNil == _prgsnapCur)
+            return fFalse;
+    }
     if (pvNil == _prgbEye || pvNil == _prgbPrev || pvNil == _prgbCur || pvNil == _prgbScratch ||
         pvNil == _prgsuDissolve)
         return fFalse;
@@ -599,6 +623,8 @@ bool RAPP::_FRender(void)
     _WriteAudioScript(_DtsOut() + _dtsEndHold);
     _WriteSoundIndex();
     _Event("end");
+    if (_fSmooth)
+        _Log("smooth: %ld steps blended, %ld held (more than actor poses changed)", _cblendDone, _cblendHeld);
     _Log("done: %ld frames, %.2f seconds", _cfrmOut, _DtsOut() / 1000.0);
     return _lwExit == klwExitOk;
 }
@@ -898,6 +924,7 @@ void RAPP::_Capture(void)
     ulong dtsOut;
     byte *prgbT;
     long cb = _DxpOut() * kdypRender * 3;
+    bool fSnap = fFalse;
 
     if (pvNil == _pmvie || pvNil == _pgptCapture || pvNil == (pmvu = _pmvie->PmvuCur()))
         return;
@@ -918,6 +945,13 @@ void RAPP::_Capture(void)
         return;
 
     dtsOut = _DtsOut();
+    if (_fSmooth)
+    {
+        PBWLD pbwld = _pmvie->Pbwld();
+        fSnap = pvNil != _pmvie->Pscen() && pvNil != pbwld && _FSnapshot(pbwld, _prgsnapCur, &_csnapCur);
+        if (fSnap && _fHavePrev && _fSnapPrevValid && trans == transNil)
+            _EmitInBetweens(pmvu, dtsOut);
+    }
     if (_fHavePrev && (trans == transFadeToBlack || trans == transFadeToWhite || trans == transDissolve))
     {
         _EmitTransition(trans, dtsOut);
@@ -938,6 +972,293 @@ void RAPP::_Capture(void)
     _prgbPrev = _prgbCur;
     _prgbCur = prgbT;
     _fHavePrev = fTrue;
+
+    if (_fSmooth)
+    {
+        // what's on screen now is the starting point for the next in-betweens
+        SNAPA *prgsnapT = _prgsnapPrev;
+        _ReleaseSnapshot(_prgsnapPrev, &_csnapPrev);
+        _prgsnapPrev = _prgsnapCur;
+        _csnapPrev = _csnapCur;
+        _prgsnapCur = prgsnapT;
+        _csnapCur = 0;
+        _fSnapPrevValid = fSnap;
+        _dtsPrevEmit = dtsOut;
+    }
+}
+
+/***************************************************************************
+    --smooth. 3DMM moves everything at 6 frames a second. Between two
+    frames that differ only in where things are and which model each
+    actor part shows, draw three more: each BRender actor's transform
+    blended between the two frames, and models switched halfway. Blending
+    happens in position / rotation (slerp) / scale, plus whatever the
+    matrix holds beyond those (shear in squash-and-stretch cels), so the
+    blend lands exactly on both frames.
+
+    Before drawing in-betweens, the earlier frame is redrawn from its
+    saved transforms; unless that matches what was shown, something
+    other than actor transforms changed (a camera cut, text, a costume,
+    an actor arriving), and the interval is left as it was.
+***************************************************************************/
+struct XFD
+{
+    double p[3], q[4], s[3], rgres[12];
+};
+
+static void _MatFromXfd(const double *pp, const double *pq, const double *ps, double rgm[12])
+{
+    double x = pq[0], y = pq[1], z = pq[2], w = pq[3];
+    double rgr[3][3] = {{1 - 2 * (y * y + z * z), 2 * (x * y - w * z), 2 * (x * z + w * y)},
+                        {2 * (x * y + w * z), 1 - 2 * (x * x + z * z), 2 * (y * z - w * x)},
+                        {2 * (x * z - w * y), 2 * (y * z + w * x), 1 - 2 * (x * x + y * y)}};
+    long i, j;
+
+    // BRender rows are the transformed axes: row j = column j of R, times scale j
+    for (j = 0; j < 3; j++)
+        for (i = 0; i < 3; i++)
+            rgm[j * 3 + i] = rgr[i][j] * ps[j];
+    for (i = 0; i < 3; i++)
+        rgm[9 + i] = pp[i];
+}
+
+static void _Decompose(br_matrix34 *pbmat, XFD *pxfd)
+{
+    double rgm[12], rgr[3][3], rgmT[12];
+    double det, tr, s;
+    long i, j;
+
+    for (j = 0; j < 4; j++)
+        for (i = 0; i < 3; i++)
+            rgm[j * 3 + i] = BrScalarToFloat(pbmat->m[j][i]);
+    for (j = 0; j < 3; j++)
+        pxfd->s[j] = sqrt(rgm[j * 3] * rgm[j * 3] + rgm[j * 3 + 1] * rgm[j * 3 + 1] + rgm[j * 3 + 2] * rgm[j * 3 + 2]);
+    det = rgm[0] * (rgm[4] * rgm[8] - rgm[5] * rgm[7]) - rgm[1] * (rgm[3] * rgm[8] - rgm[5] * rgm[6]) +
+          rgm[2] * (rgm[3] * rgm[7] - rgm[4] * rgm[6]);
+    if (det < 0)
+        pxfd->s[0] = -pxfd->s[0];
+    for (j = 0; j < 3; j++)
+        for (i = 0; i < 3; i++)
+            rgr[i][j] = pxfd->s[j] != 0 ? rgm[j * 3 + i] / pxfd->s[j] : (i == j);
+    tr = rgr[0][0] + rgr[1][1] + rgr[2][2];
+    if (tr > 0)
+    {
+        s = 0.5 / sqrt(tr + 1);
+        pxfd->q[3] = 0.25 / s;
+        pxfd->q[0] = (rgr[2][1] - rgr[1][2]) * s;
+        pxfd->q[1] = (rgr[0][2] - rgr[2][0]) * s;
+        pxfd->q[2] = (rgr[1][0] - rgr[0][1]) * s;
+    }
+    else if (rgr[0][0] > rgr[1][1] && rgr[0][0] > rgr[2][2])
+    {
+        s = 2 * sqrt(1 + rgr[0][0] - rgr[1][1] - rgr[2][2]);
+        pxfd->q[3] = (rgr[2][1] - rgr[1][2]) / s;
+        pxfd->q[0] = 0.25 * s;
+        pxfd->q[1] = (rgr[0][1] + rgr[1][0]) / s;
+        pxfd->q[2] = (rgr[0][2] + rgr[2][0]) / s;
+    }
+    else if (rgr[1][1] > rgr[2][2])
+    {
+        s = 2 * sqrt(1 + rgr[1][1] - rgr[0][0] - rgr[2][2]);
+        pxfd->q[3] = (rgr[0][2] - rgr[2][0]) / s;
+        pxfd->q[0] = (rgr[0][1] + rgr[1][0]) / s;
+        pxfd->q[1] = 0.25 * s;
+        pxfd->q[2] = (rgr[1][2] + rgr[2][1]) / s;
+    }
+    else
+    {
+        s = 2 * sqrt(1 + rgr[2][2] - rgr[0][0] - rgr[1][1]);
+        pxfd->q[3] = (rgr[1][0] - rgr[0][1]) / s;
+        pxfd->q[0] = (rgr[0][2] + rgr[2][0]) / s;
+        pxfd->q[1] = (rgr[1][2] + rgr[2][1]) / s;
+        pxfd->q[2] = 0.25 * s;
+    }
+    s = sqrt(pxfd->q[0] * pxfd->q[0] + pxfd->q[1] * pxfd->q[1] + pxfd->q[2] * pxfd->q[2] + pxfd->q[3] * pxfd->q[3]);
+    for (i = 0; i < 4; i++)
+        pxfd->q[i] = s > 0 ? pxfd->q[i] / s : (i == 3);
+    for (i = 0; i < 3; i++)
+        pxfd->p[i] = rgm[9 + i];
+    _MatFromXfd(pxfd->p, pxfd->q, pxfd->s, rgmT);
+    for (i = 0; i < 12; i++)
+        pxfd->rgres[i] = rgm[i] - rgmT[i];
+}
+
+// blend two transforms; false if the turn between them is too big to blend
+static bool _FBlend(br_matrix34 *pbmatA, br_matrix34 *pbmatB, double t, br_matrix34 *pbmatOut)
+{
+    XFD xa, xb;
+    double p[3], q[4], s[3], rgm[12], dot, ang, wa, wb, sn;
+    long i, j;
+
+    _Decompose(pbmatA, &xa);
+    _Decompose(pbmatB, &xb);
+    dot = xa.q[0] * xb.q[0] + xa.q[1] * xb.q[1] + xa.q[2] * xb.q[2] + xa.q[3] * xb.q[3];
+    if (dot < 0)
+    {
+        dot = -dot;
+        for (i = 0; i < 4; i++)
+            xb.q[i] = -xb.q[i];
+    }
+    if (dot > 1)
+        dot = 1;
+    ang = acos(dot); // half the turn
+    if (2 * ang > 2.0)
+        return fFalse; // over ~115 degrees: a flip, not a motion
+    if (ang < 1e-6)
+        wa = 1 - t, wb = t;
+    else
+    {
+        sn = sin(ang);
+        wa = sin((1 - t) * ang) / sn;
+        wb = sin(t * ang) / sn;
+    }
+    for (i = 0; i < 4; i++)
+        q[i] = wa * xa.q[i] + wb * xb.q[i];
+    for (i = 0; i < 3; i++)
+    {
+        p[i] = xa.p[i] + (xb.p[i] - xa.p[i]) * t;
+        s[i] = xa.s[i] + (xb.s[i] - xa.s[i]) * t;
+    }
+    _MatFromXfd(p, q, s, rgm);
+    for (j = 0; j < 4; j++)
+        for (i = 0; i < 3; i++)
+            pbmatOut->m[j][i] =
+                BrFloatToScalar(rgm[j * 3 + i] + (1 - t) * xa.rgres[j * 3 + i] + t * xb.rgres[j * 3 + i]);
+    return fTrue;
+}
+
+bool RAPP::_FSnapshot(PBWLD pbwld, SNAPA *prgsnap, long *pcsnap)
+{
+    BACT *rgpbactStack[512];
+    long cpbact = 0;
+    BACT *pbact;
+
+    _ReleaseSnapshot(prgsnap, pcsnap);
+    if (pvNil == pbwld)
+        return fFalse;
+    for (pbact = pbwld->PbactWorld()->children; pvNil != pbact; pbact = pbact->next)
+        rgpbactStack[cpbact++] = pbact;
+    while (cpbact > 0)
+    {
+        pbact = rgpbactStack[--cpbact];
+        if (*pcsnap >= _csnapMax)
+            return fFalse;
+        prgsnap[*pcsnap].pbact = pbact;
+        prgsnap[*pcsnap].t = pbact->t;
+        prgsnap[*pcsnap].pbmdl = pbact->model;
+        if (pvNil != pbact->model)
+            MODL::PmodlFromBmdl(pbact->model)->AddRef();
+        (*pcsnap)++;
+        for (BACT *pbactKid = pbact->children; pvNil != pbactKid; pbactKid = pbactKid->next)
+        {
+            if (cpbact >= 512)
+                return fFalse;
+            rgpbactStack[cpbact++] = pbactKid;
+        }
+    }
+    return fTrue;
+}
+
+void RAPP::_ReleaseSnapshot(SNAPA *prgsnap, long *pcsnap)
+{
+    long isnap;
+
+    for (isnap = 0; isnap < *pcsnap; isnap++)
+    {
+        if (pvNil != prgsnap[isnap].pbmdl)
+        {
+            PMODL pmodl = MODL::PmodlFromBmdl(prgsnap[isnap].pbmdl);
+            ReleasePpo(&pmodl);
+        }
+    }
+    *pcsnap = 0;
+}
+
+/***************************************************************************
+    Pose every actor a fraction t of the way from the shown frame
+    (_prgsnapPrev) to the coming one (_prgsnapCur). t = 0 restores the
+    shown frame exactly; t = 1 the coming one. Actors that only exist in
+    the coming frame stay as they are.
+***************************************************************************/
+void RAPP::_PoseBetween(double t)
+{
+    long isnap, jsnap;
+
+    for (isnap = 0; isnap < _csnapCur; isnap++)
+    {
+        SNAPA *psnapB = &_prgsnapCur[isnap], *psnapA = pvNil;
+        BACT *pbact = psnapB->pbact;
+
+        for (jsnap = 0; jsnap < _csnapPrev; jsnap++)
+        {
+            if (_prgsnapPrev[jsnap].pbact == pbact)
+            {
+                psnapA = &_prgsnapPrev[jsnap];
+                break;
+            }
+        }
+        if (pvNil == psnapA || t >= 1)
+        {
+            pbact->t = psnapB->t;
+            pbact->model = psnapB->pbmdl;
+            continue;
+        }
+        pbact->model = (t < 0.5) ? psnapA->pbmdl : psnapB->pbmdl;
+        if (t <= 0)
+            pbact->t = psnapA->t;
+        else if (psnapA->t.type != BR_TRANSFORM_MATRIX34 || psnapB->t.type != BR_TRANSFORM_MATRIX34 ||
+                 FEqualRgb(&psnapA->t, &psnapB->t, size(br_transform)))
+            pbact->t = (t < 0.5) ? psnapA->t : psnapB->t;
+        else
+        {
+            pbact->t = psnapB->t;
+            if (!_FBlend(&psnapA->t.t.mat, &psnapB->t.t.mat, t, &pbact->t.t.mat))
+                pbact->t = (t < 0.5) ? psnapA->t : psnapB->t;
+        }
+    }
+}
+
+void RAPP::_RenderInto(PMVU pmvu, byte *prgb)
+{
+    PBWLD pbwld = _pmvie->Pbwld();
+    byte *prgbSave = _prgbCur;
+
+    pbwld->MarkDirty();
+    pbwld->Render();
+    _prgbCur = prgb;
+    _DrawFrame(pmvu);
+    _prgbCur = prgbSave;
+}
+
+void RAPP::_EmitInBetweens(PMVU pmvu, ulong dtsOut)
+{
+    long cb = _DxpOut() * kdypRender * 3;
+    ulong dts = dtsOut - _dtsPrevEmit;
+    long k;
+
+    // only across one ordinary 6 fps step; held frames stay held
+    if (dts < kdtsSecond / 10 || dts > kdtsSecond / 4)
+        return;
+
+    _PoseBetween(0);
+    _RenderInto(pmvu, _prgbScratch);
+    if (FEqualRgb(_prgbScratch, _prgbPrev, cb))
+    {
+        for (k = 1; k < 4; k++)
+        {
+            _PoseBetween(k / 4.0);
+            _RenderInto(pmvu, _prgbScratch);
+            _FEmitFrame(_prgbScratch, _dtsPrevEmit + LwMulDiv(k, dts, 4));
+        }
+        _cblendDone++;
+    }
+    else
+        _cblendHeld++;
+
+    // back to the coming frame, and leave the world drawn that way
+    _PoseBetween(1);
+    _pmvie->Pbwld()->MarkDirty();
+    _pmvie->Pbwld()->Render();
 }
 
 /***************************************************************************

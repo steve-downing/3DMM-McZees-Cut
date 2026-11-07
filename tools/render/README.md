@@ -42,6 +42,7 @@ text uses 3DMM's own fonts and is never affected.
 | Option | Default | What it does |
 |---|---|---|
 | `-Stereo` | off | render 3D |
+| `-Smooth` | off | blend actor motion between 3DMM's 6 fps frames: videos play at 24 fps (below) |
 | `-Depth` | 2.5 | how far behind the screen the scene can go (% of width) |
 | `-Formats` | all | any of `sbs`, `anaglyph`, `2d`, `crt`, `avi` |
 | `-Scale` | 2 | nearest-neighbor upscale (2 gives 1088×612 per eye) |
@@ -187,3 +188,27 @@ Exit codes:
   so all of this matches.
 - **Music.** MIDI is rendered with FluidSynth, so it will sound different
   from the Windows 95 wavetable synth you remember.
+
+## Smooth motion (`-Smooth`)
+
+3D Movie Maker moves everything at 6 frames a second. With `-Smooth`, the
+renderer draws three in-between frames for every 6 fps step, and the videos
+play at 24 fps.
+
+- **What gets blended.** Every actor part's position, rotation and scale is
+  blended between the two frames. So is any shear in squash-and-stretch
+  cels, so each blended run still lands exactly on 3DMM's own frames.
+- **Model swaps.** When a part changes to a different model, such as a new
+  hand shape or mouth, the swap happens halfway between the two frames.
+- **Flips.** A part that turns more than about 115° in one step snaps
+  rather than spinning through the turn.
+- **Steps left alone.** Steps where anything besides actor poses changes are
+  left as they were, with no in-betweens. That includes a camera cut, a
+  text box, a costume change or an actor entering. Steps longer than one
+  frame are also left alone, so held poses stay held.
+- **The log.** `render.log` ends with a count of the steps that were
+  blended and the steps that were held.
+
+Sound timing is unchanged. Transitions stay at 15 fps, and `.avi` output
+stays at 15 fps.
+

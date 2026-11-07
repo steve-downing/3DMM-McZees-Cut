@@ -20,6 +20,7 @@ param(
     [string]$Root,
     [string]$Renderer,
     [switch]$Stereo,
+    [switch]$Smooth,
     [double]$Depth = 2.5,
     [string[]]$Formats,
     [string]$SoundFont = $env:SOUNDFONT,
@@ -136,6 +137,7 @@ foreach ($movie in $movies) {
 
     $rargs = @("`"$($movie.FullName)`"", "`"$work`"", "--root", "`"$Root`"", "--click-pause", "$ClickPause", "--end-hold", "$EndHold")
     if ($Stereo) { $rargs += @("--stereo", "--depth", "$Depth") }
+    if ($Smooth) { $rargs += "--smooth" }
     if ($Fonts) { $rargs += @("--fonts", "`"$Fonts`"") }
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $proc = Start-Process -FilePath $Renderer -ArgumentList $rargs -PassThru -NoNewWindow `

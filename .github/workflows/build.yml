@@ -71,14 +71,19 @@ jobs:
         if: steps.package.outcome == 'success' && hashFiles('ci-render-requests.txt') != ''
         shell: pwsh
         run: |
-          # one test-movies file name per line; outputs land in ci-results
+          # one test-movies file name per line, or a render-folder.ps1 switch
+          # such as -Smooth (applies to all); outputs land in ci-results
           $req = Join-Path $env:RUNNER_TEMP "requested"
           New-Item -ItemType Directory -Force $req | Out-Null
-          Get-Content ci-render-requests.txt | Where-Object { $_.Trim() } |
-            ForEach-Object { Copy-Item -LiteralPath (Join-Path test-movies $_.Trim()) $req }
+          $lines = @(Get-Content ci-render-requests.txt | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') })
+          $switches = @()
+          foreach ($l in $lines) {
+            if ($l.StartsWith('-')) { $switches += $l }
+            else { Copy-Item -LiteralPath (Join-Path test-movies $l) $req }
+          }
           if (Test-Path build/tools) { Copy-Item -Recurse build/tools package/3dmm-render/tools -ErrorAction SilentlyContinue }
           powershell -NoProfile -ExecutionPolicy Bypass -File package/3dmm-render/render-folder.ps1 `
-            -InputDir $req -OutputDir ci-out/full -Formats 2d *>&1 | Tee-Object -FilePath ci-out/full.log
+            -InputDir $req -OutputDir ci-out/full -Formats 2d @switches *>&1 | Tee-Object -FilePath ci-out/full.log
           Remove-Item -Recurse -Force package/3dmm-render/tools -ErrorAction SilentlyContinue
 
       - name: Publish results to ci-results branch

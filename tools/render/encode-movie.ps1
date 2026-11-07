@@ -241,6 +241,8 @@ try {
     }
 
     $failed = 0
+    # --smooth renders blend motion to 24 fps; everything else is 6 fps steps, shown at 30
+    $fps = if ((Test-Path render.log) -and (Select-String -Quiet -Path render.log -Pattern 'smooth: on')) { 24 } else { 30 }
     foreach ($fmt in $Formats) {
         if ($fmt -eq "none") { continue }   # e.g. just -ExtractSounds
         $out = "$OutBase.$fmt.mp4"
@@ -281,7 +283,7 @@ try {
             default    { throw "unknown format $fmt" }
         }
         if (-not $vf) { Write-Warning "$fmt needs a --stereo render; skipped"; continue }
-        $vf = "$vf,scale=iw*${Scale}:ih*${Scale}:flags=neighbor,fps=30,format=yuv420p"
+        $vf = "$vf,scale=iw*${Scale}:ih*${Scale}:flags=neighbor,fps=$fps,format=yuv420p"
         $inputs = @("-f", "concat", "-safe", "0", "-i", "timeline.ffconcat") + $audioInputs
         ffmpeg -hide_banner -loglevel error -y @inputs -vf $vf -map 0:v @audioMaps -c:v libx264 -crf $Crf -preset medium `
             -movflags +faststart -shortest $out

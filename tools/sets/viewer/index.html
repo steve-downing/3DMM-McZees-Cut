@@ -138,7 +138,7 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
       <button type="button" class="btn play" id="play" aria-label="Play">▶</button>
       <input id="frame" type="range" min="0" max="0" value="0" aria-label="Frame">
       <span id="frame-n"></span>
-      <span class="seg"><button type="button" id="smooth" aria-pressed="false" title="Blend between 3DMM's frames and play at 24 fps instead of 6">Smooth</button></span></span>
+      <span class="seg"><button type="button" id="smooth" aria-pressed="true" title="Blend between 3DMM's frames and play at 24 fps instead of 6">Smooth</button></span></span>
   </div>
   <div class="row" id="costume-row" hidden>
     <span class="label">Costume</span>
@@ -326,7 +326,7 @@ const costumeRow = document.getElementById('costume-row'), costumesEl = document
 // keep the touch pad clear of the bottom strip, whatever its height
 new ResizeObserver(() => { document.getElementById('pad').style.bottom = 'calc(' + (document.getElementById('strip').offsetHeight + 24) + 'px + env(safe-area-inset-bottom, 0px))'; }).observe(document.getElementById('strip'));
 const ACTOR_SPOT = { x: -0.5, z: 9.0, yaw: Math.PI / 2 };     // aisle, between the tables; models face -x, so this faces the rear
-let actor = null, actorReq = 0, playing = null, smooth = false;   // playing: { t0, pos0 } in cels
+let actor = null, actorReq = 0, playing = null, smooth = true;   // playing: { t0, pos0 } in cels
 
 function f16(h) {
   const s = h & 0x8000 ? -1 : 1, e = (h >> 10) & 31, f = h & 1023;
