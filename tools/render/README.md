@@ -12,7 +12,7 @@ red/cyan anaglyph, or plain 2D.
 
 ## Quick start
 
-The easy way is the app: double-click **McZee's Cut.exe**, add movies,
+The easy way is the app: double-click **Movie Exporter.exe**, add movies,
 press **Make videos**. The first time, it downloads ffmpeg and the music
 tools. Windows may say it doesn't recognize the app: choose **More info**,
 then **Run anyway**.

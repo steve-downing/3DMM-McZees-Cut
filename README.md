@@ -53,7 +53,7 @@ These steps are for Windows 10 or 11.
    the [Actions tab](../../actions) and unzip it. (GitHub asks you to sign
    in to download build files.) The package includes the renderer, 3D Movie
    Maker's content, the app and the scripts.
-2. Double-click **McZee's Cut.exe**. Windows may say it doesn't recognize
+2. Double-click **Movie Exporter.exe**. Windows may say it doesn't recognize
    the app: choose **More info**, then **Run anyway**.
 3. Add your movies, pick a style, tick what you want, and press
    **Make videos**. The first time, it downloads ffmpeg and the music

@@ -56,8 +56,8 @@ jobs:
           # the app, built with the C# compiler that ships with Windows
           $csc = Join-Path $env:WINDIR "Microsoft.NET\Framework\v4.0.30319\csc.exe"
           # (this csc reads "/" in paths as option markers: use backslashes)
-          & $csc /nologo /langversion:5 /target:winexe /optimize "/out:package\3dmm-render\McZee's Cut.exe" `
-            /r:System.Windows.Forms.dll /r:System.Drawing.dll tools\render\app\McZeesCut.cs
+          & $csc /nologo /langversion:5 /target:winexe /optimize "/out:package\3dmm-render\Movie Exporter.exe" `
+            /r:System.Windows.Forms.dll /r:System.Drawing.dll tools\render\app\MovieExporter.cs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: End-to-end batch test (Windows PowerShell 5.1)
@@ -83,7 +83,7 @@ jobs:
           $app = "ci-out/app"
           New-Item -ItemType Directory -Force $app | Out-Null
           $sw = [Diagnostics.Stopwatch]::StartNew()
-          $p = Start-Process -FilePath "package/3dmm-render/McZee's Cut.exe" -PassThru -Wait -ArgumentList @(
+          $p = Start-Process -FilePath "package/3dmm-render/Movie Exporter.exe" -PassThru -Wait -ArgumentList @(
             "`"$pwd/test-movies/City Tour.3mm`"", "--out", "`"$pwd/$app/videos`"", "--make", "mp4,avi",
             "--go", "--close-when-done", "--screenshot", "`"$pwd/$app/app.png`"")
           "exit $($p.ExitCode) in $([Math]::Round($sw.Elapsed.TotalSeconds)) s" | Tee-Object "$app/app.txt"

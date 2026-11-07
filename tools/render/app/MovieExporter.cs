@@ -1,5 +1,5 @@
-// McZee's Cut: a small Windows app around render-folder.ps1, for people who
-// would rather not use the command line. Pick movies, pick a style, pick
+// Movie Exporter: McZee's Cut's small Windows app around render-folder.ps1,
+// for people who would rather not use the command line. Pick movies, pick a style, pick
 // what to make, press the button.
 //
 // Built with the C# compiler that ships with Windows (.NET Framework 4.x), so
@@ -7,7 +7,7 @@
 //
 // Command line (all optional; used by CI, and by anything that wants to hand
 // it movies):
-//   McZeesCut.exe [movie.3mm | folder]... [--out <folder>] [--style improved|faithful]
+//   "Movie Exporter.exe" [movie.3mm | folder]... [--out <folder>] [--style improved|faithful]
 //                 [--make mp4,crt,sbs,anaglyph,avi,sounds] [--go] [--close-when-done]
 //                 [--screenshot <file.png>]
 using System;
@@ -91,7 +91,7 @@ class MainForm : Form
 
     public MainForm(string[] args)
     {
-        Text = "McZee's Cut";
+        Text = "Movie Exporter";
         AutoScaleDimensions = new SizeF(96f, 96f);   // laid out at 100%; scaled up on high-DPI screens
         AutoScaleMode = AutoScaleMode.Dpi;
         Font = new Font("Segoe UI", 9f);
@@ -100,7 +100,7 @@ class MainForm : Form
         Size = new Size(660, 660);
         AllowDrop = true;
         BuildLayout();
-        outBox.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "McZee's Cut");
+        outBox.Text = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "3D Movie Maker");
         ParseArgs(args);
         UpdateButtons();
         DragEnter += OnDragEnter;
@@ -356,7 +356,7 @@ class MainForm : Form
         if (proc != null || !goButton.Enabled) return;
         if (!File.Exists(Script("render-folder.ps1")))
         {
-            Fail("render-folder.ps1 should be next to McZeesCut.exe. Unzip the whole download and run it from there.");
+            Fail("render-folder.ps1 should be next to Movie Exporter.exe. Unzip the whole download and run it from there.");
             return;
         }
         outDir = outBox.Text.Trim();
@@ -364,7 +364,7 @@ class MainForm : Form
         catch (Exception ex) { Fail("Can't save to that folder: " + ex.Message); return; }
 
         // the script converts a folder, so copy the chosen movies into one
-        stageDir = Path.Combine(Path.GetTempPath(), "McZeesCut-" + Guid.NewGuid().ToString("N").Substring(0, 8));
+        stageDir = Path.Combine(Path.GetTempPath(), "MovieExporter-" + Guid.NewGuid().ToString("N").Substring(0, 8));
         Directory.CreateDirectory(stageDir);
         var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (MovieItem m in movieList.Items)
@@ -531,7 +531,7 @@ class MainForm : Form
     void OnClosing(object sender, FormClosingEventArgs e)
     {
         if (proc == null) return;
-        if (!closeWhenDone && MessageBox.Show(this, "Videos are still being made. Stop and close?", "McZee's Cut",
+        if (!closeWhenDone && MessageBox.Show(this, "Videos are still being made. Stop and close?", "Movie Exporter",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
         {
             e.Cancel = true;
@@ -546,7 +546,7 @@ class MainForm : Form
     {
         ExitCode = 1;
         SetStatus(message);
-        if (!autoGo) MessageBox.Show(this, message, "McZee's Cut", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        if (!autoGo) MessageBox.Show(this, message, "Movie Exporter", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         AppendLog(message);
     }
 
