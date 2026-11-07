@@ -104,6 +104,7 @@
    124.775 transition fade-black
    128.780 sound s031 vlm=65536 loops=1 offset=0
    128.950 textbox story "Once Again, Earth is saved by the Mega-C"
+   142.115 textbox credits "                                Directed"
    142.115 transition dissolve
    146.120 sound s000 vlm=65536 loops=1 offset=0
    146.120 sound s005 vlm=65536 loops=1 offset=0

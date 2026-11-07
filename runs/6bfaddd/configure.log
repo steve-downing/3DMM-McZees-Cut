@@ -20,6 +20,6 @@ Preset CMake variables:
 -- Found BRender: D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/elib/wind/brfmmxr.lib
 -- Found ClangTidy: C:/Program Files/LLVM/bin/clang-tidy.exe (found version "20.1.8")
 -- Could NOT find CCache (missing: CCache_EXECUTABLE) 
--- Configuring done (11.3s)
+-- Configuring done (11.0s)
 -- Generating done (0.1s)
 -- Build files have been written to: D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/build

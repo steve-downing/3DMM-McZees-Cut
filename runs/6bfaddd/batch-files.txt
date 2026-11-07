@@ -9,8 +9,8 @@ Jungle.anaglyph.mp4    25496890
 Jungle.mp4             23058687
 Space.anaglyph.mp4     26683465
 Space.mp4              24382181
-The Book.anaglyph.mp4  29672135
-The Book.mp4           27472744
+The Book.anaglyph.mp4  29672127
+The Book.mp4           27472600
 Venus31.anaglyph.mp4   24703059
-Venus31.mp4            22506861
+Venus31.mp4            22506745
 
