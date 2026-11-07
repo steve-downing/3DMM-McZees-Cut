@@ -1,0 +1,9 @@
+audio: 0 speech, 0 effect and 3 music cues; mode auto
+dialogue: none
+effects:  none
+music target: -16.0 LUFS (no dialogue or effects)
+  sounds/s000.mid.wav : measured -14.5 LUFS, applied -1.5 dB
+  sounds/s001.mid.wav : measured -21.0 LUFS, applied 5.0 dB
+  sounds/s002.mid.wav : measured -16.9 LUFS, applied 0.9 dB
+mix: measured -16.1 LUFS, applied 0.1 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -1.4 dBTP

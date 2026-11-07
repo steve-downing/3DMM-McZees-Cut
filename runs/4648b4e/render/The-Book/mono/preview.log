@@ -1,0 +1,18 @@
+movie: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\test-movies\The Book.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\build\stage
+fonts: 177 TrueType faces available
+scenes: 17
+missing font: Futura (text will use the system font)
+audio: 56 sounds, 144 cues
+done: 1601 frames, 248.24 seconds
+exit code 0
+audio: 15 speech, 125 effect and 4 music cues; mode auto
+dialogue: -27.4 LUFS
+effects:  -16.4 LUFS
+music target: -35.4 LUFS (8.0 LU under dialogue)
+  sounds/s038.mid.wav : measured -16.7 LUFS, applied -18.7 dB
+  sounds/s039.mid.wav : measured -20.9 LUFS, applied -14.5 dB
+  sounds/s045.mid.wav : measured -15.5 LUFS, applied -19.9 dB
+  sounds/s055.mid.wav : measured -15.4 LUFS, applied -20.0 dB
+mix: measured -18.3 LUFS, applied 2.3 dB toward -16.0 LUFS
+final stereo: -16.6 LUFS, true peak -0.7 dBTP

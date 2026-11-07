@@ -1,0 +1,41 @@
+# file	first	scene	frame	category	source	name
+s000.wav	0.000	1	1	sfx	library	wind blow
+s001.wav	7.360	2	2	sfx	library	street loop
+s002.wav	7.360	2	2	sfx	library	siren loop
+s003.wav	11.525	2	27	sfx	library	siren end
+s004.wav	11.690	3	1	sfx	library	market loop
+s005.mid	11.690	3	1	music	library	Wraith Evil Theme
+s006.wav	16.360	3	29	sfx	library	laugh maniac
+s007.wav	20.365	4	1	speech	movie	well, hello
+s008.mid	20.365	4	1	music	library	Ghoul Evil Theme
+s009.wav	28.700	4	51	sfx	library	laugh insane
+s010.wav	31.865	4	70	sfx	library	step tile left
+s011.wav	32.535	4	74	sfx	library	step tile right
+s012.wav	37.365	4	103	sfx	library	zap 5
+s013.wav	39.865	4	118	sfx	library	explosion big
+s014.wav	41.200	4	126	speech	movie	it worked!
+s015.wav	49.200	4	174	sfx	library	latch
+s016.wav	56.700	4	219	sfx	library	monster cry
+s017.wav	58.700	4	231	speech	movie	Follow me!
+s018.wav	58.865	4	232	sfx	library	jump floor
+s019.wav	64.540	5	1	speech	movie	Council of Drs
+s020.mid	64.540	5	1	music	library	Spirit Evil Theme
+s021.wav	69.375	5	30	sfx	library	door big open
+s022.wav	69.710	5	32	speech	movie	Hold On,...
+s023.wav	71.210	5	41	speech	movie	What?
+s024.wav	74.875	5	63	speech	movie	new creation
+s025.wav	84.710	5	122	speech	movie	No! You won't
+s026.wav	88.540	5	145	speech	movie	Oh but I will!
+s027.wav	99.380	6	1	speech	movie	Good.
+s028.wav	102.380	6	19	sfx	library	crash blocks big
+s029.mid	102.380	6	19	music	library	hero's coming
+s030.wav	105.050	6	35	speech	movie	Stop! Not so fast
+s031.wav	107.715	6	51	speech	movie	Get Him!
+s032.wav	110.550	6	68	sfx	library	whish
+s033.wav	111.215	6	72	sfx	library	whiff short
+s034.mid	111.380	6	73	music	library	Mystery Evil part2
+s035.wav	113.215	6	84	sfx	library	punch smack
+s036.wav	114.215	6	90	sfx	library	fall on floor
+s037.wav	115.050	6	95	speech	movie	Nooo!
+s038.wav	116.880	6	106	sfx	library	fall collapsed
+s039.wav	119.880	7	1	speech	movie	next time
