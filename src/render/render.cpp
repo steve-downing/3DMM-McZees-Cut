@@ -1581,8 +1581,8 @@ void RAPP::_WritePoses(long ifrm, ulong dtsOut)
     PACTR pactr;
     PBODY pbody;
     TAG tag;
-    BACT *pbact, *pbactTop;
-    br_matrix34 bmat;
+    BACT *pbact, *pbactUp;
+    br_matrix34 bmat, bmatUp;
 
     if (pvNil == _pfilePoses)
     {
@@ -1604,7 +1604,9 @@ void RAPP::_WritePoses(long ifrm, ulong dtsOut)
     for (iactr = 0; pvNil != pglpactr && iactr < pglpactr->IvMac(); iactr++)
     {
         pglpactr->Get(iactr, &pactr);
-        if (!pactr->FOnStage() || pvNil == (pbody = pactr->Pbody()) || pbody->FHidden())
+        // actors that won't move for a while are drawn into the background
+        // once and their bodies hidden ("prerendered"): they still count
+        if (!pactr->FOnStage() || pvNil == (pbody = pactr->Pbody()) || (pbody->FHidden() && !pactr->FPrerendered()))
             continue;
         for (ipart = 0; ipart < pbody->Cpart(); ipart++)
         {
@@ -1619,18 +1621,25 @@ void RAPP::_WritePoses(long ifrm, ulong dtsOut)
     for (iactr = 0; pvNil != pglpactr && iactr < pglpactr->IvMac(); iactr++)
     {
         pglpactr->Get(iactr, &pactr);
-        if (!pactr->FOnStage() || pvNil == (pbody = pactr->Pbody()) || pbody->FHidden())
+        // actors that won't move for a while are drawn into the background
+        // once and their bodies hidden ("prerendered"): they still count
+        if (!pactr->FOnStage() || pvNil == (pbody = pactr->Pbody()) || (pbody->FHidden() && !pactr->FPrerendered()))
             continue;
         pactr->GetTagTmpl(&tag);
         fprintf(_pfilePoses, "A %ld %ld %ld %ld\n", pactr->Arid(), tag.sid, (long)tag.cno, pbody->Cpart());
-        for (pbactTop = pbody->PbactRoot(); pvNil != pbactTop->parent; pbactTop = pbactTop->parent)
-            ;
         for (ipart = 0; ipart < pbody->Cpart(); ipart++)
         {
             pbact = pbody->PbactPart(ipart);
             imdl = _IPoseModel(pbact);
             imtl = _IPoseMaterial(pbact);
-            BrActorToActorMatrix34(&bmat, pbact, pbactTop);
+            // up to the body's root: a hidden body isn't attached to the world
+            BrTransformToMatrix34(&bmat, &pbact->t);
+            for (pbactUp = pbact; pbactUp != pbody->PbactRoot() && pvNil != pbactUp->parent;)
+            {
+                pbactUp = pbactUp->parent;
+                BrTransformToMatrix34(&bmatUp, &pbactUp->t);
+                BrMatrix34Post(&bmat, &bmatUp);
+            }
             fprintf(_pfilePoses, "P %ld %ld %ld", ipart, imdl, imtl);
             for (i = 0; i < 4; i++)
                 for (j = 0; j < 3; j++)
