@@ -175,6 +175,13 @@ def ellipsoid(c, r, seg=10, rings=6, rot=None):
     return V, F
 
 
+def box(c, size):
+    c = np.asarray(c, float); h = np.asarray(size, float) / 2
+    V = [c + h * np.array([x, y, z]) for x in (-1, 1) for y in (-1, 1) for z in (-1, 1)]
+    F = [[0, 1, 3, 2], [4, 6, 7, 5], [0, 4, 5, 1], [2, 3, 7, 6], [0, 2, 6, 4], [1, 5, 7, 3]]
+    return V, F
+
+
 def rot_y(deg):
     a = math.radians(deg); c, s = math.cos(a), math.sin(a)
     return np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
@@ -206,8 +213,8 @@ def body():
     part(1).add(*ellipsoid((-0.06, 0, 1.548), (0.092, 0.098, 0.074), seg=8, rings=5), 'skin')
     part(1).add(*ellipsoid((-0.128, 0, 1.52), (0.034, 0.084, 0.034), seg=8, rings=4), 'mouth')
     part(1).add(*ellipsoid((-0.122, 0, 1.484), (0.044, 0.088, 0.024), seg=8, rings=3), 'lip')
-    for y in (-0.05, -0.019, 0.019, 0.05):            # gappy teeth
-        part(1).add(*ellipsoid((-0.153, y, 1.536), (0.009, 0.015, 0.02), seg=4, rings=2), 'teeth')
+    for y, h in ((-0.05, 0.034), (-0.018, 0.04), (0.018, 0.04), (0.05, 0.03)):   # big gappy teeth
+        part(1).add(*box((-0.152, y, 1.548 - h / 2), (0.014, 0.024, h)), 'teeth', smooth=False)
     for side in (-1, 1):
         c = np.array([-0.03, 0.056 * side, 1.8])
         look = np.array([-0.95, -0.12 * side, 0.12]); look /= np.linalg.norm(look)
@@ -431,13 +438,33 @@ def build(out_dir, preview=False):
     arm['costumes'] = json.dumps(costumes)
 
     scene.frame_set(0)
+    arm['thumbnail'] = '//thumbnail.png'
     path = os.path.join(out_dir, 'mczee.blend')
     os.remove(gblend)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(path), compress=True)
     print('McZee: %d triangles (Gustave: 995)' % total)
+    thumbnail(arm, os.path.join(out_dir, 'thumbnail.png'))
     if preview:
         import_actor.render_preview(arm, os.path.join(out_dir, 'mczee-preview.png'))
     return arm
+
+
+def thumbnail(arm, path):
+    """the actor browser's picture: McZee's head, three-quarter, on lobby purple"""
+    scene = bpy.context.scene
+    cam = bpy.data.objects.new('ThumbCam', bpy.data.cameras.new('ThumbCam')); scene.collection.objects.link(cam)
+    sun = bpy.data.objects.new('ThumbSun', bpy.data.lights.new('ThumbSun', 'SUN')); scene.collection.objects.link(sun)
+    sun.data.energy = 3.5; sun.rotation_euler = (math.radians(45), 0, math.radians(235))
+    world = scene.world = scene.world or bpy.data.worlds.new('World'); world.use_nodes = True
+    world.node_tree.nodes['Background'].inputs['Color'].default_value = (0.16, 0.1, 0.35, 1)
+    target = Vector((-0.12, 0, 1.68))
+    a = math.radians(222); d = Vector((math.cos(a), math.sin(a), 0.1)).normalized()
+    cam.location = target + d * 1.4; cam.rotation_euler = (target - cam.location).to_track_quat('-Z', 'Y').to_euler()
+    cam.data.lens = 50; scene.camera = cam
+    scene.render.resolution_x = scene.render.resolution_y = 144
+    scene.render.filepath = os.path.abspath(path)
+    bpy.ops.render.render(write_still=True)
+    for o in (cam, sun): bpy.data.objects.remove(o)
 
 
 def _fcurves(act):

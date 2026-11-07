@@ -12,3 +12,4 @@ elib/wind/bren.lib
 elib/wins/bren.lib
 kauai/src/kcd2_386.h
 kauai/src/kcdc_386.h
+__pycache__/
