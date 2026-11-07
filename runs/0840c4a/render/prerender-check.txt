@@ -1,0 +1,2 @@
+Hospital without / with prerendering: 946 / 946 frames, 939 identical, timeline same
+differing frames: f000104.bmp f000123.bmp f000124.bmp f000125.bmp f000126.bmp f000127.bmp f000128.bmp
