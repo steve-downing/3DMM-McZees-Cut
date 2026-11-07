@@ -1,0 +1,2 @@
+fluidsynth: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\build\tools\fluidsynth\fluidsynth-v2.6.2-win10-x64-cpp11\bin\fluidsynth.exe
+soundfont: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\build\tools\GeneralUser-GS.sf2 32319396
