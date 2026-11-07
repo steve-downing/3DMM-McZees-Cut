@@ -1,0 +1,11 @@
+== without -fonts (exit 0)
+   124.550 missing-font Courier Prime
+   124.550 textbox story "The End "
+   132.555 textbox story "Or is it? "
+fonts: 177 TrueType faces available
+missing font: Courier Prime (text will use the system font)
+== with -fonts (exit 0)
+   124.550 textbox story "The End "
+   132.555 textbox story "Or is it? "
+loaded 1 font files from D:\a\_temp\render-work\fonttest\fonts
+fonts: 178 TrueType faces available

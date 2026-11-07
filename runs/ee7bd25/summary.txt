@@ -1,0 +1,4 @@
+commit=ee7bd253eeb61e8b1997e0294fd89bddba9c057b
+branch=headless-render
+compile=success
+run=https://github.com/steve-downing/3DMM-McZees-Cut/actions/runs/42385146791

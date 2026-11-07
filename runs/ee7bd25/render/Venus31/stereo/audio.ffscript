@@ -1,0 +1,5 @@
+anullsrc=r=44100:cl=stereo,atrim=duration=29.935,aformat=sample_fmts=fltp[base];
+amovie='sounds/s000.mid.wav':loop=1,atrim=start=0.000:duration=10.500,asetpts=PTS-STARTPTS,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,volume=1.0000,adelay=delays=0:all=1[a0];
+amovie='sounds/s001.mid.wav':loop=1,atrim=start=0.000:duration=16.000,asetpts=PTS-STARTPTS,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,volume=1.0000,adelay=delays=10500:all=1[a1];
+amovie='sounds/s002.mid.wav':loop=1,atrim=start=0.000:duration=3.435,asetpts=PTS-STARTPTS,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,volume=1.0000,adelay=delays=26500:all=1[a2];
+[base][a0][a1][a2]amix=inputs=4:normalize=0:duration=first[aout]

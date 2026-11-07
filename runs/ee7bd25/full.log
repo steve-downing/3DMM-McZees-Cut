@@ -1,0 +1,6 @@
+D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\package\3dmm-render\render-folder.ps1 : Cannot bind parameter because parameter 
+'Formats' is specified more than once. To provide multiple values to parameters that can accept multiple values, use 
+the array syntax. For example, "-parameter value1,value2,value3".
+    + CategoryInfo          : InvalidArgument: (:) [render-folder.ps1], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : ParameterAlreadyBound,render-folder.ps1
+ 
