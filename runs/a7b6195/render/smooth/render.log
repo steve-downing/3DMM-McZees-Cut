@@ -1,0 +1,9 @@
+movie: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\test-movies\Hospital.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\build\stage
+smooth: on (three blended frames between 3DMM's, 24 fps)
+fonts: 177 TrueType faces available
+scenes: 8
+audio: 40 sounds, 69 cues
+smooth: 620 steps blended, 9 held (more than actor poses changed)
+done: 2806 frames, 136.56 seconds
+exit code 0
