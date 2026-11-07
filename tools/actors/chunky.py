@@ -56,7 +56,7 @@ class Chunky:
             data += b'\0' * (-len(data) % 4)            # Kauai keeps group entries long-aligned
         index = struct.pack('<hhiiii', 1, OSK, len(entries), len(data), -1, 20) + data + locs
         fpIndex = 128 + len(body); fpMac = fpIndex + len(index)
-        head = struct.pack('<4s4shhhhiiiii', b'CHN2'[::-1], s.creator.encode()[::-1], 5, 4, 1, OSK,
+        head = struct.pack('<4s4shhhhiiiii', b'CHN2', s.creator.encode()[::-1], 5, 4, 1, OSK,
                            fpMac, fpIndex, len(index), fpMac, 0)
         head += b'\0' * (128 - len(head))
         with open(path, 'wb') as f:

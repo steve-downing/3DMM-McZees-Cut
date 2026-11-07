@@ -3,6 +3,7 @@ def tag(v): return struct.pack('>I', v).decode('latin1')
 class CFL:
     def __init__(s, path):
         d = s.d = open(path,'rb').read()
+        if d[:4] != b'CHN2': raise ValueError('%s: not a chunky file' % path)
         magic, creator = struct.unpack('<II', d[:8])
         fpMac, fpIndex, cbIndex = struct.unpack('<iii', d[16:28])
         g = d[fpIndex:fpIndex+cbIndex]
