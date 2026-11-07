@@ -1,0 +1,122 @@
+     0.000 transition cut
+     0.000 sound s000 vlm=65536 loops=1 offset=0
+     0.000 play
+     1.020 sound s001 vlm=65536 loops=1 offset=0
+     1.020 sound s002 vlm=65536 loops=1 offset=0
+     1.020 sound s003 vlm=65536 loops=1 offset=0
+     1.020 sound s004 vlm=65536 loops=1 offset=0
+     1.020 sound s005 vlm=65536 loops=1 offset=0
+     3.850 textbox credits "                In the year 1995, movies"
+    53.600 transition dissolve
+    57.605 sound s006 vlm=36336 loops=1 offset=0
+    57.605 sound s007 vlm=65536 loops=2147483647 offset=0
+    59.775 sound s008 vlm=65536 loops=1 offset=0
+    60.105 sound s008 vlm=65536 loops=1 offset=0
+    60.440 sound s009 vlm=65536 loops=1 offset=0
+    60.775 sound s009 vlm=65536 loops=1 offset=0
+    60.775 sound s010 vlm=65536 loops=1 offset=0
+    60.940 sound s008 vlm=65536 loops=1 offset=0
+    61.275 sound s011 vlm=65536 loops=1 offset=0
+    61.275 sound s008 vlm=65536 loops=1 offset=0
+    61.605 sound s011 vlm=65536 loops=1 offset=0
+    62.105 sound s008 vlm=65536 loops=1 offset=0
+    62.275 sound s009 vlm=65536 loops=1 offset=0
+    62.440 sound s008 vlm=65536 loops=1 offset=0
+    62.775 sound s008 vlm=65536 loops=1 offset=0
+    63.440 sound s008 vlm=65536 loops=1 offset=0
+    63.775 sound s008 vlm=65536 loops=1 offset=0
+    64.105 sound s011 vlm=65536 loops=1 offset=0
+    64.440 sound s009 vlm=65536 loops=1 offset=0
+    64.775 sound s011 vlm=65536 loops=1 offset=0
+    64.940 sound s008 vlm=65536 loops=1 offset=0
+    65.105 sound s009 vlm=65536 loops=1 offset=0
+    65.605 sound s008 vlm=65536 loops=1 offset=0
+    66.105 sound s006 vlm=65536 loops=1 offset=0
+    66.440 sound s008 vlm=65536 loops=1 offset=0
+    66.775 sound s011 vlm=65536 loops=1 offset=0
+    68.775 sound s012 vlm=65536 loops=1 offset=0
+    71.605 sound s013 vlm=65536 loops=1 offset=0
+    73.105 sound s008 vlm=65536 loops=1 offset=0
+    73.440 sound s012 vlm=65536 loops=1 offset=0
+    73.605 sound s008 vlm=65536 loops=1 offset=0
+    73.940 sound s011 vlm=65536 loops=1 offset=0
+    75.105 sound s008 vlm=65536 loops=1 offset=0
+    75.605 sound s008 vlm=65536 loops=1 offset=0
+    76.105 sound s008 vlm=65536 loops=1 offset=0
+    77.605 sound s014 vlm=52430 loops=2147483647 offset=0
+    77.605 sound s015 vlm=65536 loops=2147483647 offset=0
+    78.105 sound s008 vlm=65536 loops=1 offset=0
+    78.440 sound s008 vlm=65536 loops=1 offset=0
+    78.775 sound s009 vlm=65536 loops=1 offset=0
+    79.775 sound s008 vlm=65536 loops=1 offset=0
+    79.940 sound s011 vlm=65536 loops=1 offset=0
+    80.275 sound s008 vlm=65536 loops=1 offset=0
+    80.940 sound s008 vlm=65536 loops=1 offset=0
+    81.105 sound s011 vlm=65536 loops=1 offset=0
+    81.605 sound s009 vlm=65536 loops=1 offset=0
+    81.940 sound s009 vlm=65536 loops=1 offset=0
+    82.605 sound s008 vlm=65536 loops=1 offset=0
+    82.940 sound s008 vlm=65536 loops=1 offset=0
+    83.105 sound s010 vlm=65536 loops=1 offset=0
+    83.605 sound s013 vlm=65536 loops=1 offset=0
+    87.440 transition cut
+    87.605 sound s015 vlm=65536 loops=2147483647 offset=0
+    87.940 sound s016 vlm=65536 loops=1 offset=0
+    90.775 transition cut
+    90.940 sound s017 vlm=65536 loops=1 offset=0
+    91.605 sound s017 vlm=65536 loops=1 offset=0
+    91.605 sound s018 vlm=65536 loops=1 offset=0
+    92.105 sound s017 vlm=65536 loops=1 offset=0
+    93.605 sound s017 vlm=65536 loops=1 offset=0
+    95.775 sound s017 vlm=65536 loops=1 offset=0
+    97.940 transition cut
+    98.105 sound s013 vlm=65536 loops=1 offset=0
+   100.105 sound s010 vlm=65536 loops=1 offset=0
+   101.775 sound s008 vlm=65536 loops=1 offset=0
+   102.440 sound s008 vlm=65536 loops=1 offset=0
+   104.605 transition cut
+   104.775 sound s015 vlm=65536 loops=2147483647 offset=0
+   105.105 sound s019 vlm=65536 loops=1 offset=0
+   106.275 transition cut
+   106.440 sound s020 vlm=65536 loops=1 offset=0
+   106.440 sound s021 vlm=65536 loops=1 offset=0
+   107.440 sound s022 vlm=65536 loops=1 offset=0
+   108.775 sound s023 vlm=32768 loops=1 offset=0
+   110.105 sound s024 vlm=32768 loops=1 offset=0
+   110.940 sound s025 vlm=65536 loops=1 offset=0
+   113.440 sound s026 vlm=65536 loops=1 offset=0
+   113.775 sound s009 vlm=65536 loops=1 offset=0
+   114.605 sound s026 vlm=65536 loops=1 offset=0
+   115.605 sound s027 vlm=65536 loops=1 offset=0
+   115.775 sound s028 vlm=65536 loops=2147483647 offset=0
+   116.105 sound s008 vlm=65536 loops=1 offset=0
+   117.105 sound s027 vlm=65536 loops=1 offset=0
+   117.775 transition cut
+   117.940 sound s008 vlm=65536 loops=1 offset=0
+   118.275 sound s027 vlm=65536 loops=1 offset=0
+   118.940 sound s029 vlm=65536 loops=1 offset=0
+   119.105 sound s011 vlm=65536 loops=1 offset=0
+   119.440 sound s026 vlm=65536 loops=1 offset=0
+   120.275 sound s011 vlm=65536 loops=1 offset=0
+   120.275 sound s009 vlm=65536 loops=1 offset=0
+   120.275 sound s026 vlm=65536 loops=1 offset=0
+   121.775 sound s030 vlm=65536 loops=1 offset=0
+   124.775 transition fade-black
+   128.780 sound s031 vlm=65536 loops=1 offset=0
+   128.950 textbox story "Once Again, Earth is saved by the Mega-C"
+   142.115 textbox credits "                                Directed"
+   142.115 transition dissolve
+   146.120 sound s000 vlm=65536 loops=1 offset=0
+   146.120 sound s005 vlm=65536 loops=1 offset=0
+   146.120 sound s031 vlm=65536 loops=1 offset=0
+   146.120 sound s032 vlm=65536 loops=1 offset=0
+   146.120 sound s000 vlm=65536 loops=1 offset=0
+   146.120 sound s005 vlm=65536 loops=1 offset=0
+   146.120 sound s031 vlm=65536 loops=1 offset=0
+   146.120 sound s032 vlm=65536 loops=1 offset=0
+   146.120 sound s000 vlm=65536 loops=1 offset=0
+   146.120 sound s005 vlm=65536 loops=1 offset=0
+   146.120 sound s031 vlm=65536 loops=1 offset=0
+   146.120 sound s032 vlm=65536 loops=1 offset=0
+   146.120 sound s033 vlm=65536 loops=1 offset=0
+   211.790 end

@@ -1,0 +1,16 @@
+movie: C:\Users\runneradmin\AppData\Local\Temp\MovieExporter-0fead670\City Tour.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\package\3dmm-render\Microsoft Kids
+smooth: on (three blended frames between 3DMM's, 24 fps)
+fonts: 177 TrueType faces available
+scenes: 4
+audio: 1 sounds, 1 cues
+smooth: 0 steps blended, 9 held (more than actor poses changed)
+done: 223 frames, 68.37 seconds
+exit code 0
+audio: 0 speech, 0 effect and 1 music cues; mode auto
+dialogue: none
+effects:  none
+music target: -16.0 LUFS (no dialogue or effects)
+  sounds/s000.mid.wav : measured -18.5 LUFS, applied 2.5 dB
+mix: measured -16.6 LUFS, applied 0.6 dB toward -16.0 LUFS
+final stereo: -16.0 LUFS, true peak -1.0 dBTP
