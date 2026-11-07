@@ -1,4 +1,4 @@
-exit 0 in 102 s
+exit 0 in 141 s
 
 Name            Length
 ----            ------
@@ -8,4 +8,4 @@ City Tour.mp4 18685189
 report.csv         154
 
 "movie","status","exit","frames","seconds","missing","missingFonts","outputs"
-"City Tour.3mm","ok","0","223","0.7","","","City Tour.mp4; City Tour.avi"
+"City Tour.3mm","ok","0","223","1.8","","","City Tour.mp4; City Tour.avi"

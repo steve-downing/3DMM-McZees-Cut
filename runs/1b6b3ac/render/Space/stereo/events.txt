@@ -9,9 +9,9 @@ calib camera-to-screen row0 1.48366 0.00000 0.00000 0.00000
 calib camera-to-screen row1 0.00000 2.63762 0.00000 0.00000
 calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
 calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
-calib actor depth=1 viewz=-1.1914 screen x=0.3 y=0.7 z/w=-1.0254 w=-79.9727 pixel=(272,152) Z=65535
-calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16341.2656 pixel=(272,152) Z=65535
-calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.6445 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.1 y=0.1 z/w=-1.0056 w=-388.0000 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16305.5312 pixel=(272,152) Z=65535
+calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.7031 pixel=(272,152) Z=65535
 calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
 calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
 calib actor depth=1 viewz=-1.1914 screen x=0.0 y=0.0 z/w=-1.0005 w=-16218.8438 pixel=(272,152) Z=65535
