@@ -30,7 +30,7 @@ Movie Exporter's command line, which 3DMM's Export button uses:
                      [--notify <window>]  # no window: report progress to 3DMM's window, close when done
 "Movie Exporter.exe" --prefetch        # no window: fetch ffmpeg if it's missing, then exit
 "Movie Exporter.exe" [movies or folders] [--out <folder>] [--style improved|faithful]
-                     [--make mp4,crt,sbs,anaglyph,avi,sounds] [--go] [--close-when-done]
+                     [--make mp4,crt,sbs,hsbs,anaglyph,avi,sounds] [--go] [--close-when-done]
 ```
 
 From the command line:
@@ -64,13 +64,14 @@ text uses 3DMM's own fonts and is never affected.
 | Format | File | What it is |
 |---|---|---|
 | `2d` (the default) | `Movie.mp4` | The movie as 3DMM showed it |
-| `sbs` | `Movie.sbs.mp4` | Side-by-side 3D (left eye, right eye) for VR headsets, 3D TVs and players in SBS mode |
+| `sbs` | `Movie.sbs.mp4` | Full side-by-side 3D (left eye, right eye, each full size) for VR headsets, YouTube and players in SBS mode |
+| `hsbs` | `Movie.hsbs.mp4` | Half side-by-side 3D for 3D TVs and monitors: one 1920×1080 frame, each eye squeezed into its half. Put the TV in side-by-side 3D mode |
 | `anaglyph` | `Movie.anaglyph.mp4` | Red/cyan 3D |
 | `crt` | `Movie.crt.mp4` | 4K with CRT effects (below) |
 | `avi` | `Movie.avi` | Cinepak for Windows 95/98 (below) |
 | `none` | | No video, e.g. for just `-ExtractSounds` |
 
-Asking for `sbs` or `anaglyph` renders the movie in 3D. Every other format
+Asking for `sbs`, `hsbs` or `anaglyph` renders the movie in 3D. Every other format
 is made from the plain 2-D view, exactly as 3DMM draws it. Asking for both
 kinds plays the movie twice (see [Prerendering](#how-it-stays-faithful)),
 so it takes about twice as long.
@@ -83,10 +84,10 @@ The sections after the table cover the bigger features in more depth.
 |---|---|---|---|---|
 | `-InputDir` | The folder of `.3mm` movies to convert, including its subfolders | folder | required | |
 | `-OutputDir` | Where the videos go, in the same subfolders | folder | required | |
-| `-Formats` | Which files to make for each movie (see [Formats](#formats)) | `2d`, `sbs`, `anaglyph`, `crt`, `avi`, `none` | `2d` | |
+| `-Formats` | Which files to make for each movie (see [Formats](#formats)) | `2d`, `sbs`, `hsbs`, `anaglyph`, `crt`, `avi`, `none` | `2d` | |
 | `-Smooth` | Makes motion smooth: adds three in-between frames to each of 3DMM's 6 frames a second, for 24 | switch | off | all formats |
-| `-Scale` | Makes the picture bigger without blurring it, by repeating pixels. 2 doubles 544×306 to 1088×612 | whole number | 2 | `2d`, `sbs`, `anaglyph` |
-| `-Depth` | How deep the 3D looks: how far behind the screen the scene can go, as a percentage of the picture's width | number | 2.5 | `sbs`, `anaglyph` |
+| `-Scale` | Makes the picture bigger without blurring it, by repeating pixels. 2 doubles 544×306 to 1088×612 | whole number | 2 | `2d`, `sbs`, `anaglyph` (`hsbs` is always 1920×1080) |
+| `-Depth` | How deep the 3D looks: how far behind the screen the scene can go, as a percentage of the picture's width | number | 2.5 | `sbs`, `hsbs`, `anaglyph` |
 | `-CrtPreset` | Which old screen to imitate: a 90s PC monitor, a Trinitron, a TV, or the PC monitor in HDR | `pc`, `trinitron`, `tv`, `hdr` | `pc` | `crt` |
 | `-CrtMask` | The pattern of colored dots or stripes on the glass | `shadow`, `grille`, `slot`, `none` | per preset | `crt` |
 | `-CrtScanlines` | How visible the dark gaps between the lines are | number | per preset | `crt` |

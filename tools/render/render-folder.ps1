@@ -3,13 +3,13 @@
 #   render-folder.ps1 -InputDir D:\3mm-archive -OutputDir D:\3mm-videos [-Smooth] [-Formats 2d,sbs,...]
 #
 # -Formats picks the outputs (default 2d, the plain Movie.mp4); asking for
-# sbs or anaglyph renders the movie in 3D. See README.md for every option.
+# sbs, hsbs or anaglyph renders the movie in 3D. See README.md for every option.
 #
 # For each movie (recursively; the folder structure is mirrored):
 #   1. 3dmm-render plays it headlessly into a scratch folder
 #   2. encode-movie.ps1 builds the soundtrack and encodes the videos
 #   3. the scratch folder is deleted (unless -KeepFrames)
-# Asking for both 2-D (2d, avi, crt) and 3-D (sbs, anaglyph) formats plays
+# Asking for both 2-D (2d, avi, crt) and 3-D (sbs, hsbs, anaglyph) formats plays
 # the movie twice: once exactly as 3DMM draws it for the 2-D videos, once in
 # stereo (every actor a live 3-D body) for the 3-D ones.
 # Movies whose videos are already newer than the .3mm are skipped, so an
@@ -118,13 +118,13 @@ if (-not $Root -or -not (Test-Path (Join-Path $Root "3D Movie Maker"))) {
     throw "can't find a '3D Movie Maker' content folder; pass -Root (the folder that contains it)"
 }
 if (-not $Formats) { $Formats = @("2d") }
-$known = "2d", "sbs", "anaglyph", "crt", "avi", "none"
+$known = "2d", "sbs", "hsbs", "anaglyph", "crt", "avi", "none"
 $unknown = @($Formats | Where-Object { $known -notcontains $_ })
 if ($unknown) { throw "unknown format(s): $($unknown -join ', ') (use $($known -join ', '))" }
 # 3D formats need the movie rendered from two cameras; everything else uses
 # the 2-D view, rendered exactly as 3DMM draws it. Each kind gets its own pass.
 $flat = @($Formats | Where-Object { "2d", "avi", "crt" -contains $_ })
-$deep = @($Formats | Where-Object { "sbs", "anaglyph" -contains $_ })
+$deep = @($Formats | Where-Object { "sbs", "hsbs", "anaglyph" -contains $_ })
 $passes = @()
 if ($flat.Count -or -not $deep.Count) { $passes += , @{ Name = "2d"; Stereo = $false; Formats = $flat } }
 if ($deep.Count) { $passes += , @{ Name = "3d"; Stereo = $true; Formats = $deep } }

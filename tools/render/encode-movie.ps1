@@ -18,7 +18,10 @@
 # build with native DLS support (the "cpp11" Windows builds have it).
 #
 #   2d        <name>.mp4: the movie as 3DMM showed it (from a stereo render too)
-#   sbs       <name>.sbs.mp4: full side-by-side (left | right), for 3D TVs / players in SBS mode
+#   sbs       <name>.sbs.mp4: full side-by-side (left | right, each eye full size), for VR
+#             headsets, YouTube and players in SBS mode
+#   hsbs      <name>.hsbs.mp4: half side-by-side for 3D TVs and 3D monitors: a 1920x1080
+#             frame, each eye squeezed into its half (the TV stretches it back in 3D mode)
 #   anaglyph  <name>.anaglyph.mp4: red/cyan
 #   crt       <name>.crt.mp4: 2d with CRT effects, 4K (see -CrtPreset; needs 3dmm-crt.exe)
 #   avi       <name>.avi: Cinepak video at the original 544x306 and
@@ -71,7 +74,7 @@ if ($SoundFont -eq "windows") { $SoundFont = Join-Path $env:WINDIR "System32\dri
 if ($SoundFont -and -not (Test-Path $SoundFont)) { Write-Warning "SoundFont not found: $SoundFont" }
 if ($SoundFont) { $SoundFont = (Resolve-Path $SoundFont -ErrorAction SilentlyContinue).Path }
 $stereo = (Select-String -Path (Join-Path $RenderDir "render.log") -Pattern "^stereo:" -Quiet)
-if (-not $Formats) { $Formats = if ($stereo) { @("sbs", "anaglyph", "2d") } else { @("2d") } }
+if (-not $Formats) { $Formats = if ($stereo) { @("sbs", "hsbs", "anaglyph", "2d") } else { @("2d") } }
 $outDir = Split-Path -Parent $OutBase
 if ($outDir) { New-Item -ItemType Directory -Force $outDir | Out-Null }
 if (-not $outDir) { $outDir = "." }
@@ -293,11 +296,16 @@ try {
         $vf = switch ($fmt) {
             "2d"       { "${crop2d}null" }
             "sbs"      { if ($stereo) { "${cropEyes}null" } else { $null } }
+            # 3DMM's picture is 16:9, so each eye fills its half exactly. Pixels are
+            # repeated first, then the frame is shrunk to 1080p, so edges stay clean;
+            # setsar=1 stops players from "fixing" the squeeze.
+            "hsbs"     { if ($stereo) { "${cropEyes}scale=iw*4:ih*4:flags=neighbor,scale=1920:1080:flags=area,setsar=1" } else { $null } }
             "anaglyph" { if ($stereo) { "${cropEyes}stereo3d=sbsl:arcd" } else { $null } }
             default    { throw "unknown format $fmt" }
         }
         if (-not $vf) { Write-Warning "$fmt needs a --stereo render; skipped"; continue }
-        $vf = "$vf,scale=iw*${Scale}:ih*${Scale}:flags=neighbor,fps=$fps,format=yuv420p"
+        if ($fmt -ne "hsbs") { $vf = "$vf,scale=iw*${Scale}:ih*${Scale}:flags=neighbor" }
+        $vf = "$vf,fps=$fps,format=yuv420p"
         $inputs = @("-f", "concat", "-safe", "0", "-i", "timeline.ffconcat") + $audioInputs
         ffmpeg -hide_banner -loglevel error -y @ffProgress @inputs -vf $vf -map 0:v @audioMaps -c:v libx264 -crf $Crf -preset medium `
             -movflags +faststart -shortest $out

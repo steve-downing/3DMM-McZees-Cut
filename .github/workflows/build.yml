@@ -159,13 +159,20 @@ jobs:
           New-Item -ItemType Directory -Force $in | Out-Null
           Copy-Item "test-movies/City Tour.3mm", "test-movies/Jungle.3mm" $in
           powershell -NoProfile -ExecutionPolicy Bypass -File package/3dmm-render/render-folder.ps1 `
-            -InputDir $in -OutputDir ci-out/batch -Formats anaglyph,2d -Scale 1 *>&1 |
+            -InputDir $in -OutputDir ci-out/batch -Formats anaglyph,hsbs,2d -Scale 1 *>&1 |
             Tee-Object -FilePath ci-out/batch.log
           $mp4 = @(Get-ChildItem -Recurse ci-out/batch -Filter *.mp4)
           $mp4 | Select-Object Name, Length | Out-File ci-out/batch-files.txt
+          # TV 3D must be a plain 1920x1080 frame with square pixels, or the TV's split comes out wrong
+          $tv = $mp4 | Where-Object Name -like "*.hsbs.mp4" | Select-Object -First 1
+          $ffprobe = (Get-Command ffprobe -ErrorAction SilentlyContinue).Source
+          if (-not $ffprobe) { $ffprobe = (Get-ChildItem -Recurse build/ffmpeg, C:/ProgramData/chocolatey/bin -Filter ffprobe.exe -ErrorAction SilentlyContinue | Select-Object -First 1).FullName }
+          $shape = if ($tv) { (& $ffprobe -v error -select_streams v -show_entries stream=width,height,sample_aspect_ratio -of csv=p=0 $tv.FullName) -join "" } else { "missing" }
+          "hsbs: $shape" | Add-Content ci-out/batch-files.txt
           $mp4 | Remove-Item
-          # 2d and anaglyph come from separate passes (as 3DMM draws it / in stereo): both must land
-          if ($mp4.Count -ne 4) { throw "expected 4 videos from the batch test, got $($mp4.Count): $($mp4.Name -join ', ')" }
+          # 2d and the 3D formats come from separate passes (as 3DMM draws it / in stereo): all must land
+          if ($mp4.Count -ne 6) { throw "expected 6 videos from the batch test, got $($mp4.Count): $($mp4.Name -join ', ')" }
+          if ($shape -ne "1920,1080,1:1") { throw "hsbs video is $shape, expected 1920,1080,1:1" }
 
       - name: App test
         if: steps.package.outcome == 'success' && hashFiles('test-movies/**/*.3mm') != ''

@@ -8,7 +8,7 @@
 //
 // Command line (all optional):
 //   "Movie Exporter.exe" [movie.3mm | folder]... [--out <folder>] [--style improved|faithful]
-//                 [--make mp4,crt,sbs,anaglyph,avi,sounds] [--go] [--close-when-done]
+//                 [--make mp4,crt,sbs,hsbs,anaglyph,avi,sounds] [--go] [--close-when-done]
 //                 [--screenshot <file.png>]
 //       the full window, filled in (CI uses --go --close-when-done)
 //   "Movie Exporter.exe" --export <movie.3mm> --to <file> --preset avi|faithful|faithful-crt|improved
@@ -230,18 +230,21 @@ class MainForm : Form
     readonly ToolTip tips = new ToolTip();
     readonly List<Choice> choices = new List<Choice>
     {
+        // two columns: 2-D on the left, 3D on the right
         new Choice("mp4", "2d", "Video (MP4)",
             "The movie as a regular video file that plays on anything.", true),
         new Choice("crt", "crt", "90s monitor look (4K MP4)",
             "The movie as it looked on a mid-90s computer screen: scanlines, glowing phosphors. A large 4K file.", false),
-        new Choice("sbs", "sbs", "3D for VR and 3D TVs (MP4)",
-            "Real 3D: a picture for each eye, side by side. Play it in 3D or side-by-side mode.", false),
-        new Choice("anaglyph", "anaglyph", "3D for red/cyan glasses (MP4)",
-            "3D you can watch on any screen with red/cyan paper glasses.", false),
         new Choice("avi", "avi", "Windows 95/98 video (AVI)",
             "A small video that plays on an old Windows 95 or 98 PC with nothing extra installed.", false),
         new Choice("sounds", null, "The movie's sounds (ZIP)",
             "The voices, sound effects and music added to the movie, as audio files.", false),
+        new Choice("sbs", "sbs", "3D for VR headsets (MP4)",
+            "Real 3D: a full picture for each eye, side by side. For VR video players and YouTube.", false),
+        new Choice("hsbs", "hsbs", "3D for 3D TVs (MP4)",
+            "Real 3D for a 3D TV or monitor: both pictures squeezed into one HD frame. Turn on the TV's side-by-side 3D mode.", false),
+        new Choice("anaglyph", "anaglyph", "3D for red/cyan glasses (MP4)",
+            "3D you can watch on any screen with red/cyan paper glasses.", false),
     };
 
     Process proc;

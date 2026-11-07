@@ -95,7 +95,8 @@ went. Run the script again and it skips anything already up to date.
 |---|---|
 | The Improved style | `-Smooth -Duck` |
 | The best-looking 2D video, music untouched | `-Smooth` |
-| 3D for a VR headset or 3D TV | `-Smooth -Formats sbs` |
+| 3D for a VR headset | `-Smooth -Formats sbs` |
+| 3D for a 3D TV or monitor | `-Smooth -Formats hsbs` |
 | 3D, red/cyan, and 2D, all at once | `-Smooth -Formats sbs,anaglyph,2d` |
 | The 90s monitor look, in 4K | `-Smooth -Formats crt` |
 | A 4K HDR CRT for an OLED | `-Smooth -Formats crt -CrtPreset hdr` |
@@ -117,13 +118,14 @@ separated by commas.
 | Format | File | What it is |
 |---|---|---|
 | `2d` (the default) | `Movie.mp4` | The movie as 3DMM showed it |
-| `sbs` | `Movie.sbs.mp4` | Side-by-side 3D, left eye then right, for VR headsets, 3D TVs and players in SBS mode |
+| `sbs` | `Movie.sbs.mp4` | Side-by-side 3D, left eye then right, each full size, for VR headsets, YouTube and players in SBS mode |
+| `hsbs` | `Movie.hsbs.mp4` | Half side-by-side 3D for 3D TVs and monitors: one 1920×1080 frame, each eye squeezed into its half. Put the TV in side-by-side 3D mode |
 | `anaglyph` | `Movie.anaglyph.mp4` | Red/cyan 3D, for paper glasses |
 | `crt` | `Movie.crt.mp4` | 4K, looking like a 90s CRT |
 | `avi` | `Movie.avi` | Cinepak for Windows 95 and 98 |
 | `none` | | No video, for when you only want `-ExtractSounds` |
 
-Asking for `sbs` or `anaglyph` renders the movie from two cameras. Every
+Asking for `sbs`, `hsbs` or `anaglyph` renders the movie from two cameras. Every
 other format comes from the plain 2D picture, even when it's rendered
 alongside 3D.
 
@@ -223,10 +225,10 @@ bigger features in more depth.
 |---|---|---|---|---|
 | `-InputDir` | The folder of `.3mm` movies to convert, including its subfolders | folder | required | |
 | `-OutputDir` | Where the videos go, in the same subfolders | folder | required | |
-| `-Formats` | Which files to make for each movie ([formats](#formats)) | `2d`, `sbs`, `anaglyph`, `crt`, `avi`, `none` | `2d` | |
+| `-Formats` | Which files to make for each movie ([formats](#formats)) | `2d`, `sbs`, `hsbs`, `anaglyph`, `crt`, `avi`, `none` | `2d` | |
 | `-Smooth` | Makes motion smooth: adds three in-between frames to each of 3DMM's 6 frames a second, for 24 | switch | off | all formats |
-| `-Scale` | Makes the picture bigger without blurring it, by repeating pixels. 2 doubles 544×306 to 1088×612 | whole number | 2 | `2d`, `sbs`, `anaglyph` |
-| `-Depth` | How deep the 3D looks: how far behind the screen the scene can go, as a percentage of the picture's width | number | 2.5 | `sbs`, `anaglyph` |
+| `-Scale` | Makes the picture bigger without blurring it, by repeating pixels. 2 doubles 544×306 to 1088×612 | whole number | 2 | `2d`, `sbs`, `anaglyph` (`hsbs` is always 1920×1080) |
+| `-Depth` | How deep the 3D looks: how far behind the screen the scene can go, as a percentage of the picture's width | number | 2.5 | `sbs`, `hsbs`, `anaglyph` |
 | `-CrtPreset` | Which old screen to imitate: a 90s PC monitor, a Trinitron, a TV, or the PC monitor in HDR | `pc`, `trinitron`, `tv`, `hdr` | `pc` | `crt` |
 | `-CrtMask` | The pattern of colored dots or stripes on the glass | `shadow`, `grille`, `slot`, `none` | per preset | `crt` |
 | `-CrtScanlines` | How visible the dark gaps between the lines are | number | per preset | `crt` |
