@@ -1,0 +1,66 @@
+{
+  "where": "in the rebuilt mansion dining room",
+  "sky": "night",
+  "vr": {
+    "pos": [
+      19.6,
+      0,
+      -12.05
+    ],
+    "yaw": 1.5708
+  },
+  "lights": {
+    "hemi": [
+      "#d8d0f0",
+      "#5a4038",
+      1.1
+    ],
+    "sun": {
+      "pos": [
+        172,
+        80,
+        -196
+      ],
+      "target": [
+        172,
+        0,
+        -118
+      ],
+      "color": "#c8d0ff",
+      "intensity": 1.1,
+      "extent": 48
+    },
+    "lamps": [
+      {
+        "pos": [
+          169.8,
+          21.6,
+          -120.5
+        ],
+        "color": "#ffcf96",
+        "intensity": 320,
+        "distance": 90
+      },
+      {
+        "pos": [
+          143,
+          18,
+          -120
+        ],
+        "color": "#ffdcb0",
+        "intensity": 70,
+        "distance": 45
+      },
+      {
+        "pos": [
+          200,
+          18,
+          -120
+        ],
+        "color": "#ffdcb0",
+        "intensity": 70,
+        "distance": 45
+      }
+    ]
+  }
+}

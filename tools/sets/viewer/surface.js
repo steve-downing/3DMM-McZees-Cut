@@ -1,5 +1,6 @@
-// Subtle procedural surface texture for the cartoon cabin. Each face's kind
-// rides in its vertex color alpha: 0 plain, 1 fabric, 2 carpet, 3 wood, 4 metal.
+// Subtle procedural surface texture for the cartoon sets. Each face's kind
+// rides in its vertex color alpha: 0 plain, 1 fabric, 2 carpet, 3 wood, 4 metal,
+// 5 hammered metal, 6 flagstone, 7 damask wallpaper.
 // Patterns are triplanar in object space (every seat copy matches) and fade
 // out where they'd be smaller than a pixel.
 export function addSurfaceTexture(material) {
@@ -30,6 +31,28 @@ float sh_surf(vec2 p, float across, float along, float kind) {
     return 1.0 + 0.21 * sin(across * 10.0 + g * 6.0) * sh_aa(vec2(across), 10.0) + 0.17 * (g - 0.5);
   }
   if (kind < 4.5) return 1.0 + 0.21 * (sh_noise(vec2(along * 1.5, across * 60.0)) - 0.5) * sh_aa(vec2(across), 60.0);
+  if (kind > 5.5 && kind < 6.5) {
+    // flagstones: staggered rows of irregular slabs, each its own shade, dark grout between
+    vec2 q = p / vec2(4.6, 3.8);
+    float row = floor(q.y); q.x += sh_hash(vec2(row, 7.0)) * 0.9;
+    vec2 cell = vec2(floor(q.x), row), f = fract(q);
+    float e = min(min(f.x, 1.0 - f.x) * 4.6, min(f.y, 1.0 - f.y) * 3.8);
+    float grout = 1.0 - smoothstep(0.05, 0.16, e) * 1.0;
+    float slab = 0.82 + 0.36 * sh_hash(cell);
+    return slab * (1.0 - 0.55 * grout * sh_aa(p, 4.0)) * (1.0 + 0.3 * (sh_fbm(p * 0.9) - 0.5) + 0.12 * (sh_noise(p * 6.0) - 0.5) * sh_aa(p, 6.0));
+  }
+  if (kind > 6.5) {
+    // damask wallpaper: a flame-shaped motif on a half-drop repeat, darker than the ground
+    vec2 q = p / vec2(5.6, 4.3);
+    float col = floor(q.x); q.y += 0.5 * mod(col, 2.0);
+    vec2 f = fract(q) - 0.5; f *= vec2(5.6, 4.3);
+    float r = length(vec2(f.x / 0.85, (f.y + 0.25) / 1.15));
+    float tip = step(0.0, f.y) * smoothstep(1.9, 0.6, f.y) * (1.0 - smoothstep(0.0, 0.45 - 0.2 * f.y, abs(f.x)));
+    float motif = max(1.0 - smoothstep(0.85, 1.0, r), tip);
+    float leaf = 1.0 - smoothstep(0.32, 0.42, length(vec2(abs(f.x) - 0.95, f.y + 1.35) / vec2(0.55, 0.3)));
+    motif = max(motif, leaf) * sh_aa(p, 1.2);
+    return (1.0 - 0.38 * motif) * (1.0 + 0.14 * (sh_fbm(p * 0.7) - 0.5));
+  }
   // hammered metal (the door): big soft dents plus fine speckle
   return 1.0 + 0.3 * (sh_fbm(p * 1.4) - 0.5) + 0.2 * (sh_noise(p * 7.0) - 0.5) * sh_aa(p, 7.0) + 0.1 * (sh_noise(p * 18.0) - 0.5) * sh_aa(p, 18.0);
 }`)
@@ -54,7 +77,7 @@ float sh_surf(vec2 p, float across, float along, float kind) {
   diffuseColor.a = 1.0;
 }`);
   };
-  material.customProgramCacheKey = () => 'surface-texture-v6';
+  material.customProgramCacheKey = () => 'surface-texture-v7';
   return material;
 }
 
@@ -68,6 +91,39 @@ export function makeSky(THREE) {
   const sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), m);
   sky.renderOrder = -1; sky.frustumCulled = false;
   return sky;
+}
+
+// A moonlit night: deep blue, ragged grey clouds, a bright patch where the moon hides.
+export function makeNightSky(THREE) {
+  const m = makeNightSkyMaterial(THREE); m.side = THREE.BackSide; m.depthWrite = false;
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), m);
+  sky.renderOrder = -1; sky.frustumCulled = false;
+  return sky;
+}
+
+export function makeNightSkyMaterial(THREE) {
+  return new THREE.ShaderMaterial({
+    side: THREE.DoubleSide, toneMapped: false,
+    vertexShader: `varying vec3 vWorld;
+      void main() { vec4 w = modelMatrix * vec4(position, 1.0); vWorld = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: `varying vec3 vWorld;
+      float h3(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+      float vn(vec3 x) { vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(h3(i + vec3(0,0,1)), h3(i + vec3(1,0,1)), f.x), mix(h3(i + vec3(0,1,1)), h3(i + vec3(1,1,1)), f.x), f.y), f.z); }
+      float fbm(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vn(p); p = p * 2.03 + 17.1; a *= 0.5; } return s; }
+      void main() {
+        vec3 d = normalize(vWorld - cameraPosition);
+        vec3 col = mix(vec3(0.10, 0.11, 0.24), vec3(0.03, 0.03, 0.10), smoothstep(-0.1, 0.7, d.y));
+        float cov = fbm(vec3(d.x * 2.6, d.y * 6.0, d.z * 2.6) + 3.0) * 0.8 + fbm(vec3(d.x * 8.0, d.y * 14.0, d.z * 8.0)) * 0.35;
+        vec3 moonDir = normalize(vec3(0.25, 0.45, -1.0));
+        float glow = pow(max(dot(d, moonDir), 0.0), 18.0);
+        vec3 cloud = mix(vec3(0.30, 0.32, 0.45), vec3(0.62, 0.64, 0.78), glow * 1.5 + 0.2);
+        col = mix(col, cloud, smoothstep(0.42, 0.72, cov) * 0.85);
+        col += vec3(0.55, 0.58, 0.7) * glow * 0.6;
+        gl_FragColor = vec4(col, 1.0);
+      }`
+  });
 }
 
 export function makeSkyMaterial(THREE) {

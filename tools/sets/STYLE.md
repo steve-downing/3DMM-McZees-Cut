@@ -58,6 +58,8 @@ or smeared. The world should still read as the original set.
   - The cabin needed the texture turned up three times.
   - The door then needed it toned back down.
   - The carpet wanted a coarse, blotchy pattern.
+  - The mansion added flagstones (staggered slabs, each its own shade)
+    and damask wallpaper (a flame motif on a half-drop repeat).
 - **Smooth shading across gentle bends, crisp at real edges.** Normals are
   averaged across bends under 40°, in `smooth_normals`. Without this,
   curved parts like headrests look rough.
@@ -73,7 +75,9 @@ or smeared. The world should still read as the original set.
 
 - **The sky** is mostly white, softly mottled lavender cloud, at an
   effectively infinite distance (a sphere, looked up by view direction), so
-  it sits right in a headset.
+  it sits right in a headset. The mansion's is a moonlit night.
+- **Pictures stay pictures.** A painting on a wall keeps the original's
+  image as a texture (brightened, since the player lights it again).
 - **Lighting is computed once.** Shadows are rendered a single time and
   frames are only drawn when something changes. Earlier versions made a
   MacBook run hot.

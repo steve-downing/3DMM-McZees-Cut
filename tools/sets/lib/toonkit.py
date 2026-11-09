@@ -9,7 +9,7 @@ import mapbox_earcut as earcut
 CARTOON = 0.10   # how far colors lean toward the cartoon palette (0 = original, 1 = cartoon)
 
 # surface kinds (vertex-color alpha) understood by viewer/surface.js
-PLAIN, FABRIC, CARPET, WOOD, METAL, HAMMERED = range(6)
+PLAIN, FABRIC, CARPET, WOOD, METAL, HAMMERED, STONE, DAMASK = range(8)
 def toon(rgb):
     """brighter, more saturated version of an original color"""
     r, g, b = [c / 255.0 for c in rgb]

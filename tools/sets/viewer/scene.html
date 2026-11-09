@@ -121,7 +121,7 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
 <script type="module">
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { addSurfaceTexture, makeSkyMaterial, makeSky } from './surface.js';
+import { addSurfaceTexture, makeSkyMaterial, makeSky, makeNightSky, makeNightSkyMaterial } from './surface.js';
 
 // the set's camera views (index = 3DMM's camera number: vertical fov, position, rotation rows)
 // come with the scene; the set's own settings (set.json, see build_scene_site.py) with the page
@@ -187,16 +187,18 @@ function b64bytes(b64) { const bin = atob(b64.trim()), buf = new Uint8Array(bin.
 
 async function loadSet(cfg, meta) {
   addLights(cfg, meta);
-  if (cfg.sky) world.add(makeSky(THREE));
+  if (cfg.sky) world.add(cfg.sky === 'night' ? makeNightSky(THREE) : makeSky(THREE));
   $('where').textContent = cfg.where;
   NEAR = cfg.near || {};
   if (!cfg.model) { emptyStage(meta); return; }
   const g = await loader.parseAsync(b64bytes(await text(cfg.model)).buffer, '');
   g.scene.traverse(o => {
     if (!o.isMesh) return;
+    if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();   // textured pieces (the painting) come without
     const nm = o.name + (o.parent ? o.parent.name : '');
     const glow = /glow/.test(nm), sky = /sky/.test(nm);
-    o.material = sky ? makeSkyMaterial(THREE) : glow ? new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false })
+    o.material = sky ? (cfg.sky === 'night' ? makeNightSkyMaterial(THREE) : makeSkyMaterial(THREE)) : /picture/.test(nm) && o.material.map
+      ? new THREE.MeshStandardMaterial({ map: o.material.map, emissiveMap: o.material.map, emissive: 0xffffff, emissiveIntensity: 0.3, roughness: 0.9, metalness: 0, side: THREE.DoubleSide }) : glow ? new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false })
       : addSurfaceTexture(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
     o.castShadow = !glow && !/^(cabin|room)/.test(nm);
     o.receiveShadow = true;
@@ -328,6 +330,13 @@ function setCam(i) {
   camera.position.set(...c.pos); yaw = e.y; pitch = e.x; roll = e.z;
   camera.fov = c.fov; camera.near = NEAR[i] || 0.05; camera.updateProjectionMatrix();
 }
+window.__setCam = i => { setFollow(false); setCam(i); };   // for the review scripts (compare_scene.js)
+window.__look = (p, t, fov) => {                            // stand at p, look at t
+  setFollow(false); camera.position.set(...p);
+  const d = new THREE.Vector3(t[0] - p[0], t[1] - p[1], t[2] - p[2]).normalize();
+  yaw = Math.atan2(-d.x, -d.z); pitch = Math.asin(d.y); roll = 0;
+  camera.fov = fov || 60; camera.near = 0.05; camera.updateProjectionMatrix();
+};
 function setFollow(on) {
   followMovie = on;
   $('view-movie').setAttribute('aria-pressed', String(on)); $('view-free').setAttribute('aria-pressed', String(!on));
