@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <style>
-/* Layout: the cabin fills the screen; a camera strip of the nine original 3DMM angles runs along the bottom, controls float above it. Single dark look, by choice: it's a viewport. */
+/* Layout: the set fills the screen; a camera strip of the nine original 3DMM angles runs along the bottom, controls float above it. Single dark look, by choice: it's a viewport. */
 :root {
   --ink: #12111a;          /* behind everything */
   --panel: rgba(24, 22, 36, 0.86);
@@ -23,7 +23,7 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
 #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 #stage canvas:active { cursor: grabbing; }
 #orig { position: fixed; top: 0; bottom: 0; left: 50%; height: 100%; aspect-ratio: 544 / 306; transform: translateX(-50%);
-  max-width: none; pointer-events: none; opacity: 0; image-rendering: auto; }
+  max-width: none; pointer-events: none; image-rendering: auto; }
 
 .hud { position: fixed; z-index: 2; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
@@ -54,6 +54,15 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
 .mix { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 0.8rem; color: var(--muted); }
 .mix input { accent-color: var(--gold); width: 130px; }
 .mix input:disabled { opacity: 0.35; }
+/* the swipe: the 1995 picture left of the divider, the rebuilt set right of it */
+#wipe { position: fixed; top: 0; bottom: 0; width: 36px; margin-left: -18px; z-index: 1; cursor: ew-resize; touch-action: none; }
+#wipe::before { content: ""; position: absolute; top: 0; bottom: 0; left: 17px; width: 2px; background: var(--gold); box-shadow: 0 0 6px rgba(0,0,0,.6); }
+#wipe .grip { position: absolute; top: 50%; left: 0; width: 36px; height: 36px; margin-top: -18px; border-radius: 50%;
+  background: var(--gold); color: #1b1726; display: grid; place-items: center; font: 700 0.8rem/1 var(--body); box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+#wipe .tag { position: absolute; top: 50%; margin-top: 26px; font: 700 0.66rem/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--fg); background: rgba(18,17,26,.75); padding: 4px 6px; border-radius: 4px; white-space: nowrap; }
+#wipe .tag.l { right: 22px; } #wipe .tag.r { left: 22px; }
+#wipe:focus-visible .grip { outline: 2px solid var(--fg); outline-offset: 2px; }
 
 #pad { right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(196px + env(safe-area-inset-bottom, 0px)); padding: 8px; display: none;
   grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); gap: 6px; }
@@ -92,20 +101,22 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
 </style>
 
 <div id="stage"></div>
-<img id="orig" alt="">
-<div id="loading">Loading the cabin…</div>
+<img id="orig" alt="" hidden>
+<div id="wipe" hidden role="slider" tabindex="0" aria-label="Swipe between the 1995 picture and the rebuilt set" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+  <div class="grip" aria-hidden="true">◀▶</div><span class="tag l">1995</span><span class="tag r">Rebuilt</span></div>
+<div id="loading">Loading the set…</div>
 
 <div id="title" class="hud">
-  <div class="tag">3D Movie Maker · AD-Airplane background</div>
-  <h1>Airplane interior, in 3D</h1>
-  <p>Rebuilt from parts measured off the nine camera angles and their depth buffers: one cabin cross-section swept end to end, and one seat placed 13 times. Cartoon is a low-poly remake under real lights; Photo keeps the original 1995 renders as textures. Actors are 3DMM's own, models, textures and animation untouched.</p>
+  <div class="tag" id="set-tag">3D Movie Maker</div>
+  <h1 id="set-title">A set, in 3D</h1>
+  <p id="set-blurb"></p>
 </div>
 
 <div id="help" class="hud">
   <div>Drag to look around</div>
   <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows to move</div>
   <div><kbd>Q</kbd> <kbd>E</kbd> down / up · <kbd>Shift</kbd> faster</div>
-  <div><kbd>1</kbd>–<kbd>9</kbd> original cameras</div>
+  <div><kbd>1</kbd>–<kbd>9</kbd> original cameras · <kbd>X</kbd> swipe</div>
 </div>
 
 <div id="pad" class="hud" aria-label="Move">
@@ -121,11 +132,11 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
   <div class="row">
     <span class="label">3DMM cameras</span>
     <span id="status">Camera 1</span>
-    <div class="seg" role="group" aria-label="Style">
+    <div class="seg" role="group" aria-label="Style" id="styles">
       <button type="button" id="style-toon" aria-pressed="true">Cartoon</button>
       <button type="button" id="style-photo" aria-pressed="false">Photo</button>
     </div>
-    <label class="mix" for="mix">Compare with original
+    <label class="mix" for="mix">Swipe to the 1995 picture
       <input id="mix" type="range" min="0" max="100" value="0">
     </label>
   </div>
@@ -157,10 +168,20 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { addSurfaceTexture, makeSkyMaterial, makeSky } from './surface.js';
+import { addSurfaceTexture, makeSkyMaterial, makeSky, makeNightSky, makeNightSkyMaterial } from './surface.js';
 
-// the nine original camera views: vertical fov (degrees), position, rotation rows (BRender camera matrix)
-const CAMS = [{"fov":78.322,"pos":[-18.8661,14.7356,26.3896],"rot":[[0.76547,0.0,0.64323],[0.25063,0.92081,-0.29828],[-0.59233,0.38965,0.7049]]},{"fov":48.082,"pos":[2.9867,15.0424,-17.0295],"rot":[[-0.9951,0.0,-0.09834],[-0.01984,0.97931,0.20058],[0.09631,0.20157,-0.97456]]},{"fov":53.009,"pos":[-18.8391,12.8824,22.8379],"rot":[[0.57831,0.0,0.81569],[0.09409,0.99316,-0.06673],[-0.81017,0.11536,0.5744]]},{"fov":53.009,"pos":[-21.1851,11.759,20.8769],"rot":[[0.13014,0.0,0.99138],[0.0979,0.99503,-0.01286],[-0.9865,0.09875,0.1295]]},{"fov":32.542,"pos":[4.6273,8.7634,21.1018],"rot":[[0.02452,0.0,-0.99963],[0.08409,0.99631,0.00206],[0.996,-0.08414,0.02444]]},{"fov":29.515,"pos":[-5.1183,12.3242,22.863],"rot":[[0.8877,0.0,-0.46004],[-0.05339,0.9931,-0.10301],[0.45688,0.11603,0.88162]]},{"fov":16.436,"pos":[21.675,19.9418,4.6803],"rot":[[-0.38568,0.0,-0.92249],[-0.22585,0.96945,0.09441],[0.89435,0.24481,-0.37392]]},{"fov":41.534,"pos":[-16.3792,11.596,21.9666],"rot":[[0.18062,0.0,-0.98337],[0.21274,0.97617,0.03906],[0.95998,-0.21634,0.17633]]},{"fov":55.662,"pos":[0.0,18.9633,23.8528],"rot":[[0.99994,0.0,0.0],[0.0,0.95938,-0.2816],[0.0,0.28162,0.95938]]}];
+// The set: its original camera views (views/cams.json: vertical fov, position, rotation rows,
+// BRender camera matrix) and its settings (set.json, the set's viewer.json: names, lights,
+// sky, where an actor stands, camera fixes; see build_site.py)
+const [CAMS, CFG] = await Promise.all([
+  fetch('views/cams.json').then(r => r.json()),
+  fetch('set.json').then(r => r.ok ? r.json() : {}).catch(() => ({}))]);
+const EX = CFG.explorer || {};
+document.getElementById('set-tag').textContent = EX.tag || '3D Movie Maker';
+document.getElementById('set-title').textContent = EX.title || 'A set, in 3D';
+document.getElementById('set-blurb').textContent = EX.blurb || '';
+document.getElementById('styles').hidden = !EX.photo;
+document.getElementById('loading').textContent = 'Loading ' + (EX.name || 'the set') + '…';
 
 const stage = document.getElementById('stage');
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -175,18 +196,23 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure
 stage.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x12111a);
-scene.add(makeSky(THREE));   // seen through the window openings
+if (CFG.sky) scene.add(CFG.sky === 'night' ? makeNightSky(THREE) : makeSky(THREE));   // seen through the window openings
 const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 400);
 camera.rotation.order = 'YXZ';
 
-// lights for the cartoon cabin (the photo version is unlit: its lighting is baked into the renders)
-scene.add(new THREE.HemisphereLight(0xfff6e8, 0xc9b8a8, 1.9));
-const sun = new THREE.DirectionalLight(0xfff0d6, 1.3);
-sun.position.set(-14, 40, 18); sun.target.position.set(0, 0, 5);
-sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
-Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 90 });
-scene.add(sun, sun.target);
-const lamp = new THREE.PointLight(0xfff2dd, 120, 60, 1.6); lamp.position.set(0, 22, 5); scene.add(lamp);
+// the set's lights, for the cartoon version (the photo version is unlit: its lighting is baked into the renders)
+{
+  const L = CFG.lights || { hemi: ['#fff6e8', '#c9b8a8', 1.9] };
+  scene.add(new THREE.HemisphereLight(L.hemi[0], L.hemi[1], L.hemi[2]));
+  if (L.sun) {
+    const sun = new THREE.DirectionalLight(L.sun.color, L.sun.intensity), ext = L.sun.extent || 30;
+    sun.position.set(...L.sun.pos); sun.target.position.set(...L.sun.target);
+    sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
+    Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: 160 });
+    scene.add(sun, sun.target);
+  }
+  for (const l of L.lamps || []) { const p = new THREE.PointLight(l.color, l.intensity, l.distance, 1.6); p.position.set(...l.pos); scene.add(p); }
+}
 
 function resize() {
   const w = innerWidth, h = innerHeight;
@@ -211,8 +237,8 @@ function goCam(i, instant) {
   anim = { from, to, t0: performance.now(), dur: instant || matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 900, i };
   setCurrent(-1);
 }
-// camera 7 sits just outside the simplified bin corner, so clip that wall away there
-const NEAR = { 6: 2.2 };
+// cameras that sit just outside a simplified wall get it clipped away (the cabin's camera 7)
+const NEAR = CFG.near || {};
 function setCurrent(i) {
   current = i;
   const near = NEAR[i] || 0.05;
@@ -221,9 +247,28 @@ function setCurrent(i) {
   mix.disabled = i < 0;
   if (i >= 0) { orig.src = 'views/cam' + i + '.jpg'; status.textContent = 'Camera ' + (i + 1); }
   else status.textContent = anim ? 'Moving…' : 'Free look';
-  orig.style.opacity = i >= 0 ? mix.value / 100 : 0;
+  orig.hidden = wipeEl.hidden = i < 0;
+  placeWipe();
 }
-mix.addEventListener('input', () => { orig.style.opacity = current >= 0 ? mix.value / 100 : 0; });
+// The swipe: the 1995 picture shows left of the divider, the rebuilt set right of it.
+// Both are drawn from the same camera, so anything that differs jumps out at the line.
+const wipeEl = document.getElementById('wipe');
+function placeWipe() {
+  const x = innerWidth * mix.value / 100;
+  wipeEl.style.left = x + 'px'; wipeEl.setAttribute('aria-valuenow', mix.value);
+  const r = orig.getBoundingClientRect();   // the picture is centered and may be wider than the window
+  orig.style.clipPath = 'inset(0 ' + Math.max(0, r.width - (x - r.left)) + 'px 0 0)';
+}
+mix.addEventListener('input', placeWipe);
+addEventListener('resize', placeWipe);
+orig.addEventListener('load', placeWipe);
+function setWipe(v) { mix.value = Math.max(0, Math.min(100, v)); placeWipe(); }
+wipeEl.addEventListener('pointerdown', e => { e.preventDefault(); wipeEl.setPointerCapture(e.pointerId); wipeEl._drag = true; });
+wipeEl.addEventListener('pointermove', e => { if (wipeEl._drag) setWipe(e.clientX / innerWidth * 100); });
+wipeEl.addEventListener('pointerup', () => { wipeEl._drag = false; });
+wipeEl.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); setWipe(+mix.value + (e.key === 'ArrowRight' ? 5 : -5)); }
+});
 
 // --- camera strip ----------------------------------------------------------
 const camsEl = document.getElementById('cams');
@@ -240,6 +285,7 @@ const keys = new Set();
 addEventListener('keydown', e => {
   if (/^(INPUT|SELECT)$/.test(e.target.tagName)) return;
   if (/^Digit[1-9]$/.test(e.code)) { goCam(+e.code.slice(5) - 1); return; }
+  if (e.code === 'KeyX') { if (current >= 0) setWipe(+mix.value > 0 ? 0 : 50); return; }
   keys.add(e.code);
 });
 addEventListener('keyup', e => keys.delete(e.code));
@@ -281,11 +327,14 @@ function loadModel(name) {
     g.scene.traverse(o => {
       if (!o.isMesh) return;
       if (name === 'toon') {
-        const glow = /glow/.test(o.name + (o.parent ? o.parent.name : ''));
-        const sky = /sky/.test(o.name + (o.parent ? o.parent.name : ''));
-        o.material = sky ? makeSkyMaterial(THREE) : glow ? new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false })
+        if (!o.geometry.attributes.normal) o.geometry.computeVertexNormals();   // textured pieces (paintings) come without
+        const nm = o.name + (o.parent ? o.parent.name : '');
+        const glow = /glow/.test(nm), sky = /sky/.test(nm);
+        o.material = sky ? (CFG.sky === 'night' ? makeNightSkyMaterial(THREE) : makeSkyMaterial(THREE))
+          : /picture/.test(nm) && o.material.map ? new THREE.MeshStandardMaterial({ map: o.material.map, emissiveMap: o.material.map, emissive: 0xffffff, emissiveIntensity: 0.3, roughness: 0.9, metalness: 0, side: THREE.DoubleSide })
+          : glow ? new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false })
           : addSurfaceTexture(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
-        o.castShadow = !glow && !/^cabin/.test(o.name + (o.parent ? o.parent.name : ''));
+        o.castShadow = !glow && !/^(cabin|room)/.test(nm);
         o.receiveShadow = true;
       } else {
         const map = o.material.map;
@@ -302,7 +351,7 @@ function setStyle(name) {
   style = name;
   document.getElementById('style-toon').setAttribute('aria-pressed', String(name === 'toon'));
   document.getElementById('style-photo').setAttribute('aria-pressed', String(name === 'cabin'));
-  loadingEl.textContent = 'Loading the cabin…'; loadingEl.hidden = false;
+  loadingEl.textContent = 'Loading ' + (EX.name || 'the set') + '…'; loadingEl.hidden = false;
   loadModel(name).then(root => {
     if (style !== name) return;
     for (const k in models) models[k].then(r => { r.visible = (k === name); renderer.shadowMap.needsUpdate = true; invalidate(); });
@@ -325,7 +374,7 @@ const actionPick = document.getElementById('action-pick'), framePick = document.
 const costumeRow = document.getElementById('costume-row'), costumesEl = document.getElementById('costumes'), smoothBtn = document.getElementById('smooth');
 // keep the touch pad clear of the bottom strip, whatever its height
 new ResizeObserver(() => { document.getElementById('pad').style.bottom = 'calc(' + (document.getElementById('strip').offsetHeight + 24) + 'px + env(safe-area-inset-bottom, 0px))'; }).observe(document.getElementById('strip'));
-const ACTOR_SPOT = { x: -0.5, z: 9.0, yaw: Math.PI / 2 };     // aisle, between the tables; models face -x, so this faces the rear
+const ACTOR_SPOT = CFG.actor || { x: 0, z: 0, yaw: 0 };   // where the set puts an actor (models face -x; yaw turns them)
 let actor = null, actorReq = 0, playing = null, smooth = true;   // playing: { t0, pos0 } in cels
 
 function f16(h) {
@@ -444,7 +493,7 @@ function clearActor() {
 async function loadActor(id) {
   const req = ++actorReq;
   clearActor();
-  if (!id) { if (loadingEl.textContent !== 'Loading the cabin…') loadingEl.hidden = true; return; }   // None, maybe mid-load
+  if (!id) { if (!loadingEl.textContent.startsWith('Loading ' + (EX.name || 'the set'))) loadingEl.hidden = true; return; }   // None, maybe mid-load
   loadingEl.textContent = 'Loading ' + actorSel.selectedOptions[0].textContent + '…'; loadingEl.hidden = false;
   try {
     const [meta, b64] = await Promise.all([
@@ -540,5 +589,6 @@ function frame(now) {
   dirty = false;
   camera.rotation.set(pitch, yaw, roll);
   renderer.render(scene, camera);
+  window.__renders = (window.__renders || 0) + 1;   // for tests: an idle page should stop drawing
 }
 </script>

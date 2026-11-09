@@ -133,6 +133,10 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// Draw only when something changed: a new frame of the movie, the camera, the window.
+// A paused scene costs nothing, and shadows are recomputed only when the actors move.
+renderer.shadowMap.autoUpdate = false;
+let dirty = true; const invalidate = () => { dirty = true; };
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.4;
 renderer.xr.enabled = true;
 $('stage').appendChild(renderer.domElement);
@@ -178,7 +182,7 @@ function resize() {
   if (renderer.xr.isPresenting) return;
   renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
 }
-addEventListener('resize', resize); resize();
+addEventListener('resize', () => { resize(); invalidate(); }); resize();
 
 // ---- loading -----------------------------------------------------------------
 const loader = new GLTFLoader();
@@ -204,6 +208,7 @@ async function loadSet(cfg, meta) {
     o.receiveShadow = true;
   });
   world.add(g.scene);
+  renderer.shadowMap.needsUpdate = true; invalidate();
 }
 
 // 3DMM's black background: nothing but the actors. A dark stage, with a soft pool of
@@ -292,7 +297,7 @@ function showFrame(i) {
       r++;
     }
   }
-  renderer.shadowMap.needsUpdate = true;
+  renderer.shadowMap.needsUpdate = true; invalidate();
   if (followMovie && !renderer.xr.isPresenting && f.cam >= 0 && f.cam < CAMS.length) setCam(f.cam);
 }
 function frameAt(ms) {   // the last frame that starts at or before ms
@@ -329,6 +334,7 @@ function setCam(i) {
   const e = new THREE.Euler().setFromRotationMatrix(m, 'YXZ');
   camera.position.set(...c.pos); yaw = e.y; pitch = e.x; roll = e.z;
   camera.fov = c.fov; camera.near = NEAR[i] || 0.05; camera.updateProjectionMatrix();
+  invalidate();
 }
 window.__setCam = i => { setFollow(false); setCam(i); };   // for the review scripts (compare_scene.js)
 window.__look = (p, t, fov) => {                            // stand at p, look at t
@@ -368,6 +374,7 @@ let drag = null;
 const cv = renderer.domElement;
 cv.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY }; cv.setPointerCapture(e.pointerId); });
 cv.addEventListener('pointermove', e => {
+  if (drag) invalidate();
   if (!drag) return;
   leaveMovieCam();
   const k = 0.0042 * (camera.fov / 60);
@@ -376,7 +383,7 @@ cv.addEventListener('pointermove', e => {
 });
 cv.addEventListener('pointerup', () => { drag = null; });
 cv.addEventListener('wheel', e => { e.preventDefault(); leaveMovieCam();
-  camera.position.addScaledVector(new THREE.Vector3(0, 0, -1).applyEuler(camera.rotation), -e.deltaY * 0.01); }, { passive: false });
+  camera.position.addScaledVector(new THREE.Vector3(0, 0, -1).applyEuler(camera.rotation), -e.deltaY * 0.01); invalidate(); }, { passive: false });
 
 // ---- VR -------------------------------------------------------------------------------
 // The world shrinks to meters, you stand where the set says (the cabin: in the aisle), and the left stick walks.
@@ -399,7 +406,7 @@ vrBtn.addEventListener('click', async () => {
     if (!playing) setPlaying(true);
     xrSession.addEventListener('end', () => {
       xrSession = null; world.scale.setScalar(1); rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0);
-      vrBtn.textContent = 'Enter VR'; resize();
+      vrBtn.textContent = 'Enter VR'; resize(); invalidate();
     });
   } catch (err) { console.error(err); xrSession = null; }
 });
@@ -420,7 +427,7 @@ function vrMove(dt) {
 }
 
 // ---- the loop -------------------------------------------------------------------------
-let last = performance.now(), lastScrub = -1;
+let last = performance.now(), lastScrub = -1, lastTime = '';
 renderer.setAnimationLoop(t => { try { frame(t); } catch (err) { console.error(err); } });
 function frame(t) {
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
@@ -430,7 +437,8 @@ function frame(t) {
     showFrame(frameAt(Math.min(ms, S.meta.duration - 1)));
     const v = Math.round(ms / S.meta.duration * 1000);
     if (v !== lastScrub && document.activeElement !== $('scrub')) { $('scrub').value = v; lastScrub = v; }
-    $('time').textContent = fmt(Math.min(ms, S.meta.duration)) + ' / ' + fmt(S.meta.duration);
+    const tt = fmt(Math.min(ms, S.meta.duration)) + ' / ' + fmt(S.meta.duration);
+    if (tt !== lastTime) { $('time').textContent = tt; lastTime = tt; }
   }
   if (renderer.xr.isPresenting) { vrMove(dt); renderer.render(scene, camera); return; }
   const mv = new THREE.Vector3(
@@ -444,9 +452,13 @@ function frame(t) {
     const speed = (keys.has('ShiftLeft') || keys.has('ShiftRight') ? 24 : 8) * dt;
     camera.position.addScaledVector(new THREE.Vector3(mv.x, 0, mv.z).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw), speed);
     camera.position.y += mv.y * speed;
+    dirty = true;
   }
+  if (!dirty) return;
+  dirty = false;
   camera.rotation.set(pitch, yaw, roll);
   renderer.render(scene, camera);
+  window.__renders = (window.__renders || 0) + 1;   // for tests: an idle page should stop drawing
 }
 
 // ---- start ------------------------------------------------------------------------------

@@ -62,5 +62,16 @@
         "distance": 45
       }
     ]
+  },
+  "actor": {
+    "x": 171.0,
+    "z": -101.0,
+    "yaw": -1.5707963267948966
+  },
+  "explorer": {
+    "name": "the dining room",
+    "title": "Mansion dining room, in 3D",
+    "tag": "3D Movie Maker \u00b7 HH-Dining background",
+    "blurb": "Rebuilt from measurements off the nine camera angles and their depth buffers: the trestle table, eight spiderweb chairs and two armchairs, four curtained window bays, the trusses and chandelier, and the painting, which keeps its 1995 picture. Swipe at any original camera to see the 1995 render. Actors are 3DMM's own, untouched."
   }
 }
