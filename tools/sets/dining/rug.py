@@ -5,7 +5,7 @@
 The 1995 rug is a purple field inside a pale, busy border; at that resolution the
 pattern is a blur, so this draws an ornate rug in the same colors instead: guard
 stripes, a border of rosettes on a scrolling vine, a trellis field with small
-flowers and corner spandrels, in muted colors. Drawn at
+flowers, in muted colors; the border stays close to the field in tone. Drawn at
 twice the size and shrunk, for clean edges."""
 import os, sys, math
 import numpy as np
@@ -18,7 +18,7 @@ SS = 2                                              # supersampling
 
 # colors (sRGB), in the room's palette
 FIELD = (88, 30, 104); FIELD_DK = (64, 22, 80); FIELD_LT = (112, 52, 126)
-BORDER_BG = (52, 46, 82); BORDER_LT = (104, 96, 136); CREAM = (150, 136, 156)
+BORDER_BG = (60, 40, 84); BORDER_LT = (86, 62, 112); CREAM = (110, 88, 126)
 GOLD = (150, 116, 58); DARK = (34, 20, 44); BLUE = (70, 76, 120)
 
 def main(out=os.path.join(HERE, 'data', 'rug.png')):
@@ -42,15 +42,6 @@ def main(out=os.path.join(HERE, 'data', 'rug.png')):
                 t = a * math.pi / 2
                 d.ellipse([cx + math.cos(t) * r - r * 0.6, cy + math.sin(t) * r - r * 0.6, cx + math.cos(t) * r + r * 0.6, cy + math.sin(t) * r + r * 0.6], fill=FIELD_LT)
             d.ellipse([cx - r * 0.45, cy - r * 0.45, cx + r * 0.45, cy + r * 0.45], fill=GOLD)
-
-    # --- corner spandrels: quarter medallions in the field's corners
-    for (qx, qy) in ((b, b), (W - b, b), (b, H - b), (W - b, H - b)):
-        for r, col in ((4.6, FIELD_DK), (4.3, BORDER_BG), (3.3, FIELD_LT), (2.9, FIELD_DK), (1.6, BORDER_LT)):
-            d.ellipse([qx - r * s, qy - r * s, qx + r * s, qy + r * s], fill=col)
-        for k in range(12):
-            t = k * math.pi / 6
-            ex, ey = qx + math.cos(t) * 3.8 * s, qy + math.sin(t) * 3.8 * s
-            d.ellipse([ex - 0.22 * s, ey - 0.22 * s, ex + 0.22 * s, ey + 0.22 * s], fill=GOLD)
 
     # --- the border band (drawn last, over the field's edges)
     d.rectangle([0, 0, W, b], fill=BORDER_BG); d.rectangle([0, H - b, W, H], fill=BORDER_BG)
@@ -108,10 +99,6 @@ def main(out=os.path.join(HERE, 'data', 'rug.png')):
             # a leaf on the vine opposite the rosette
             lx, ly = x + nx * side * 0.35 * s, y + ny * side * 0.35 * s
             d.ellipse([lx - 0.38 * s, ly - 0.2 * s, lx + 0.38 * s, ly + 0.2 * s] if nx == 0 else [lx - 0.2 * s, ly - 0.38 * s, lx + 0.2 * s, ly + 0.38 * s], fill=BLUE)
-    # corner squares of the border: a rosette each
-    for (qx, qy) in ((mid * s, mid * s), (W - mid * s, mid * s), (mid * s, H - mid * s), (W - mid * s, H - mid * s)):
-        for rr, col in ((1.5, DARK), (1.3, CREAM), (0.95, BORDER_BG), (0.55, GOLD)):
-            d.ellipse([qx - rr * s, qy - rr * s, qx + rr * s, qy + rr * s], fill=col)
     # a little wear: soft mottling so it reads as wool, not print
     img = np.asarray(im).astype(float)
     rng = np.random.default_rng(3)

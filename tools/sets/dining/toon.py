@@ -416,11 +416,17 @@ def build_side_chair():
     for k in (0.38, 0.68, 1.0):
         pts = [W(cx + (ex - cx) * k, cy + (ey - cy) * k) for ex, ey in outer]
         for i in range(len(pts)): b.add_mesh(bar(pts[i], pts[(i + 1) % len(pts)], 0.035), PAL['web'], kind=METAL)
-    # strands from the web to the wood: sideways to the posts, the diagonals to the posts just
-    # under the crest rail and down to the seat's corners, straight up to the rail and down to the seat
-    for (ex, ey), (ax, ay) in ((outer[0], (2.45, 6.3)), (outer[4], (-2.45, 6.3)), (outer[1], (2.56, 8.95)), (outer[3], (-2.56, 8.95)),
-                               (outer[2], (0, 9.18)), (outer[5], (-2.15, 4.66)), (outer[7], (2.15, 4.66)), (outer[6], (0, 4.64))):
-        b.add_mesh(bar(W(ex, ey), W(ax, ay), 0.035), PAL['web'], kind=METAL)
+    # strands from the web to the wood: each continues its spoke's own line outward until it
+    # meets a post, the crest rail or the seat
+    post_x = lambda y: np.interp(y, [4.4, 6.0, 8.0, 10.45], [2.35, 2.37, 2.5, 2.95]) - 0.25   # inner edge of a post
+    for (ex, ey) in outer:
+        dx, dy = ex - cx, ey - cy
+        for s_ in np.linspace(1.0, 3.0, 400):
+            x, y = cx + dx * s_, cy + dy * s_
+            if abs(x) >= post_x(y) or y >= 9.2 or y <= 4.64: break
+        y = min(max(y, 4.64), 9.2)
+        if np.hypot(x - ex, y - ey) > 0.05:      # where the web already touches the wood, no strand
+            b.add_mesh(bar(W(ex, ey), W(x, y), 0.035), PAL['web'], kind=METAL)
     for sx in (-1, 1):
         add_parts(b, skull((sx * 3.0, 10.82, zb + lean(10.82) - 0.12)), METAL)
     return b.meshes()['lit']
@@ -462,7 +468,7 @@ def build_armchair():
     # the back: a solid board between the posts, flat-topped with a small crown in the middle
     top = [(px(10.25) - 0.25, 10.25), (1.05, 10.25), (0.8, 10.5), (0.6, 10.38), (0.35, 10.62), (0.18, 10.5), (0.0, 10.88)]
     right = [(px(4.6) - 0.25, 4.6)] + top
-    board = right + [(-x, y) for x, y in reversed(right)][1:-1]
+    board = right + [(-x, y) for x, y in reversed(right)][1:]     # drop only the shared middle point
     back_extrude(b, board, lambda y: zb + lean(y), -0.18, 0.14, PAL['chair'], WOOD)
     # the velvet shield: wide at the top, narrowing down to a rounded point
     shield = [(2.35, 10.02), (2.2, 8.3), (1.8, 6.7), (1.35, 5.85)] + [(1.35 * np.cos(t), 5.85 - 0.65 * np.sin(t)) for t in np.linspace(0.3, np.pi - 0.3, 7)] + \
