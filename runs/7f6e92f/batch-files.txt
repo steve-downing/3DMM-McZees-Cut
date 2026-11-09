@@ -1,0 +1,11 @@
+
+Name                     Length
+----                     ------
+City Tour.anaglyph.mp4 11771877
+City Tour.hsbs.mp4     45994734
+City Tour.mp4          10984057
+Jungle.anaglyph.mp4    25477704
+Jungle.hsbs.mp4        98879014
+Jungle.mp4             23070543
+
+hsbs: 1920,1080,1:1
