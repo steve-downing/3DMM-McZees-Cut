@@ -1,0 +1,16 @@
+     0.000 transition cut
+     0.000 sound s000 vlm=65536 loops=2147483647 offset=0
+     0.000 play
+     0.020 transition dissolve
+     4.195 sound s001 vlm=32768 loops=1 offset=0
+    29.025 transition dissolve
+    50.030 transition dissolve
+    68.870 transition dissolve
+    84.710 transition dissolve
+    97.385 sound s002 vlm=32768 loops=1 offset=0
+    97.385 sound s003 vlm=32768 loops=1 offset=0
+    98.550 transition dissolve
+   109.890 sound s002 vlm=32768 loops=1 offset=0
+   109.890 sound s003 vlm=32768 loops=1 offset=0
+   109.890 transition dissolve
+   129.395 end
