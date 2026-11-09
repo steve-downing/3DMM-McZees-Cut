@@ -172,7 +172,7 @@ function addLights(cfg, meta) {
   }
   if (sun) {
     const ext = (L && L.sun && L.sun.extent) || 45;
-    sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
+    sun.castShadow = cfg.shadows !== false; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
     Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: 160 });
     world.add(sun, sun.target);
   }
@@ -212,20 +212,9 @@ async function loadSet(cfg, meta) {
   renderer.shadowMap.needsUpdate = true; invalidate();
 }
 
-// 3DMM's black background: nothing but the actors. A dark stage, with a soft pool of
-// light on the floor (y = 0, where 3DMM's actors stand) and their shadows in it.
+// 3DMM's black background: nothing but the actors, lit by the set's own lights, in the dark.
 function emptyStage(meta) {
   scene.background = new THREE.Color(0x09080d);
-  const c = meta.center, R = 60;
-  const cv = document.createElement('canvas'); cv.width = cv.height = 256;
-  const g2 = cv.getContext('2d'), grad = g2.createRadialGradient(128, 128, 0, 128, 128, 128);
-  grad.addColorStop(0, 'rgba(120,112,150,0.30)'); grad.addColorStop(0.55, 'rgba(70,64,96,0.14)'); grad.addColorStop(1, 'rgba(40,36,56,0)');
-  g2.fillStyle = grad; g2.fillRect(0, 0, 256, 256);
-  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
-  const pool = new THREE.Mesh(new THREE.CircleGeometry(R, 64), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false }));
-  pool.rotation.x = -Math.PI / 2; pool.position.set(c[0], 0, c[2]); world.add(pool);
-  const shade = new THREE.Mesh(new THREE.CircleGeometry(R, 64), new THREE.ShadowMaterial({ opacity: 0.45 }));
-  shade.rotation.x = -Math.PI / 2; shade.position.set(c[0], 0.01, c[2]); shade.receiveShadow = true; world.add(shade);
 }
 
 // The scene (see export_scene.py): frames with their time and the movie's camera, and per

@@ -223,9 +223,8 @@ textures. That's why the cabin was rebuilt from measured parts.
 `viewer/scene.html` plays one scene of a movie in 3D: the movie's own
 cameras, or walk around (and VR, where the browser allows it) while it
 plays, with the soundtrack. The scene is staged in its rebuilt set, or, for
-3DMM's black background (and sets not rebuilt yet), on an empty stage: a
-dark floor with a soft pool of light, the actors lit by the set's own
-lights as in 3DMM.
+3DMM's black background (and sets not rebuilt yet), on an empty stage: the
+actors in the dark, lit by the set's own lights as in 3DMM.
 
 ```sh
 # 1. capture: render the movie with pose capture (Windows, McZee's Cut package)

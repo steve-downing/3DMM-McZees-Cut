@@ -207,7 +207,7 @@ camera.rotation.order = 'YXZ';
   if (L.sun) {
     const sun = new THREE.DirectionalLight(L.sun.color, L.sun.intensity), ext = L.sun.extent || 30;
     sun.position.set(...L.sun.pos); sun.target.position.set(...L.sun.target);
-    sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
+    sun.castShadow = CFG.shadows !== false; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
     Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: 160 });
     scene.add(sun, sun.target);
   }

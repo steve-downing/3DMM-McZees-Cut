@@ -55,20 +55,21 @@ PILLAR = dict(x0=205.4, z1=-95.3, top=17.2)   # in the far corner, against both 
 IRON = dict(z=-147.5, x0=138.2, x1=141.8, top=8.0)   # wrought-iron rack against the window wall
 
 # ----------------------------------------------------------------- colors (cartoon, measured original)
+# The woodwork is walnut rather than 1995's orange cherry (Steve's call); the rest follows the original.
 PAL = dict(
     stone=half('#4e4c56', (38, 36, 41)), grout=hexc('#1c1a20'),
     rug=half('#8a2aa0', (66, 22, 62)), rug_border=half('#5a5478', (51, 44, 56)), rug_motif=half('#8a84a8', (78, 72, 90)),
     curtain=half('#f2efe6', (73, 73, 68)), reveal=half('#a07856', (69, 51, 41)),
-    cushion=half('#c0262a', (56, 23, 22)), seatbox=half('#7a4a1c', (45, 29, 8)),
+    cushion=half('#c0262a', (56, 23, 22)), seatbox=hexc('#4c382a'),
     paper=half('#9a8088', (80, 64, 66)), paper_low=half('#7a5458', (62, 44, 44)),
-    gold=half('#c89a2e', (84, 63, 24)), trim=half('#8a5a1a', (63, 44, 9)),
-    timber=half('#a8682a', (89, 53, 21)), ceiling=half('#9a9086', (84, 76, 66)),
-    table=half('#a8541a', (98, 46, 12)), door=half('#7a5a36', (47, 35, 19)), sideboard=half('#6a3410', (45, 19, 5)),
-    chair=half('#d07a20', (146, 69, 16)), seat=half('#c42a16', (127, 28, 12)), back=half('#d0302a', (143, 33, 20)),
+    gold=half('#c89a2e', (84, 63, 24)), trim=hexc('#463325'),
+    timber=hexc('#523b2b'), ceiling=half('#9a9086', (84, 76, 66)),
+    table=hexc('#5c4433'), door=hexc('#54402f'), sideboard=hexc('#3f2e22'),
+    chair=hexc('#6a4f3c'), seat=half('#c42a16', (127, 28, 12)), back=half('#d0302a', (143, 33, 20)),
     web=half('#d0bf90', (150, 136, 100)), skull=half('#e8c860', (165, 135, 64)), socket=hexc('#3a2a10'),
     claw=half('#efe6cc', (170, 160, 140)), iron=half('#1c1816', (30, 24, 18)), candle=hexc('#f4eedc'),
     flame=hexc('#ffd27a'), pillar=half('#7a6a58', (51, 43, 33)), cup=half('#9a9aa0', (90, 90, 96)),
-    frame=half('#d4a63a', (120, 92, 30)), glass_bar=half('#6a4a2a', (60, 42, 22)))
+    frame=half('#d4a63a', (120, 92, 30)), glass_bar=hexc('#423024'))
 
 # ----------------------------------------------------------------- small helpers
 def to_world(plane, pts):
@@ -137,8 +138,9 @@ def wall_layers(b, plane, u0, u1, holes, paper=True, pleats=False):
     else:
         # the window wall is hung with white curtains: soft vertical folds, 1.0 apart
         w = box(u0, BASE[1], u1, WALL_TOP).difference(cut)
-        strips = [w.intersection(box(u, BASE[1], min(u + 0.5, u1), WALL_TOP)) for u in np.arange(u0, u1, 0.5)]
-        fold = lambda u, y: 0.12 * (1 - np.cos(2 * np.pi * (u - u0) / 1.0))
+        # (set back into the wall, not out from it: 3-D text in a movie can stand just in front of it)
+        strips = [w.intersection(box(u, BASE[1], min(u + 0.27, u1), WALL_TOP)) for u in np.arange(u0, u1, 0.27)]
+        fold = lambda u, y: -0.09 * (1 - np.cos(2 * np.pi * (u - u0) / 1.62))
         for s in strips: flat_poly(b, plane, s, 0, PAL['curtain'], FABRIC, warp=fold)
     extrude_poly(b, plane, box(u0, BASE[0], u1, BASE[1]).difference(cut), 0, BASE[2], PAL['trim'], WOOD)
     # the cornice: a deep, stepped molding: bead, frieze, ovolo, crown, top fillet
@@ -180,7 +182,7 @@ def window_bay(b, plane, c, hw, y_bottom, spring, depth, muntins, seat):
     extrude_poly(b, plane, glazing, -depth - 0.15, -depth + 0.18, PAL['glass_bar'], WOOD)
     # trim round the arch, on the wall face
     band = arch(c - hw - 0.6, c + hw + 0.6, seat['top'], spring).difference(arch(c - hw, c + hw, seat['top'] - 1, spring))
-    extrude_poly(b, plane, band, 0, 0.38, PAL['reveal'], HAMMERED)
+    extrude_poly(b, plane, band, 0, 0.12, PAL['reveal'], HAMMERED)      # nearly flush: actors pass close in front of it
     # the seat: a box that fills the recess and stands out into the room, a cushion on top
     st, sh = seat['top'], seat['top'] - seat['cushion']
     outline = unary_union([box(c - seat['hw'], 0, c + seat['hw'], seat['front']), box(c - hw, -depth, c + hw, 0.01)])
@@ -238,7 +240,7 @@ def trusses(b):
         t = min(s, span - s)
         if t >= 11: return 32.0
         a = t / 11
-        return (1 - a) ** 2 * 22.4 + 2 * (1 - a) * a * 26.0 + a ** 2 * 32.0      # quadratic bezier (22.4 -> 32.0)
+        return (1 - a) ** 2 * 23.0 + 2 * (1 - a) * a * 26.3 + a ** 2 * 32.0      # quadratic bezier (23.0 -> 32.0)
     def ceil_at(s): return min(CORNICE[1] + (CEIL - CORNICE[1]) * min(s, span - s) / RUN, CEIL)
     ss = np.r_[np.linspace(0, 11, 12), np.linspace(span - 11, span, 12)]
     bottom = [(s, under(s)) for s in ss]
@@ -428,7 +430,7 @@ def build_side_chair():
         if np.hypot(x - ex, y - ey) > 0.05:      # where the web already touches the wood, no strand
             b.add_mesh(bar(W(ex, ey), W(x, y), 0.035), PAL['web'], kind=METAL)
     for sx in (-1, 1):
-        add_parts(b, skull((sx * 3.0, 10.82, zb + lean(10.82) - 0.12)), METAL)
+        add_parts(b, skull((sx * 3.0, 10.62, zb + float(lean(10.62)) + 0.25 + 0.42 + 0.02)), METAL)   # in front of the post and rail
     return b.meshes()['lit']
 
 def build_armchair():
@@ -452,7 +454,7 @@ def build_armchair():
         b.add_mesh(sphere((sx * 3.2, 6.0, 2.42), 0.24, 1, (0.85, 1, 1.1)), PAL['chair'], kind=WOOD)
         # front support: up from the seat's corner, bowing forward
         sweep(b, [(sx * 3.2, y, z) for y, z in bez((4.35, 2.1), (5.2, 2.75), (6.0, 2.3), 5)], 0.32, 0.32, PAL['chair'])
-        add_parts(b, skull((sx * px(10.95), 10.98, zb + float(lean(10.98))), 0.48), METAL)
+        add_parts(b, skull((sx * px(10.8), 10.8, zb + float(lean(10.8)) + 0.26 + 0.48 + 0.02), 0.48), METAL)   # in front of the post
     # seat frame (front bowed a little) and its velvet cushion
     front = [(x, 2.45 + 0.15 * np.cos(np.pi * x / 6.6)) for x in np.linspace(3.3, -3.3, 9)]
     seat_out = [(3.3, -2.45)] + front + [(-3.3, -2.45)]

@@ -57,5 +57,6 @@
     "tag": "3D Movie Maker \u00b7 AD-Airplane background",
     "photo": true,
     "blurb": "Rebuilt from parts measured off the nine camera angles and their depth buffers: one cabin cross-section swept end to end, and one seat placed 13 times. Cartoon is a low-poly remake under real lights; Photo keeps the original 1995 renders as textures. Actors are 3DMM's own, models, textures and animation untouched."
-  }
+  },
+  "shadows": false
 }

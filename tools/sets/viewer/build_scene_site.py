@@ -13,7 +13,8 @@ A set's viewer.json (all optional):
   where   how the page says where it's staged ("in the rebuilt cartoon cabin")
   near    {camera number: near clip}, for cameras that sit just outside a wall
   vr      {"pos": [x, y, z] meters, "yaw": radians}: where VR starts
-  sky     true: show the sky outside (windows)
+  sky     true (or "night"): show the sky outside (windows)
+  shadows false: no cast shadows (a set lit from everywhere, like the cabin)
   lights  {"hemi": [sky color, ground color, intensity],
            "sun": {"pos", "target", "color", "intensity", "extent"},
            "lamps": [{"pos", "color", "intensity", "distance"}]}
