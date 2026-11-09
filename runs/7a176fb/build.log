@@ -1,0 +1,190 @@
+[0/2] Re-checking globbed directories...
+[1/137] Building C object CMakeFiles\kcd2-386.dir\kauai\src\kcd2_386.c.obj
+[2/137] Building C object CMakeFiles\kcdc-386.dir\kauai\src\kcdc_386.c.obj
+[3/137] Linking C executable kcd2-386.exe
+[4/137] Linking C executable kcdc-386.exe
+[5/137] Generating kcd2_386.h
+[6/137] Generating kcdc_386.h
+[7/137] Building CXX object CMakeFiles\crt.dir\src\render\crt.cpp.obj
+[8/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\base.cpp.obj
+[9/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\chse.cpp.obj
+[10/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\clip.cpp.obj
+[11/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\chunk.cpp.obj
+[12/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\appb.cpp.obj
+[13/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\chcm.cpp.obj
+[14/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\clok.cpp.obj
+[15/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\cmd.cpp.obj
+[16/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\codec.cpp.obj
+[17/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\codkauai.cpp.obj
+[18/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\crf.cpp.obj
+[19/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\ctl.cpp.obj
+[20/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\cursor.cpp.obj
+[21/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\docb.cpp.obj
+[22/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\dlg.cpp.obj
+[23/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\file.cpp.obj
+[24/137] Building RC object CMakeFiles\kauai.dir\kauai\src\frame.rc.res
+[25/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\gfx.cpp.obj
+[26/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\groups.cpp.obj
+[27/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\gob.cpp.obj
+[28/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\groups2.cpp.obj
+[29/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\kidhelp.cpp.obj
+[30/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\lex.cpp.obj
+[31/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\kidspace.cpp.obj
+[32/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\kidworld.cpp.obj
+[33/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\mbmp.cpp.obj
+[34/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\mbmpgui.cpp.obj
+[35/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\midi.cpp.obj
+[36/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\mididev.cpp.obj
+[37/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\mssio.cpp.obj
+[38/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\mididev2.cpp.obj
+[39/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\pic.cpp.obj
+[40/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\region.cpp.obj
+[41/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\scrcom.cpp.obj
+[42/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\rtxt.cpp.obj
+[43/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\rtxt2.cpp.obj
+[44/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\scrcomg.cpp.obj
+[45/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\screxe.cpp.obj
+[46/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\sndam.cpp.obj
+[47/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\spell.cpp.obj
+[48/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\screxeg.cpp.obj
+[49/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\sndm.cpp.obj
+[50/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\stream.cpp.obj
+[51/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\utilcopy.cpp.obj
+[52/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\text.cpp.obj
+[53/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\util.cpp.obj
+[54/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\textdoc.cpp.obj
+[55/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\utilerro.cpp.obj
+[56/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\utilglob.cpp.obj
+[57/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\utilint.cpp.obj
+[58/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\utilmem.cpp.obj
+[59/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\utilrnd.cpp.obj
+[60/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\utilstr.cpp.obj
+[61/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\video.cpp.obj
+[62/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\dlgwin.cpp.obj
+[63/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\filewin.cpp.obj
+[64/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\fniwin.cpp.obj
+[65/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\memwin.cpp.obj
+[66/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\gfxwin.cpp.obj
+[67/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\appbwin.cpp.obj
+[68/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\stub.cpp.obj
+[69/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\menuwin.cpp.obj
+D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\kauai\src\menuwin.cpp(206): warning C4804: '>': unsafe use of type 'bool' in operation
+D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\kauai\src\menuwin.cpp(317): warning C4804: '>': unsafe use of type 'bool' in operation
+D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\kauai\src\menuwin.cpp(397): warning C4804: '>': unsafe use of type 'bool' in operation
+[70/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\picwin.cpp.obj
+[71/137] Building C object CMakeFiles\brender.dir\bren\stdfile.c.obj
+[72/137] Building C object CMakeFiles\brender.dir\bren\stderr.c.obj
+[73/137] Building CXX object CMakeFiles\kauai.dir\kauai\src\gobwin.cpp.obj
+[74/137] Building CXX object CMakeFiles\chomp.dir\kauai\tools\chomp.cpp.obj
+[75/137] Building C object CMakeFiles\brender.dir\bren\stdmem.c.obj
+[76/137] Building CXX object CMakeFiles\brender.dir\bren\bwld.cpp.obj
+[77/137] Building CXX object CMakeFiles\brender.dir\bren\tmap.cpp.obj
+[78/137] Building CXX object CMakeFiles\brender.dir\bren\zbmp.cpp.obj
+[79/137] Building CXX object CMakeFiles\engine.dir\src\engine\actredit.cpp.obj
+[80/137] Linking CXX static library kauai.lib
+[81/137] Building CXX object CMakeFiles\engine.dir\src\engine\actor.cpp.obj
+D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\src\engine\actor.cpp(3306): warning C4805: '==': unsafe mix of type 'bool' and type 'tribool' in operation
+[82/137] Building CXX object CMakeFiles\engine.dir\src\engine\bkgd.cpp.obj
+[83/137] Building CXX object CMakeFiles\engine.dir\src\engine\actrsave.cpp.obj
+[84/137] Building CXX object CMakeFiles\engine.dir\src\engine\actrsnd.cpp.obj
+[85/137] Linking CXX static library brender.lib
+[86/137] Building CXX object CMakeFiles\engine.dir\src\engine\body.cpp.obj
+[87/137] Building CXX object CMakeFiles\engine.dir\src\engine\modl.cpp.obj
+[88/137] Building CXX object CMakeFiles\engine.dir\src\engine\movie.cpp.obj
+[89/137] Building CXX object CMakeFiles\engine.dir\src\engine\msnd.cpp.obj
+[90/137] Building CXX object CMakeFiles\engine.dir\src\engine\mtrl.cpp.obj
+[91/137] Building CXX object CMakeFiles\engine.dir\src\engine\srec.cpp.obj
+[92/137] Building CXX object CMakeFiles\engine.dir\src\engine\tagl.cpp.obj
+D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\src\engine\tagl.cpp(190): warning C4553: '==': result of expression not used; did you intend '='?
+[93/137] Building CXX object CMakeFiles\engine.dir\src\engine\tagman.cpp.obj
+[94/137] Building CXX object CMakeFiles\engine.dir\src\engine\scene.cpp.obj
+[95/137] Building CXX object CMakeFiles\engine.dir\src\engine\tbox.cpp.obj
+[96/137] Building CXX object CMakeFiles\engine.dir\src\engine\tdf.cpp.obj
+[97/137] Building CXX object CMakeFiles\engine.dir\src\engine\tdt.cpp.obj
+[98/137] Building CXX object CMakeFiles\engine.dir\src\engine\tmpl.cpp.obj
+[99/137] Linking CXX static library engine.lib
+[100/137] Linking CXX executable chomp.exe
+[100/137] Preprocessing D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/src/building/bldghd.cht
+bldghd.cht
+[101/137] Preprocessing D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/src/building/building.cht
+building.cht
+[102/137] Preprocessing D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/src/help/help.cht
+help.cht
+[103/137] Chompin' D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/build/chomp/studio/bldghd.cht.i
+
+
+Microsoft (R) Chunky File Compiler (Ansi; Nov  9 2026; 22:21:39)
+
+Copyright (C) Microsoft Corp 1995. All rights reserved.
+
+
+
+[104/137] Preprocessing D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/src/helpaud/helpaud.cht
+helpaud.cht
+[105/137] Preprocessing D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/src/shared/sharecd.cht
+sharecd.cht
+[106/137] Preprocessing D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/src/shared/shared.cht
+shared.cht
+[107/137] Preprocessing D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/src/studio/studio.cht
+studio.cht
+[108/137] Chompin' D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/build/chomp/studio/sharecd.cht.i
+
+
+Microsoft (R) Chunky File Compiler (Ansi; Nov  9 2026; 22:21:39)
+
+Copyright (C) Microsoft Corp 1995. All rights reserved.
+
+
+
+[109/137] Preprocessing D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/src/studio/utest.cht
+utest.cht
+[111/137] Chompin' D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/build/chomp/studio/helpaud.cht.i
+
+Microsoft (R) Chunky File Compiler (Ansi; Nov  9 2026; 22:21:39)
+Copyright (C) Microsoft Corp 1995. All rights reserved.
+
+[112/137] Chompin' D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/build/chomp/studio/building.cht.i
+
+Microsoft (R) Chunky File Compiler (Ansi; Nov  9 2026; 22:21:39)
+Copyright (C) Microsoft Corp 1995. All rights reserved.
+
+[113/137] Linking CXX executable 3dmm-crt.exe
+[114/137] Chompin' D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/build/chomp/studio/utest.cht.i
+
+Microsoft (R) Chunky File Compiler (Ansi; Nov  9 2026; 22:21:39)
+Copyright (C) Microsoft Corp 1995. All rights reserved.
+
+[115/137] Chompin' D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/build/chomp/studio/shared.cht.i
+
+Microsoft (R) Chunky File Compiler (Ansi; Nov  9 2026; 22:21:39)
+Copyright (C) Microsoft Corp 1995. All rights reserved.
+
+[116/137] Chompin' D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/build/chomp/studio/help.cht.i
+
+Microsoft (R) Chunky File Compiler (Ansi; Nov  9 2026; 22:21:39)
+Copyright (C) Microsoft Corp 1995. All rights reserved.
+
+[117/137] Chompin' D:/a/3DMM-McZees-Cut/3DMM-McZees-Cut/build/chomp/studio/studio.cht.i
+
+Microsoft (R) Chunky File Compiler (Ansi; Nov  9 2026; 22:21:39)
+Copyright (C) Microsoft Corp 1995. All rights reserved.
+
+[118/137] Building CXX object CMakeFiles\studio.dir\src\studio\ape.cpp.obj
+[119/137] Building CXX object CMakeFiles\studio.dir\src\studio\mminstal.cpp.obj
+[120/137] Building CXX object CMakeFiles\studio.dir\src\studio\browser.cpp.obj
+[121/137] Building CXX object CMakeFiles\studio.dir\src\studio\popup.cpp.obj
+[122/137] Building CXX object CMakeFiles\studio.dir\src\studio\esl.cpp.obj
+[123/137] Building CXX object CMakeFiles\studio.dir\src\studio\expprog.cpp.obj
+[124/137] Building CXX object CMakeFiles\studio.dir\src\studio\portf.cpp.obj
+[125/137] Building CXX object CMakeFiles\studio.dir\src\studio\scnsort.cpp.obj
+[126/137] Building CXX object CMakeFiles\studio.dir\src\studio\splot.cpp.obj
+[127/137] Building CXX object CMakeFiles\studio.dir\src\studio\stdiobrw.cpp.obj
+[128/137] Building CXX object CMakeFiles\studio.dir\src\studio\stdioscb.cpp.obj
+[129/137] Building CXX object CMakeFiles\studio.dir\src\studio\studio.cpp.obj
+[130/137] Building CXX object CMakeFiles\studio.dir\src\studio\tgob.cpp.obj
+[131/137] Building CXX object CMakeFiles\studio.dir\src\studio\tatr.cpp.obj
+[132/137] Building RC object CMakeFiles\studio.dir\src\studio\utest.rc.res
+[133/137] Building CXX object CMakeFiles\studio.dir\src\studio\utest.cpp.obj
+[134/137] Building CXX object CMakeFiles\render.dir\src\render\render.cpp.obj
+[135/137] Linking CXX executable 3dmovie.exe
+[136/137] Linking CXX executable 3dmm-render.exe
