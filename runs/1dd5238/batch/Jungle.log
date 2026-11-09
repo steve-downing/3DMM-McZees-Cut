@@ -1,0 +1,16 @@
+movie: D:\a\_temp\batch-in\Jungle.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\package\3dmm-render\Microsoft Kids
+stereo: side-by-side, depth 2.50%, pop 1.50%
+fonts: 177 TrueType faces available
+prerendering: off (every actor stays a live 3-D body)
+scenes: 8
+audio: 4 sounds, 6 cues
+done: 965 frames, 129.40 seconds
+exit code 0
+audio: 0 speech, 5 effect and 1 music cues; mode auto
+dialogue: none
+effects:  -22.3 LUFS
+music target: -26.3 LUFS (4 LU under effects (no dialogue))
+  sounds/s000.mid.wav : measured -27.1 LUFS, applied 0.8 dB
+mix: measured -25.8 LUFS, applied 9.8 dB toward -16.0 LUFS
+final stereo: -16.1 LUFS, true peak -0.6 dBTP
