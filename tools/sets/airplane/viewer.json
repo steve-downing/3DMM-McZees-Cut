@@ -1,0 +1,11 @@
+{
+  "where": "in the rebuilt cartoon cabin",
+  "near": {"6": 2.2},
+  "vr": {"pos": [-0.05, 0, 1.3], "yaw": 0},
+  "sky": true,
+  "lights": {
+    "hemi": ["#fff6e8", "#c9b8a8", 1.9],
+    "sun": {"pos": [-14, 40, 18], "target": [0, 0, 5], "color": "#fff0d6", "intensity": 1.3, "extent": 30},
+    "lamps": [{"pos": [0, 22, 5], "color": "#fff2dd", "intensity": 120, "distance": 60}]
+  }
+}

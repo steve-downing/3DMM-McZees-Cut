@@ -218,9 +218,12 @@ textures. That's why the cabin was rebuilt from measured parts.
 
 ## Play a movie's scene in 3D
 
-`viewer/scene.html` plays one scene of a movie in the rebuilt cabin: the
-movie's own cameras, or walk around (and VR, where the browser allows it)
-while it plays, with the soundtrack.
+`viewer/scene.html` plays one scene of a movie in 3D: the movie's own
+cameras, or walk around (and VR, where the browser allows it) while it
+plays, with the soundtrack. The scene is staged in its rebuilt set, or, for
+3DMM's black background (and sets not rebuilt yet), on an empty stage: a
+dark floor with a soft pool of light, the actors lit by the set's own
+lights as in 3DMM.
 
 ```sh
 # 1. capture: render the movie with pose capture (Windows, McZee's Cut package)
@@ -234,5 +237,7 @@ python viewer/build_scene_site.py scene site
 The capture (`3dmm-render --poses`) records what 3DMM's own engine drew,
 frame by frame: every actor's every body part, its model, material and
 place. So stock actors, add-on actors and 3D text all play back exactly,
-smooth mode included. Only scenes on the airplane set have a 3D set so far.
+smooth mode included. `build_scene_site.py` picks the set from the scene's
+background (its `SETS` table); each rebuilt set has a `viewer.json` with
+where VR starts, its lights and a few camera fixes.
 

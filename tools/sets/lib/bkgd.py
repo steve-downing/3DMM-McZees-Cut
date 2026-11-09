@@ -78,6 +78,22 @@ class Bkgd:
                               mat=m, rgb=pal[idx], z=zz))
         return views
 
+    def lights(s, cno):
+        """the set's lights: type (0 point, 1 directional, 2 spot), intensity, 4x3 matrix
+        (BRender rows; a light shines along its -z axis)"""
+        b = s.c.chunks[('BKGD', cno)]
+        out = []
+        for kc, kn, ch in b['kids']:
+            if kc != 'GLLT': continue
+            g = s.get(kc, kn)
+            cb, n = struct.unpack('<ii', g[4:12])
+            for i in range(n):
+                e = g[12 + i * cb:12 + (i + 1) * cb]
+                m = np.array([fx(v) for v in struct.unpack('<12i', e[:48])]).reshape(4, 3)
+                out.append(dict(type=struct.unpack('<i', e[52:56])[0], intensity=fx(struct.unpack('<i', e[48:52])[0]), mat=m))
+        return out
+
+
 def depth(v):
     a = (v['yon'] + v['hither']) / (v['yon'] - v['hither'])
     b = 2 * v['yon'] * v['hither'] / (v['yon'] - v['hither'])

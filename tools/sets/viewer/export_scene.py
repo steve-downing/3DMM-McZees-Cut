@@ -7,7 +7,8 @@ the scene's number as 3DMM counts it, from 1. Writes into <out dir>:
 
   scene.json      the frames: time (ms from the scene's start), the movie's camera,
                   and which actors are on stage; actor names; material texture
-                  transforms
+                  transforms; the set's number and name, its camera views and
+                  lights, and where the actors mostly are
   scene.glb.txt   every model the scene shows (m0, m1, ... in model space, with
                   3DMM's smoothing) and a placeholder per material (mat0, ...)
                   carrying its color or texture, base64
@@ -133,8 +134,19 @@ def export(poses, scene_no, out, video=None, name=None):
     blob = np.array(ids, '<i2').tobytes()
     blob += b'\0' * (-len(blob) % 4) + np.array(xf, '<f4').tobytes()
 
+    # the set: its name, the movie's camera views, its lights, and where the actors mostly are
+    sets = Bkgd(os.path.join(ROOT, 'content-files', 'bkgds.3cn'))
+    bk = sel[0]['bkgd']
+    cams = [dict(fov=round(float(np.degrees(v['fov'])), 3), pos=[round(float(a), 4) for a in v['mat'][3]],
+                 rot=[[round(float(a), 5) for a in row] for row in v['mat'][:3]]) for v in sets.views(bk)]
+    lights = [dict(type=l['type'], intensity=round(l['intensity'], 3), pos=[round(float(a), 3) for a in l['mat'][3]],
+                   dir=[round(float(-a), 5) for a in l['mat'][2]]) for l in sets.lights(bk)]
+    where = np.array([M[9:12] for f in sel for a in f['actors'] for m, t, M in a['parts'] if m >= 0] or [[0, 0, 0]])
+    center = [round(float(v), 2) for v in np.median(where, 0)]
+
     os.makedirs(out, exist_ok=True)
-    meta = dict(name=name or 'Scene %d' % scene_no, scene=scene_no, duration=t1 - t0, bkgd=sel[0]['bkgd'],
+    meta = dict(name=name or 'Scene %d' % scene_no, scene=scene_no, duration=t1 - t0, bkgd=bk,
+                bkgd_name=sets.c.name('BKGD', bk), cams=cams, lights=lights, center=center,
                 actors=actors, mats=matinfo, models=len(mused), frames=fmeta,
                 ids_bytes=len(ids) * 2, xf_offset=len(blob) - len(xf) * 4)
     json.dump(meta, open(os.path.join(out, 'scene.json'), 'w'), separators=(',', ':'))

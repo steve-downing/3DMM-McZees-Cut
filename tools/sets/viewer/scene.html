@@ -1,9 +1,9 @@
-<title>Cabin Scene in 3D</title>
+<title>A Scene in 3D</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
 <style>
-/* A 3DMM scene playing in the rebuilt cartoon cabin. Same look as the set explorer (index.html):
+/* A 3DMM scene playing in a rebuilt 3D set, or on an empty stage. Same look as the set explorer (index.html):
    the 3D view fills the screen, a transport strip runs along the bottom. Single dark look, by choice. */
 :root {
   --ink: #12111a;
@@ -76,7 +76,7 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
 <div id="title" class="hud">
   <div class="tag" id="tag">3D Movie Maker scene · in 3D</div>
   <h1 id="name">A scene, in 3D</h1>
-  <p>Played by 3D Movie Maker's own engine and recorded pose by pose, then staged in the rebuilt cartoon cabin. Walk around while it plays, or follow the movie's own cameras.</p>
+  <p>Played by 3D Movie Maker's own engine and recorded pose by pose, then staged <span id="where">in a rebuilt set</span>. Walk around while it plays, or follow the movie's own cameras.</p>
 </div>
 
 <div id="help" class="hud">
@@ -123,9 +123,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { addSurfaceTexture, makeSkyMaterial, makeSky } from './surface.js';
 
-// the cabin's nine camera views (index = 3DMM's camera number): vertical fov, position, rotation rows
-const CAMS = [{"fov":78.322,"pos":[-18.8661,14.7356,26.3896],"rot":[[0.76547,0.0,0.64323],[0.25063,0.92081,-0.29828],[-0.59233,0.38965,0.7049]]},{"fov":48.082,"pos":[2.9867,15.0424,-17.0295],"rot":[[-0.9951,0.0,-0.09834],[-0.01984,0.97931,0.20058],[0.09631,0.20157,-0.97456]]},{"fov":53.009,"pos":[-18.8391,12.8824,22.8379],"rot":[[0.57831,0.0,0.81569],[0.09409,0.99316,-0.06673],[-0.81017,0.11536,0.5744]]},{"fov":53.009,"pos":[-21.1851,11.759,20.8769],"rot":[[0.13014,0.0,0.99138],[0.0979,0.99503,-0.01286],[-0.9865,0.09875,0.1295]]},{"fov":32.542,"pos":[4.6273,8.7634,21.1018],"rot":[[0.02452,0.0,-0.99963],[0.08409,0.99631,0.00206],[0.996,-0.08414,0.02444]]},{"fov":29.515,"pos":[-5.1183,12.3242,22.863],"rot":[[0.8877,0.0,-0.46004],[-0.05339,0.9931,-0.10301],[0.45688,0.11603,0.88162]]},{"fov":16.436,"pos":[21.675,19.9418,4.6803],"rot":[[-0.38568,0.0,-0.92249],[-0.22585,0.96945,0.09441],[0.89435,0.24481,-0.37392]]},{"fov":41.534,"pos":[-16.3792,11.596,21.9666],"rot":[[0.18062,0.0,-0.98337],[0.21274,0.97617,0.03906],[0.95998,-0.21634,0.17633]]},{"fov":55.662,"pos":[0.0,18.9633,23.8528],"rot":[[0.99994,0.0,0.0],[0.0,0.95938,-0.2816],[0.0,0.28162,0.95938]]}];
-const NEAR = { 6: 2.2 };   // camera 7 sits just outside the simplified bin corner: clip that wall away
+// the set's camera views (index = 3DMM's camera number: vertical fov, position, rotation rows)
+// come with the scene; the set's own settings (set.json, see build_scene_site.py) with the page
+let CAMS = [], NEAR = {};
 
 const $ = id => document.getElementById(id);
 const loadingEl = $('loading');
@@ -140,18 +140,39 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x12111a);
 // everything lives in 3DMM's units (about 10 cm); VR shrinks the world to meters
 const world = new THREE.Group(); scene.add(world);
-world.add(makeSky(THREE));
 const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 400);
 camera.rotation.order = 'YXZ';
 const rig = new THREE.Group(); rig.add(camera); scene.add(rig);   // VR moves the rig; on screen it stays put
 
-world.add(new THREE.HemisphereLight(0xfff6e8, 0xc9b8a8, 1.9));
-const sun = new THREE.DirectionalLight(0xfff0d6, 1.3);
-sun.position.set(-14, 40, 18); sun.target.position.set(0, 0, 5);
-sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
-Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 90 });
-world.add(sun, sun.target);
-const lamp = new THREE.PointLight(0xfff2dd, 120, 60, 1.6); lamp.position.set(0, 22, 5); world.add(lamp);
+// lights come from the set (set.json) or, on an empty stage, from 3DMM's own lights for it
+let sun = null;
+function addLights(cfg, meta) {
+  const L = cfg.lights;
+  if (L) {
+    world.add(new THREE.HemisphereLight(L.hemi[0], L.hemi[1], L.hemi[2]));
+    if (L.sun) {
+      sun = new THREE.DirectionalLight(L.sun.color, L.sun.intensity);
+      sun.position.set(...L.sun.pos); sun.target.position.set(...L.sun.target);
+    }
+    for (const l of L.lamps || []) { const p = new THREE.PointLight(l.color, l.intensity, l.distance, 1.6); p.position.set(...l.pos); world.add(p); }
+  } else {
+    // 3DMM lights actors with the set's directional lights plus some ambient
+    world.add(new THREE.HemisphereLight(0xe8e4ff, 0x2a2638, 1.5));
+    const c = new THREE.Vector3(...meta.center); c.y = Math.max(0, c.y - 8);
+    for (const [k, l] of meta.lights.entries()) {
+      const d = new THREE.DirectionalLight(0xfff4e6, 2.2 * l.intensity);
+      d.target.position.copy(c); d.position.copy(c).addScaledVector(new THREE.Vector3(...l.dir), -60);
+      if (k === 0) sun = d; else world.add(d, d.target);
+    }
+    if (!sun) { sun = new THREE.DirectionalLight(0xfff4e6, 2.2); sun.position.set(c.x - 30, 60, c.z + 30); sun.target.position.copy(c); }
+  }
+  if (sun) {
+    const ext = (L && L.sun && L.sun.extent) || 45;
+    sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0005; sun.shadow.radius = 4;
+    Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: 160 });
+    world.add(sun, sun.target);
+  }
+}
 
 function resize() {
   if (renderer.xr.isPresenting) return;
@@ -164,18 +185,39 @@ const loader = new GLTFLoader();
 const text = name => fetch(name).then(r => { if (!r.ok) throw new Error(name + ': HTTP ' + r.status); return r.text(); });
 function b64bytes(b64) { const bin = atob(b64.trim()), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); return buf; }
 
-async function loadCabin() {
-  const g = await loader.parseAsync(b64bytes(await text('toon.glb.txt')).buffer, '');
+async function loadSet(cfg, meta) {
+  addLights(cfg, meta);
+  if (cfg.sky) world.add(makeSky(THREE));
+  $('where').textContent = cfg.where;
+  NEAR = cfg.near || {};
+  if (!cfg.model) { emptyStage(meta); return; }
+  const g = await loader.parseAsync(b64bytes(await text(cfg.model)).buffer, '');
   g.scene.traverse(o => {
     if (!o.isMesh) return;
     const nm = o.name + (o.parent ? o.parent.name : '');
     const glow = /glow/.test(nm), sky = /sky/.test(nm);
     o.material = sky ? makeSkyMaterial(THREE) : glow ? new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false })
       : addSurfaceTexture(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
-    o.castShadow = !glow && !/^cabin/.test(nm);
+    o.castShadow = !glow && !/^(cabin|room)/.test(nm);
     o.receiveShadow = true;
   });
   world.add(g.scene);
+}
+
+// 3DMM's black background: nothing but the actors. A dark stage, with a soft pool of
+// light on the floor (y = 0, where 3DMM's actors stand) and their shadows in it.
+function emptyStage(meta) {
+  scene.background = new THREE.Color(0x09080d);
+  const c = meta.center, R = 60;
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256;
+  const g2 = cv.getContext('2d'), grad = g2.createRadialGradient(128, 128, 0, 128, 128, 128);
+  grad.addColorStop(0, 'rgba(120,112,150,0.30)'); grad.addColorStop(0.55, 'rgba(70,64,96,0.14)'); grad.addColorStop(1, 'rgba(40,36,56,0)');
+  g2.fillStyle = grad; g2.fillRect(0, 0, 256, 256);
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const pool = new THREE.Mesh(new THREE.CircleGeometry(R, 64), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false }));
+  pool.rotation.x = -Math.PI / 2; pool.position.set(c[0], 0, c[2]); world.add(pool);
+  const shade = new THREE.Mesh(new THREE.CircleGeometry(R, 64), new THREE.ShadowMaterial({ opacity: 0.45 }));
+  shade.rotation.x = -Math.PI / 2; shade.position.set(c[0], 0.01, c[2]); shade.receiveShadow = true; world.add(shade);
 }
 
 // The scene (see export_scene.py): frames with their time and the movie's camera, and per
@@ -214,6 +256,7 @@ async function loadScene() {
     return { group, parts };
   });
   S = { meta, models, mats, ids, xf, offs, actors, frame: -1 };
+  CAMS = meta.cams;
   $('name').textContent = meta.name;
   $('tag').textContent = '3D Movie Maker · scene ' + meta.scene + ' · ' + meta.actors.map(a => a.name).join(', ');
   document.title = meta.name + ' in 3D';
@@ -327,7 +370,7 @@ cv.addEventListener('wheel', e => { e.preventDefault(); leaveMovieCam();
   camera.position.addScaledVector(new THREE.Vector3(0, 0, -1).applyEuler(camera.rotation), -e.deltaY * 0.01); }, { passive: false });
 
 // ---- VR -------------------------------------------------------------------------------
-// The world shrinks to meters, you stand in the aisle, and the left stick walks.
+// The world shrinks to meters, you stand where the set says (the cabin: in the aisle), and the left stick walks.
 const vrBtn = $('vr');
 if (navigator.xr) navigator.xr.isSessionSupported('immersive-vr').then(ok => { vrBtn.hidden = !ok; }).catch(() => {});
 let xrSession = null;
@@ -338,8 +381,11 @@ vrBtn.addEventListener('click', async () => {
     renderer.xr.setReferenceSpaceType('local-floor');
     await renderer.xr.setSession(xrSession);
     world.scale.setScalar(0.1);
-    rig.position.set(-0.05, 0, 1.3);          // the aisle, toward the back, facing the front
-    rig.rotation.set(0, 0, 0);
+    if (SET.vr) { rig.position.set(...SET.vr.pos); rig.rotation.set(0, SET.vr.yaw || 0, 0); }
+    else {   // where the movie's first camera stands, on the floor, facing the way it looks
+      const c = CAMS[0], f = new THREE.Vector3(...c.rot[2]).negate();
+      rig.position.set(c.pos[0] * 0.1, 0, c.pos[2] * 0.1); rig.rotation.set(0, Math.atan2(-f.x, -f.z), 0);
+    }
     vrBtn.textContent = 'Exit VR';
     if (!playing) setPlaying(true);
     xrSession.addEventListener('end', () => {
@@ -395,10 +441,11 @@ function frame(t) {
 }
 
 // ---- start ------------------------------------------------------------------------------
-setCam(0);
-Promise.all([loadCabin(), loadScene(), text('scene.mp3.txt').then(b64 => {
+let SET = {};
+Promise.all([text('set.json').then(JSON.parse).catch(() => ({ where: 'on an empty stage' })), loadScene()])
+.then(([cfg]) => { SET = cfg; setCam(S.meta.frames[0].cam >= 0 ? S.meta.frames[0].cam : 0); return Promise.all([loadSet(cfg, S.meta), text('scene.mp3.txt').then(b64 => {
   audio.src = URL.createObjectURL(new Blob([b64bytes(b64)], { type: 'audio/mpeg' }));
-}).catch(() => {})]).then(() => {
+}).catch(() => {})]); }).then(() => {
   loadingEl.hidden = true;
   showFrame(0);
   $('start').hidden = false; $('start-btn').focus();
