@@ -1,6 +1,6 @@
 // Subtle procedural surface texture for the cartoon sets. Each face's kind
 // rides in its vertex color alpha: 0 plain, 1 fabric, 2 carpet, 3 wood, 4 metal,
-// 5 hammered metal, 6 flagstone, 7 damask wallpaper.
+// 5 hammered metal, 6 flagstone, 7 striped damask wallpaper.
 // Patterns are triplanar in object space (every seat copy matches) and fade
 // out where they'd be smaller than a pixel.
 export function addSurfaceTexture(material) {
@@ -32,26 +32,46 @@ float sh_surf(vec2 p, float across, float along, float kind) {
   }
   if (kind < 4.5) return 1.0 + 0.21 * (sh_noise(vec2(along * 1.5, across * 60.0)) - 0.5) * sh_aa(vec2(across), 60.0);
   if (kind > 5.5 && kind < 6.5) {
-    // flagstones: staggered rows of irregular slabs, each its own shade, dark grout between
-    vec2 q = p / vec2(4.6, 3.8);
-    float row = floor(q.y); q.x += sh_hash(vec2(row, 7.0)) * 0.9;
-    vec2 cell = vec2(floor(q.x), row), f = fract(q);
-    float e = min(min(f.x, 1.0 - f.x) * 4.6, min(f.y, 1.0 - f.y) * 3.8);
-    float grout = 1.0 - smoothstep(0.05, 0.16, e) * 1.0;
-    float slab = 0.82 + 0.36 * sh_hash(cell);
-    return slab * (1.0 - 0.55 * grout * sh_aa(p, 4.0)) * (1.0 + 0.3 * (sh_fbm(p * 0.9) - 0.5) + 0.12 * (sh_noise(p * 6.0) - 0.5) * sh_aa(p, 6.0));
+    // flagstones: staggered rows of slabs of uneven length, each its own shade and tint,
+    // worn darker toward the grout, with mottling, pits and the odd hairline crack
+    vec2 q = p / vec2(1.0, 3.8);
+    float row = floor(q.y);
+    float off = sh_hash(vec2(row, 7.0)) * 5.0;
+    float u = p.x + off;
+    // slab boundaries along the row at uneven spacing (3.2 to 6.2 apart)
+    float seg = floor(u / 4.7);
+    float j0 = (sh_hash(vec2(seg, row)) - 0.5) * 1.5, j1 = (sh_hash(vec2(seg + 1.0, row)) - 0.5) * 1.5;
+    float a0 = seg * 4.7 + j0, a1 = (seg + 1.0) * 4.7 + j1;
+    float cellx = u < a0 ? seg - 1.0 : (u > a1 ? seg + 1.0 : seg);
+    float ex = min(abs(u - a0), abs(a1 - u));
+    float fy = fract(q.y), ey = min(fy, 1.0 - fy) * 3.8;
+    float e = min(ex, ey);
+    vec2 cell = vec2(cellx, row);
+    float grout = 1.0 - smoothstep(0.06, 0.2, e);
+    float bevel = 1.0 - 0.18 * (1.0 - smoothstep(0.2, 0.7, e));
+    float slab = 0.72 + 0.5 * sh_hash(cell + 3.1);
+    float mott = 1.0 + 0.42 * (sh_fbm(p * 0.75 + cell * 7.0) - 0.5) + 0.22 * (sh_noise(p * 3.5) - 0.5) * sh_aa(p, 3.5);
+    float pits = 1.0 - 0.35 * smoothstep(0.78, 0.9, sh_noise(p * 9.0 + cell)) * sh_aa(p, 9.0);
+    float crack = 1.0 - 0.45 * (1.0 - smoothstep(0.0, 0.035, abs(sh_noise(p * 0.9 + cell * 3.0) - 0.5))) * step(0.55, sh_hash(cell + 9.0)) * sh_aa(p, 6.0);
+    return slab * bevel * mott * pits * crack * (1.0 - 0.6 * grout * sh_aa(p, 4.0));
   }
   if (kind > 6.5) {
-    // damask wallpaper: a flame-shaped motif on a half-drop repeat, darker than the ground
+    // striped damask wallpaper (as in 1995): broad pale stripes carrying a column of
+    // flame-shaped motifs on a half-drop, narrower darker stripes between, fine pinstripes
+    // at their edges, and a faint paper grain
+    float sx = mod(p.x, 5.6) - 2.8;                  // across the stripe pair, motif column at 0
+    float pale = 1.0 - smoothstep(1.55, 1.75, abs(sx));
+    float pin = 1.0 - smoothstep(0.03, 0.08, abs(abs(sx) - 1.95));
     vec2 q = p / vec2(5.6, 4.3);
     float col = floor(q.x); q.y += 0.5 * mod(col, 2.0);
     vec2 f = fract(q) - 0.5; f *= vec2(5.6, 4.3);
-    float r = length(vec2(f.x / 0.85, (f.y + 0.25) / 1.15));
-    float tip = step(0.0, f.y) * smoothstep(1.9, 0.6, f.y) * (1.0 - smoothstep(0.0, 0.45 - 0.2 * f.y, abs(f.x)));
+    float r = length(vec2(f.x / 0.8, (f.y + 0.25) / 1.1));
+    float tip = step(0.0, f.y) * smoothstep(1.8, 0.6, f.y) * (1.0 - smoothstep(0.0, 0.42 - 0.2 * f.y, abs(f.x)));
     float motif = max(1.0 - smoothstep(0.85, 1.0, r), tip);
-    float leaf = 1.0 - smoothstep(0.32, 0.42, length(vec2(abs(f.x) - 0.95, f.y + 1.35) / vec2(0.55, 0.3)));
+    float leaf = 1.0 - smoothstep(0.32, 0.42, length(vec2(abs(f.x) - 0.9, f.y + 1.3) / vec2(0.5, 0.28)));
     motif = max(motif, leaf) * sh_aa(p, 1.2);
-    return (1.0 - 0.38 * motif) * (1.0 + 0.14 * (sh_fbm(p * 0.7) - 0.5));
+    float paper = 1.0 + 0.07 * (sh_noise(vec2(p.x * 40.0, p.y * 3.0)) - 0.5) * sh_aa(p, 40.0) + 0.1 * (sh_fbm(p * 0.6) - 0.5);
+    return (0.82 + 0.22 * pale) * (1.0 - 0.36 * motif) * (1.0 - 0.25 * pin * sh_aa(p, 8.0)) * paper;
   }
   // hammered metal (the door): big soft dents plus fine speckle
   return 1.0 + 0.3 * (sh_fbm(p * 1.4) - 0.5) + 0.2 * (sh_noise(p * 7.0) - 0.5) * sh_aa(p, 7.0) + 0.1 * (sh_noise(p * 18.0) - 0.5) * sh_aa(p, 18.0);
@@ -77,7 +97,7 @@ float sh_surf(vec2 p, float across, float along, float kind) {
   diffuseColor.a = 1.0;
 }`);
   };
-  material.customProgramCacheKey = () => 'surface-texture-v7';
+  material.customProgramCacheKey = () => 'surface-texture-v8';
   return material;
 }
 

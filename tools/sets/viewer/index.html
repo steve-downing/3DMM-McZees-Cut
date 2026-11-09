@@ -331,10 +331,10 @@ function loadModel(name) {
         const nm = o.name + (o.parent ? o.parent.name : '');
         const glow = /glow/.test(nm), sky = /sky/.test(nm);
         o.material = sky ? (CFG.sky === 'night' ? makeNightSkyMaterial(THREE) : makeSkyMaterial(THREE))
-          : /picture/.test(nm) && o.material.map ? new THREE.MeshStandardMaterial({ map: o.material.map, emissiveMap: o.material.map, emissive: 0xffffff, emissiveIntensity: 0.3, roughness: 0.9, metalness: 0, side: THREE.DoubleSide })
+          : /picture|textured/.test(nm) && o.material.map ? new THREE.MeshStandardMaterial({ map: o.material.map, emissiveMap: o.material.map, emissive: 0xffffff, emissiveIntensity: /picture/.test(nm) ? 0.18 : 0, roughness: 0.9, metalness: 0, side: THREE.DoubleSide })
           : glow ? new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false })
           : addSurfaceTexture(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
-        o.castShadow = !glow && !/^(cabin|room)/.test(nm);
+        o.castShadow = !glow && !/^(cabin|room|outside|rug)/.test(nm);
         o.receiveShadow = true;
       } else {
         const map = o.material.map;
@@ -553,6 +553,13 @@ actionSel.addEventListener('change', () => setAction(+actionSel.value));
 frameIn.addEventListener('input', () => { setPlaying(false); setFrame(+frameIn.value); });
 playBtn.addEventListener('click', () => setPlaying(!playing));
 
+// for the review scripts: stand at p, look at t
+window.__look = (p, t, fov) => {
+  anim = null; setCurrent(-1); camera.position.set(...p);
+  const d = new THREE.Vector3(t[0] - p[0], t[1] - p[1], t[2] - p[2]).normalize();
+  yaw = Math.atan2(-d.x, -d.z); pitch = Math.asin(d.y); roll = 0;
+  camera.fov = fov || 60; camera.updateProjectionMatrix(); invalidate();
+};
 // start where 3DMM's first camera stood
 { const p = camPose(0); camera.position.copy(p.pos); yaw = p.yaw; pitch = p.pitch; roll = p.roll; camera.fov = p.fov; camera.updateProjectionMatrix(); setCurrent(0); }
 

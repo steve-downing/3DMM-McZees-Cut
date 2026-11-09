@@ -78,6 +78,25 @@ or smeared. The world should still read as the original set.
   it sits right in a headset. The mansion's is a moonlit night.
 - **Pictures stay pictures.** A painting on a wall keeps the original's
   image as a texture (brightened, since the player lights it again).
+- **Windows look out on something.** Ground, a horizon and whatever the
+  original shows through the glass (the dining room: dead trees), not just
+  sky.
+
+## Notes from the dining room
+
+- **Wood grain follows the piece.** The shader runs grain along the mesh's
+  own z, so build long pieces (a table) with their length along z and
+  place them turned; don't leave the grain running across.
+- **Ornate where the original is busy.** A rug or a frame that's a blur
+  of pattern in 1995 gets real ornament: the rug is a drawn texture
+  (`dining/rug.py`), the frame a stepped, beaded molding with corner
+  rosettes. Keep it in the room's palette and no brighter than its
+  surroundings.
+- **Molding has weight.** Cornices and dado rails are stepped profiles,
+  not single bands.
+- **Check shapes against the clearest camera.** The table's legs, the
+  webs' extent and the stripes' direction were all clear in one view and
+  wrong when guessed.
 - **Lighting is computed once.** Shadows are rendered a single time and
   frames are only drawn when something changes. Earlier versions made a
   MacBook run hot.

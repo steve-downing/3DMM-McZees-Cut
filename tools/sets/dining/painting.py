@@ -33,7 +33,7 @@ def main(out=os.path.join(HERE, 'data', 'painting.png')):
     wa = np.clip(distance_transform_edt(oka) / 15, 0, 1)[..., None]
     # the pictures already carry 1995's lighting, and the player lights the canvas again:
     # store it brighter so it reads as it did
-    img = (a * wa + b * (1 - wa)) * 1.9
+    img = (a * wa + b * (1 - wa)) * 1.5
     Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).save(out)
     print('painting', img.shape[1], 'x', img.shape[0], '->', out)
 
