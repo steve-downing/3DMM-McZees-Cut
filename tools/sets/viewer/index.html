@@ -332,6 +332,7 @@ function loadModel(name) {
         const glow = /glow/.test(nm), sky = /sky/.test(nm);
         o.material = sky ? (CFG.sky === 'night' ? makeNightSkyMaterial(THREE) : makeSkyMaterial(THREE))
           : /picture|textured/.test(nm) && o.material.map ? new THREE.MeshStandardMaterial({ map: o.material.map, emissiveMap: o.material.map, emissive: 0xffffff, emissiveIntensity: /picture/.test(nm) ? 0.18 : 0, roughness: 0.9, metalness: 0, side: THREE.DoubleSide })
+          : /velvet/.test(nm) ? addSurfaceTexture(new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.9, metalness: 0, sheen: 1, sheenRoughness: 0.5, sheenColor: 0xa83a3a, side: THREE.DoubleSide }))
           : glow ? new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide, toneMapped: false })
           : addSurfaceTexture(new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: false, roughness: 0.85, metalness: 0, side: THREE.DoubleSide }));
         o.castShadow = !glow && !/^(cabin|room|outside|rug)/.test(nm);

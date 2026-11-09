@@ -108,16 +108,22 @@ export function makeSky(THREE) {
   // a big sphere around everything, drawn first and never in front of anything: the
   // windows are real openings, so whatever flies past outside shows against it
   const m = makeSkyMaterial(THREE); m.side = THREE.BackSide; m.depthWrite = false;
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), m);
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(150, 32, 16), m);
   sky.renderOrder = -1; sky.frustumCulled = false;
+  // keep it centered on the viewer: it's looked up by direction, so moving it changes nothing,
+  // but a sphere left at the origin falls past the far clip plane behind sets built far from it
+  sky.onBeforeRender = (r, s, cam) => { const e = cam.matrixWorld.elements; sky.matrixWorld.setPosition(e[12], e[13], e[14]); };
   return sky;
 }
 
 // A moonlit night: deep blue, ragged grey clouds, a bright patch where the moon hides.
 export function makeNightSky(THREE) {
   const m = makeNightSkyMaterial(THREE); m.side = THREE.BackSide; m.depthWrite = false;
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(300, 32, 16), m);
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(150, 32, 16), m);
   sky.renderOrder = -1; sky.frustumCulled = false;
+  // keep it centered on the viewer: it's looked up by direction, so moving it changes nothing,
+  // but a sphere left at the origin falls past the far clip plane behind sets built far from it
+  sky.onBeforeRender = (r, s, cam) => { const e = cam.matrixWorld.elements; sky.matrixWorld.setPosition(e[12], e[13], e[14]); };
   return sky;
 }
 

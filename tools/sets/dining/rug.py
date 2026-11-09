@@ -5,7 +5,7 @@
 The 1995 rug is a purple field inside a pale, busy border; at that resolution the
 pattern is a blur, so this draws an ornate rug in the same colors instead: guard
 stripes, a border of rosettes on a scrolling vine, a trellis field with small
-flowers, corner spandrels and a lobed central medallion with pendants. Drawn at
+flowers and corner spandrels, in muted colors. Drawn at
 twice the size and shrunk, for clean edges."""
 import os, sys, math
 import numpy as np
@@ -42,34 +42,6 @@ def main(out=os.path.join(HERE, 'data', 'rug.png')):
                 t = a * math.pi / 2
                 d.ellipse([cx + math.cos(t) * r - r * 0.6, cy + math.sin(t) * r - r * 0.6, cx + math.cos(t) * r + r * 0.6, cy + math.sin(t) * r + r * 0.6], fill=FIELD_LT)
             d.ellipse([cx - r * 0.45, cy - r * 0.45, cx + r * 0.45, cy + r * 0.45], fill=GOLD)
-
-    # --- central medallion: lobed star, rings, pendants along the long axis
-    cx, cy = W / 2, H / 2
-    def star(r_out, r_in, n, fill, rot=0.0, sx=1.25):
-        pts = []
-        for k in range(2 * n):
-            r = r_out if k % 2 == 0 else r_in
-            t = rot + k * math.pi / n
-            pts.append((cx + math.cos(t) * r * sx, cy + math.sin(t) * r))
-        d.polygon(pts, fill=fill)
-    for x in (-1, 1):   # pendants
-        px = cx + x * 8.6 * s
-        # a pendant: a lobed drop pointing out from the medallion, a finial bud at its tip
-        d.polygon([(px - x * 2.2 * s, cy - 1.3 * s), (px + x * 0.4 * s, cy - 0.55 * s), (px + x * 1.6 * s, cy), (px + x * 0.4 * s, cy + 0.55 * s), (px - x * 2.2 * s, cy + 1.3 * s)], fill=BORDER_BG)
-        d.polygon([(px - x * 1.6 * s, cy - 0.75 * s), (px + x * 0.3 * s, cy - 0.3 * s), (px + x * 1.0 * s, cy), (px + x * 0.3 * s, cy + 0.3 * s), (px - x * 1.6 * s, cy + 0.75 * s)], fill=BORDER_LT)
-        d.ellipse([px + x * 1.6 * s - 0.4 * s, cy - 0.4 * s, px + x * 1.6 * s + 0.4 * s, cy + 0.4 * s], fill=GOLD)
-    star(6.6 * s, 5.4 * s, 16, DARK)
-    star(6.2 * s, 5.1 * s, 16, BORDER_BG)
-    d.ellipse([cx - 5.0 * s * 1.25, cy - 5.0 * s, cx + 5.0 * s * 1.25, cy + 5.0 * s], outline=GOLD, width=int(0.12 * s))
-    star(4.6 * s, 3.4 * s, 8, BORDER_LT, rot=math.pi / 8)
-    star(3.8 * s, 2.9 * s, 8, FIELD_DK, rot=math.pi / 8)
-    d.ellipse([cx - 2.6 * s * 1.25, cy - 2.6 * s, cx + 2.6 * s * 1.25, cy + 2.6 * s], fill=CREAM)
-    star(2.2 * s, 1.1 * s, 8, FIELD, rot=0)
-    d.ellipse([cx - 0.7 * s, cy - 0.7 * s, cx + 0.7 * s, cy + 0.7 * s], fill=GOLD)
-    for k in range(8):   # petals round the middle ring
-        t = k * math.pi / 4 + math.pi / 8
-        ex, ey = cx + math.cos(t) * 3.9 * s * 1.25, cy + math.sin(t) * 3.9 * s
-        d.ellipse([ex - 0.35 * s, ey - 0.35 * s, ex + 0.35 * s, ey + 0.35 * s], fill=CREAM)
 
     # --- corner spandrels: quarter medallions in the field's corners
     for (qx, qy) in ((b, b), (W - b, b), (b, H - b), (W - b, H - b)):
@@ -146,6 +118,9 @@ def main(out=os.path.join(HERE, 'data', 'rug.png')):
     noise = rng.normal(0, 1, (H // 16 + 1, W // 16 + 1))
     noise = np.asarray(Image.fromarray(((noise - noise.min()) / np.ptp(noise) * 255).astype(np.uint8)).resize((W, H), Image.BICUBIC)).astype(float) / 255
     img *= (0.9 + 0.2 * noise)[..., None]
+    # dulled: a third of the way to gray, and a little darker, so it sits under the furniture
+    gray = img.mean(-1, keepdims=True)
+    img = (img * 0.62 + gray * 0.38) * 0.9
     im = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).resize((W // SS, H // SS), Image.LANCZOS)
     im.save(out)
     print('rug', im.size, '->', out)

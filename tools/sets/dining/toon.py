@@ -254,13 +254,6 @@ def trusses(b):
             (sa, ya), (sb, yb) = ring[i], ring[i + 1]
             q = [(x - TRUSS_W / 2, ya, Z0 + sa), (x + TRUSS_W / 2, ya, Z0 + sa), (x + TRUSS_W / 2, yb, Z0 + sb), (x - TRUSS_W / 2, yb, Z0 + sb)]
             b.add(q, [[0, 1, 2], [0, 2, 3]], PAL['timber'], kind=WOOD)
-        # a carved corbel under each foot
-        for zw, s in ((Z0, 1), (Z1, -1)):
-            pts = []
-            for y, d in ((20.2, 0.0), (20.2, 0.5), (21.0, 1.1), (22.4, 1.4), (22.4, 0.0)):
-                for xx in (x - TRUSS_W / 2 + 0.2, x + TRUSS_W / 2 - 0.2):
-                    pts.append((xx, y, zw + s * d))
-            b.add_mesh(hull(pts), PAL['timber'], kind=WOOD)
 
 def rug(b):
     """the rug's edges (its top is a textured mesh: rug_mesh, pattern from rug.py)"""
@@ -423,55 +416,68 @@ def build_side_chair():
     for k in (0.38, 0.68, 1.0):
         pts = [W(cx + (ex - cx) * k, cy + (ey - cy) * k) for ex, ey in outer]
         for i in range(len(pts)): b.add_mesh(bar(pts[i], pts[(i + 1) % len(pts)], 0.035), PAL['web'], kind=METAL)
-    for (ex, ey), (ax, ay) in ((outer[0], (2.45, 6.3)), (outer[4], (-2.45, 6.3)), (outer[5], (-2.15, 4.66)), (outer[7], (2.15, 4.66)), (outer[6], (0, 4.64))):
+    # strands from the web to the wood: sideways to the posts, the diagonals to the posts just
+    # under the crest rail and down to the seat's corners, straight up to the rail and down to the seat
+    for (ex, ey), (ax, ay) in ((outer[0], (2.45, 6.3)), (outer[4], (-2.45, 6.3)), (outer[1], (2.56, 8.95)), (outer[3], (-2.56, 8.95)),
+                               (outer[2], (0, 9.18)), (outer[5], (-2.15, 4.66)), (outer[7], (2.15, 4.66)), (outer[6], (0, 4.64))):
         b.add_mesh(bar(W(ex, ey), W(ax, ay), 0.035), PAL['web'], kind=METAL)
     for sx in (-1, 1):
         add_parts(b, skull((sx * 3.0, 10.82, zb + lean(10.82) - 0.12)), METAL)
     return b.meshes()['lit']
 
 def build_armchair():
-    """the carvers at the table's ends: a solid upholstered back under an arched, scrolled
-    crest, curving arms ending in scrolls, a bowed seat front, skulls, claw-and-ball feet"""
+    """the carvers at the table's ends (measured from cameras 2, 8 and 9): a solid wooden
+    back leaning well back, a shield-shaped panel of crushed red velvet set into it, a small
+    crown carved on top, skulls on the posts, level arms on curved front supports, a velvet
+    seat, cabriole legs with claw-and-ball feet. Returns the wood and the velvet separately
+    (the velvet gets a sheen in the viewer)."""
     b = Builder()
-    lean = lambda y: -0.16 * (np.asarray(y) - 4.5)
+    lean = lambda y: -0.2 * (np.asarray(y) - 4.5)                   # 1.25 back over the back's height
     zb = -2.3
+    px = lambda y: 2.85 + 0.55 * (np.asarray(y) - 4.4) / 6.35       # the posts splay out toward the top
     for sx in (-1, 1):
-        path = [(sx * x, y, zb + lean(y) - 0.15 * ((y - 4.3) / 6.2) ** 2) for x, y in bez((3.0, 4.3), (3.05, 8.0), (3.35, 10.55), 7)]
-        sweep(b, path, 0.58, 0.54, PAL['chair'])
-        b.add_mesh(cbox(sx * 3.0 - 0.26, sx * 3.0 + 0.26, 0, 4.3, zb - 0.26, zb + 0.26, 0.06), PAL['chair'], kind=WOOD)
+        sweep(b, [(sx * px(y), y, zb + float(lean(y))) for y in np.linspace(4.3, 10.7, 5)], 0.52, 0.5, PAL['chair'])
+        b.add_mesh(cbox(sx * 2.95 - 0.26, sx * 2.95 + 0.26, 0, 4.3, zb - 0.26, zb + 0.26, 0.06), PAL['chair'], kind=WOOD)
         for m in cabriole(sx * 2.95, 2.25, 3.95, 0.25, 0.55): b.add_mesh(m, PAL['chair'], kind=WOOD)
         b.add_mesh(sphere((sx * 2.95, 0.3, 2.45), 0.36, 1), PAL['claw'], kind=PLAIN)
-        # arm: from the post it bows outward, then rolls down into a scroll at the front
-        arm = [(sx * x, y, z) for x, y, z in bez((3.25, 6.1, zb + float(lean(6.1))), (3.75, 6.05, 0.3), (3.45, 5.95, 2.45), 7)]
-        sweep(b, arm, 0.46, 0.34, PAL['chair'])
-        b.add_mesh(sphere((sx * 3.45, 5.85, 2.62), 0.3, 1, (0.9, 1, 1.1)), PAL['chair'], kind=WOOD)
-        sweep(b, [(sx * x, y, z) for x, y, z in bez((3.15, 4.35, 2.15), (3.55, 5.0, 2.55), (3.42, 5.85, 2.4), 5)], 0.34, 0.34, PAL['chair'])
-        add_parts(b, skull((sx * 3.3, 10.95, zb + lean(10.95) - 0.15), 0.5), METAL)
-    # seat: bowed front, an apron following it
-    front = [(x, 2.45 + 0.35 * np.cos(np.pi * x / 6.6)) for x in np.linspace(3.3, -3.3, 9)]
+        # level arm from the post to the front, a little scroll where it ends
+        za = zb + float(lean(6.1))
+        b.add_mesh(cbox(sx * 3.2 - 0.2, sx * 3.2 + 0.2, 5.95, 6.25, za, 2.35, 0.08), PAL['chair'], kind=WOOD)
+        b.add_mesh(sphere((sx * 3.2, 6.0, 2.42), 0.24, 1, (0.85, 1, 1.1)), PAL['chair'], kind=WOOD)
+        # front support: up from the seat's corner, bowing forward
+        sweep(b, [(sx * 3.2, y, z) for y, z in bez((4.35, 2.1), (5.2, 2.75), (6.0, 2.3), 5)], 0.32, 0.32, PAL['chair'])
+        add_parts(b, skull((sx * px(10.95), 10.98, zb + float(lean(10.98))), 0.48), METAL)
+    # seat frame (front bowed a little) and its velvet cushion
+    front = [(x, 2.45 + 0.15 * np.cos(np.pi * x / 6.6)) for x in np.linspace(3.3, -3.3, 9)]
     seat_out = [(3.3, -2.45)] + front + [(-3.3, -2.45)]
     V2, T = tri_poly(Polygon(seat_out))
-    for y in (3.9, 4.3):
+    for y in (3.9, 4.32):
         b.add(np.c_[V2[:, 0], np.full(len(V2), y), V2[:, 1]], T, PAL['chair'], kind=WOOD)
     ring = seat_out + seat_out[:1]
-    for (xa, za), (xc, zc) in zip(ring[:-1], ring[1:]):
-        b.add([(xa, 3.9, za), (xc, 3.9, zc), (xc, 4.3, zc), (xa, 4.3, za)], [[0, 1, 2], [0, 2, 3]], PAL['chair'], kind=WOOD)
-    cush = Polygon([(x * 0.94, z * 0.96 - 0.05) for x, z in seat_out]).buffer(0.0)
-    V, F = slab_with_holes(np.asarray(cush.exterior.coords)[:-1], [], 4.3, 4.62, 0.1)
-    b.add(V, F, PAL['seat'], kind=FABRIC)
-    # the back: a solid wooden board filling the frame, its top an arched crest that rises to
-    # a scroll in the middle; the red upholstery covers it, following the same arch
-    crest = [(3.15, 10.25), (2.6, 10.42), (1.9, 10.65), (1.25, 10.86), (0.75, 11.0), (0.42, 11.12), (0.3, 11.42), (0.12, 11.55), (0, 11.5)]
-    sides = [(3.0, 4.45), (3.12, 7.5)]
-    right = sides + crest
+    for (xa, za_), (xc, zc) in zip(ring[:-1], ring[1:]):
+        b.add([(xa, 3.9, za_), (xc, 3.9, zc), (xc, 4.32, zc), (xa, 4.32, za_)], [[0, 1, 2], [0, 2, 3]], PAL['chair'], kind=WOOD)
+    cush = Polygon([(x * 0.93, z * 0.95 - 0.05) for x, z in seat_out])
+    V, F = slab_with_holes(np.asarray(cush.exterior.coords)[:-1], [], 4.32, 4.56, 0.1)
+    b.add(V, F, PAL['back'], group='velvet', kind=CARPET)
+    # the back: a solid board between the posts, flat-topped with a small crown in the middle
+    top = [(px(10.25) - 0.25, 10.25), (1.05, 10.25), (0.8, 10.5), (0.6, 10.38), (0.35, 10.62), (0.18, 10.5), (0.0, 10.88)]
+    right = [(px(4.6) - 0.25, 4.6)] + top
     board = right + [(-x, y) for x, y in reversed(right)][1:-1]
-    back_extrude(b, board, lambda y: zb + lean(y), -0.2, 0.14, PAL['chair'], WOOD)
-    panel = Polygon(board).buffer(-0.42, join_style=1)
-    back_extrude(b, np.asarray(panel.exterior.coords)[:-1], lambda y: zb + lean(y), 0.14, 0.36, PAL['back'], FABRIC)
-    for sx in (-1, 1):   # little volutes at the crest's ends, where it meets the posts
-        c = (sx * 2.55, 10.55, zb + float(lean(10.55)) + 0.05)
-        b.add_mesh(sphere(c, 0.24, 1, (1, 1, 1.4)), PAL['chair'], kind=WOOD)
-    return b.meshes()['lit']
+    back_extrude(b, board, lambda y: zb + lean(y), -0.18, 0.14, PAL['chair'], WOOD)
+    # the velvet shield: wide at the top, narrowing down to a rounded point
+    shield = [(2.35, 10.02), (2.2, 8.3), (1.8, 6.7), (1.35, 5.85)] + [(1.35 * np.cos(t), 5.85 - 0.65 * np.sin(t)) for t in np.linspace(0.3, np.pi - 0.3, 7)] + \
+             [(-1.35, 5.85), (-1.8, 6.7), (-2.2, 8.3), (-2.35, 10.02)]
+    shield = np.asarray(Polygon(shield).buffer(0.12, join_style=1).buffer(-0.12, join_style=1).exterior.coords)[:-1]
+    bv = Builder()
+    back_extrude(bv, shield, lambda y: zb + lean(y), 0.14, 0.36, PAL['back'], CARPET)
+    # a gilt bead round the panel
+    ring_ = np.r_[shield, shield[:1]]
+    for p, q in zip(ring_[:-1], ring_[1:]):
+        b.add_mesh(bar((p[0], p[1], zb + float(lean(p[1])) + 0.3), (q[0], q[1], zb + float(lean(q[1])) + 0.3), 0.06, 4), PAL['gold'], kind=METAL)
+    out = b.meshes()
+    vel = bv.meshes()['lit']
+    out['velvet'] = trimesh.util.concatenate([out['velvet'], vel])
+    return out
 
 def build_table():
     """the long table: a thick top; at each end two shaped legs that flare at the foot and
@@ -642,14 +648,15 @@ def build(out):
     for k, m in build_chandelier().items():
         scene.add_geometry(m, geom_name='chandelier_' + k, node_name='chandelier_' + k)
     chair = build_side_chair(); arm = build_armchair()
-    print('side chair triangles', len(chair.faces), '/ armchair', len(arm.faces))
+    print('side chair triangles', len(chair.faces), '/ armchair', len(arm['lit'].faces) + len(arm['velvet'].faces))
     i = 0
     for row in (ROW1, ROW2):
         yaw = 0.0 if row['facing'] > 0 else np.pi
         for x in row['xs']:
             scene.add_geometry(chair, geom_name='chair', node_name='chair_%02d' % i, transform=place(x, row['z'], yaw)); i += 1
     for k, ((x, z), facing) in enumerate(ARMCHAIRS):
-        scene.add_geometry(arm, geom_name='armchair', node_name='armchair_%d' % k, transform=place(x, z, np.pi / 2 * facing))
+        for part, m in arm.items():
+            scene.add_geometry(m, geom_name='armchair_' + part, node_name='armchair_%s_%d' % (part, k), transform=place(x, z, np.pi / 2 * facing))
     os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     scene.export(out)
     ntri = sum(len(scene.geometry[g].faces) for g in [scene.graph[n][1] for n in scene.graph.nodes_geometry])
