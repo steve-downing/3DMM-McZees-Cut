@@ -178,8 +178,8 @@ class RAPP : public RAPP_PAR
     PGST _pgstMissingFonts;
     PGL _pglcfrmBefore; // per scene: frames in the scenes before it
     FILE *_pfilePoses;
-    PGL _pglpbmdlPoses; // models written to the poses file so far (kept alive)
-    PGL _pglpbmtlPoses; // materials written so far (kept alive)
+    PGL _pglpbmdlPoses;  // models written to the poses file so far (kept alive)
+    PGL _pglpbmtlPoses;  // materials written so far (kept alive)
     PGL _pgllwTboxPoses; // text box images written so far (their hashes)
     long _cfrmTotal;
     long _pctLast;
