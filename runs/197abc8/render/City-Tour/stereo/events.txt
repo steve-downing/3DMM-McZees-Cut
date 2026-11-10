@@ -1,0 +1,295 @@
+     0.000 stereo view: converge=61.9 near=47.2 far=909.0 focal=349px eye=2.587 shift=7px
+     0.000 camera hither=1.0000 yon=5000.0000 fov=47.33deg
+     0.000 bkgd Z deciles 31300 31609 31846 31933 31959 31978 32008 32175 32339 32495 32719
+     0.000 actor Z deciles 31720 31721 31721 31722 31722 31722 31723 31723 31734 31745 31763
+calib camera-to-screen row0 1.28365 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.28204 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+calib actor depth=1 viewz=-62.9798 screen x=0.3 y=7.5 z/w=-1.0171 w=-119.9453 pixel=(272,145) Z=31931
+calib actor depth=1 viewz=-62.9795 screen x=0.0 y=0.1 z/w=-1.0005 w=-16338.8047 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9792 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.6680 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9789 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9785 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9782 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9778 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9775 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9772 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9767 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9763 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9760 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9756 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9752 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9749 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9747 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9743 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9740 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9737 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9733 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9728 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+calib actor depth=1 viewz=-62.9724 screen x=0.0 y=0.1 z/w=-1.0005 w=-16225.7930 pixel=(272,152) Z=31930
+     0.000 transition cut
+     0.000 sound s000 vlm=65536 loops=2147483647 offset=0
+     0.000 play
+     0.020 transition dissolve
+     4.195 textbox story "The Entrance to the city "
+     5.525 stereo view: converge=108.0 near=54.6 far=310.5 focal=290px eye=3.112 shift=4px
+     5.525 camera hither=1.0000 yon=5000.0000 fov=55.66deg
+     5.525 bkgd Z deciles 31506 31750 31865 31970 32024 32068 32131 32206 32293 32401 32675
+     5.525 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.06560 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 1.89441 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+     7.195 stereo view: converge=169.3 near=53.0 far=948.5 focal=421px eye=1.495 shift=2px
+     7.195 camera hither=1.0000 yon=5000.0000 fov=39.90deg
+     7.195 bkgd Z deciles 31469 31698 31775 31946 32040 32136 32236 32357 32479 32629 32714
+     7.195 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.54967 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.75497 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+     8.860 stereo view: converge=129.3 near=70.9 far=436.7 focal=479px eye=2.669 shift=5px
+     8.860 camera hither=1.0000 yon=5000.0000 fov=35.40deg
+     8.860 bkgd Z deciles 31625 31914 31996 32086 32186 32236 32286 32368 32452 32511 32677
+     8.860 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.76279 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 3.13383 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+     9.525 textbox story "The Market "
+    10.525 stereo view: converge=131.6 near=28.8 far=788.7 focal=313px eye=0.960 shift=1px
+    10.525 camera hither=1.0000 yon=5000.0000 fov=52.09deg
+    10.525 bkgd Z deciles 29983 31336 31525 31704 31845 31932 32030 32246 32441 32539 32704
+    10.525 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.15115 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.04651 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    12.195 stereo view: converge=68.6 near=34.3 far=141.2 focal=294px eye=1.904 shift=4px
+    12.195 camera hither=1.0000 yon=5000.0000 fov=55.00deg
+    12.195 bkgd Z deciles 30756 31082 31257 31462 31564 31698 31866 31961 32150 32239 32356
+    12.195 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.08060 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 1.92107 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    13.860 stereo view: converge=65.2 near=36.0 far=661.4 focal=403px eye=1.625 shift=5px
+    13.860 camera hither=1.0000 yon=5000.0000 fov=41.53deg
+    13.860 bkgd Z deciles 30885 31126 31339 31441 31555 31654 31768 31867 31932 32459 32689
+    13.860 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.48366 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.63762 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    15.525 stereo view: converge=64.5 near=3.9 far=179.5 focal=373px eye=0.091 shift=0px
+    15.525 camera hither=1.0000 yon=5000.0000 fov=44.58deg
+    15.525 bkgd Z deciles 15305 17023 30670 30925 31110 31289 31714 32062 32171 32261 32685
+    15.525 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.37212 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.43932 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    15.695 textbox story "The Alley "
+    17.195 stereo view: converge=122.7 near=62.2 far=188.3 focal=724px eye=1.423 shift=4px
+    17.195 camera hither=1.0000 yon=5000.0000 fov=23.86deg
+    17.195 bkgd Z deciles 31685 31876 32060 32074 32134 32194 32208 32225 32344 32424 32436
+    17.195 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 2.66226 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 4.73289 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    18.860 stereo view: converge=84.9 near=28.4 far=99.2 focal=562px eye=0.618 shift=2px
+    18.860 camera hither=1.0000 yon=5000.0000 fov=30.45deg
+    18.860 bkgd Z deciles 30367 30719 31023 31217 31361 31545 31738 31983 32088 32115 32122
+    18.860 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 2.06664 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 3.67403 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    20.525 stereo view: converge=96.4 near=22.6 far=196.8 focal=507px eye=0.474 shift=1px
+    20.525 camera hither=1.0000 yon=5000.0000 fov=33.57deg
+    20.525 bkgd Z deciles 29808 30138 30573 30940 31170 31375 31619 31873 32426 32440 32520
+    20.525 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.86488 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 3.31535 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    20.695 textbox story "The Cafe "
+    22.195 stereo view: converge=139.4 near=50.5 far=629.6 focal=369px eye=1.749 shift=2px
+    22.195 camera hither=1.0000 yon=5000.0000 fov=44.99deg
+    22.195 bkgd Z deciles 31426 31671 31964 32095 32152 32183 32262 32364 32475 32641 32683
+    22.195 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.35837 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.41487 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    22.360 textbox story "The Mall "
+    23.860 stereo view: converge=122.5 near=19.8 far=536.8 focal=328px eye=0.586 shift=1px
+    23.860 camera hither=1.0000 yon=5000.0000 fov=49.99deg
+    23.860 bkgd Z deciles 29370 30168 30803 31144 31513 31873 32096 32234 32574 32652 32661
+    23.860 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.20667 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.14519 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    24.025 textbox story "The Park "
+    25.525 stereo view: converge=177.1 near=58.4 far=507.7 focal=448px eye=1.586 shift=2px
+    25.525 camera hither=1.0000 yon=5000.0000 fov=37.73deg
+    25.525 bkgd Z deciles 31585 31772 31829 31981 32089 32323 32492 32571 32578 32646 32654
+    25.525 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.64650 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.92711 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    27.195 stereo view: converge=70.6 near=29.6 far=112.4 focal=420px eye=0.991 shift=3px
+    27.195 camera hither=1.0000 yon=5000.0000 fov=40.00deg
+    27.195 bkgd Z deciles 30385 30891 31618 31697 31767 31829 31885 31946 32039 32122 32219
+    27.195 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.54604 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.74852 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    28.860 stereo view: converge=179.0 near=62.7 far=1234.2 focal=457px eye=1.721 shift=2px
+    28.860 camera hither=1.0000 yon=5000.0000 fov=37.02deg
+    28.860 bkgd Z deciles 31683 31814 32026 32198 32384 32387 32429 32447 32501 32617 32733
+    28.860 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.68068 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.98787 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    30.525 stereo view: converge=178.6 near=33.6 far=500.0 focal=724px eye=0.466 shift=1px
+    30.525 camera hither=1.0000 yon=5000.0000 fov=23.86deg
+    30.525 bkgd Z deciles 30413 31069 32243 32302 32340 32398 32491 32514 32530 32563 32709
+    30.525 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 2.66226 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 4.73289 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    30.695 textbox story "The Restaurant "
+    32.195 stereo view: converge=76.4 near=51.5 far=150.0 focal=320px eye=4.032 shift=8px
+    32.195 camera hither=1.0000 yon=5000.0000 fov=51.05deg
+    32.195 bkgd Z deciles 31439 31683 31797 31887 31917 31939 31971 32016 32148 32216 32365
+    32.195 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.17822 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.09464 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    33.860 stereo view: converge=146.3 near=63.3 far=668.1 focal=369px eye=2.462 shift=3px
+    33.860 camera hither=1.0000 yon=5000.0000 fov=44.99deg
+    33.860 bkgd Z deciles 31696 31865 31944 32062 32099 32187 32284 32361 32430 32649 32688
+    33.860 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.35837 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.41487 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    35.525 stereo view: converge=139.4 near=50.5 far=629.6 focal=369px eye=1.749 shift=2px
+    35.525 camera hither=1.0000 yon=5000.0000 fov=44.99deg
+    35.525 bkgd Z deciles 31426 31671 31964 32095 32152 32183 32262 32364 32475 32641 32683
+    35.525 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.35837 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.41487 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    35.695 textbox story "The Mall "
+    37.195 stereo view: converge=78.0 near=54.3 far=419.9 focal=270px eye=4.829 shift=8px
+    37.195 camera hither=1.0000 yon=5000.0000 fov=59.10deg
+    37.195 bkgd Z deciles 31523 31654 31748 31812 31873 31921 31982 32078 32140 32212 32638
+    37.195 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 0.99232 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 1.76413 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    38.860 stereo view: converge=144.0 near=53.2 far=177.6 focal=390px eye=1.768 shift=2px
+    38.860 camera hither=1.0000 yon=5000.0000 fov=42.85deg
+    38.860 bkgd Z deciles 31408 31716 31844 32007 32075 32114 32253 32332 32384 32407 32417
+    38.860 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.43362 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.54866 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    38.860 textbox story "The Mall "
+    38.860 transition dissolve
+    44.365 stereo view: converge=92.0 near=27.4 far=159.1 focal=323px eye=0.982 shift=2px
+    44.365 camera hither=1.0000 yon=5000.0000 fov=50.63deg
+    44.365 bkgd Z deciles 30272 30839 31180 31464 31609 31771 31986 32104 32234 32295 32402
+    44.365 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.18936 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.11443 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    46.035 stereo view: converge=80.5 near=46.6 far=130.5 focal=411px eye=2.190 shift=6px
+    46.035 camera hither=1.0000 yon=5000.0000 fov=40.81deg
+    46.035 bkgd Z deciles 31240 31562 31726 31808 31869 31921 31981 32069 32139 32209 32339
+    46.035 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.51210 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.68817 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    47.700 stereo view: converge=84.7 near=62.8 far=143.1 focal=434px eye=4.586 shift=12px
+    47.700 camera hither=1.0000 yon=5000.0000 fov=38.87deg
+    47.700 bkgd Z deciles 31594 31803 31843 31880 31935 32021 32087 32147 32194 32247 32378
+    47.700 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.59436 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.83441 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    49.365 stereo view: converge=140.3 near=10.5 far=193.3 focal=350px eye=0.264 shift=0px
+    49.365 camera hither=1.0000 yon=5000.0000 fov=47.25deg
+    49.365 bkgd Z deciles 24589 29795 30708 30932 32019 32173 32247 32308 32364 32400 32474
+    49.365 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.28633 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.28680 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    51.035 stereo view: converge=165.1 near=62.8 far=211.4 focal=350px eye=2.367 shift=3px
+    51.035 camera hither=1.0000 yon=5000.0000 fov=47.25deg
+    51.035 bkgd Z deciles 31642 31852 31953 32072 32193 32248 32298 32352 32408 32435 32488
+    51.035 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.28633 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.28680 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    52.865 stereo view: converge=78.0 near=54.3 far=419.9 focal=270px eye=4.829 shift=8px
+    52.865 camera hither=1.0000 yon=5000.0000 fov=59.10deg
+    52.865 bkgd Z deciles 31523 31654 31748 31812 31873 31921 31982 32078 32140 32212 32638
+    52.865 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 0.99232 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 1.76413 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    52.865 transition dissolve
+    58.370 stereo view: converge=139.4 near=50.5 far=629.6 focal=369px eye=1.749 shift=2px
+    58.370 camera hither=1.0000 yon=5000.0000 fov=44.99deg
+    58.370 bkgd Z deciles 31426 31671 31964 32095 32152 32183 32262 32364 32475 32641 32683
+    58.370 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.35837 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.41487 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    60.040 stereo view: converge=131.6 near=28.8 far=788.7 focal=313px eye=0.960 shift=1px
+    60.040 camera hither=1.0000 yon=5000.0000 fov=52.09deg
+    60.040 bkgd Z deciles 29983 31336 31525 31704 31845 31932 32030 32246 32441 32539 32704
+    60.040 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.15115 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.04651 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    61.705 stereo view: converge=131.3 near=48.6 far=436.7 focal=434px eye=1.453 shift=2px
+    61.705 camera hither=1.0000 yon=5000.0000 fov=38.87deg
+    61.705 bkgd Z deciles 31079 31571 31748 31882 32032 32110 32219 32317 32410 32593 32701
+    61.705 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.59436 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.83441 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    63.370 stereo view: converge=81.7 near=47.2 far=921.8 focal=349px eye=2.614 shift=6px
+    63.370 camera hither=1.0000 yon=5000.0000 fov=47.33deg
+    63.370 bkgd Z deciles 31300 31609 31846 31933 31959 31978 32008 32175 32339 32495 32719
+    63.370 actor Z deciles -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+calib camera-to-screen row0 1.28365 0.00000 0.00000 0.00000
+calib camera-to-screen row1 0.00000 2.28204 0.00000 0.00000
+calib camera-to-screen row2 0.00000 0.00000 1.00040 -1.00000
+calib camera-to-screen row3 0.00000 0.00000 2.00040 0.00000
+    63.540 textbox story "The End "
+    68.370 end
