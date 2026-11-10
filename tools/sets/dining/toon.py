@@ -430,7 +430,7 @@ def build_side_chair():
         if np.hypot(x - ex, y - ey) > 0.05:      # where the web already touches the wood, no strand
             b.add_mesh(bar(W(ex, ey), W(x, y), 0.035), PAL['web'], kind=METAL)
     for sx in (-1, 1):
-        add_parts(b, skull((sx * 2.95, 10.5 + 0.42 * 1.25, zb + float(lean(10.45)) - 0.12)), METAL)   # sitting on the post, above all the wood
+        add_parts(b, skull((sx * 2.95, 10.5 + 0.42 * 1.25 - 0.06, zb + float(lean(10.45)) - 0.12)), METAL)   # sitting on the post, above all the wood
     return b.meshes()['lit']
 
 def build_armchair():
@@ -454,7 +454,7 @@ def build_armchair():
         b.add_mesh(sphere((sx * 3.2, 6.0, 2.42), 0.24, 1, (0.85, 1, 1.1)), PAL['chair'], kind=WOOD)
         # front support: up from the seat's corner, bowing forward
         sweep(b, [(sx * 3.2, y, z) for y, z in bez((4.35, 2.1), (5.2, 2.75), (6.0, 2.3), 5)], 0.32, 0.32, PAL['chair'])
-        add_parts(b, skull((sx * px(10.7), 10.7 + 0.25 + 0.48 * 1.25, zb + float(lean(10.7))), 0.48), METAL)   # sitting on the post, above all the wood
+        add_parts(b, skull((sx * px(10.7), 10.7 + 0.48 * 1.25 - 0.06, zb + float(lean(10.7))), 0.48), METAL)   # sitting on the post, above all the wood
     # seat frame (front bowed a little) and its velvet cushion
     front = [(x, 2.45 + 0.15 * np.cos(np.pi * x / 6.6)) for x in np.linspace(3.3, -3.3, 9)]
     seat_out = [(3.3, -2.45)] + front + [(-3.3, -2.45)]
