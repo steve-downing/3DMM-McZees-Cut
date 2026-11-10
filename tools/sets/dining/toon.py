@@ -44,8 +44,10 @@ DOOR = dict(z0=-108.4, z1=-96.2, top=22.6, inset=0.3)   # arched door, door end
 TRUSSES = [145.3, 158.8, 172.5, 186.6, 200.9]        # from the timber feet on both long walls
 TRUSS_W = 3.6
 TABLE = dict(x0=156.5, x1=185.8, z0=-126.9, z1=-113.5, top=7.32, thick=0.66, legs=[162.5, 180.7], leg_off=4.75)   # two legs per end, 4.75 either side of the middle
-ROW1 = dict(z=-132.55, facing=+1, xs=[158.2, 167.1, 175.5, 183.2])   # chairs with their backs to the windows
-ROW2 = dict(z=-108.75, facing=-1, xs=[158.1, 166.0, 174.25, 182.5])  # chairs with their backs to the wallpaper wall
+# the side chairs (x, z, degrees turned), measured from their skull finials in all nine views:
+# not quite in line, as in the 1995 set; yaw 0 faces +z
+CHAIRS = [(158.36, -132.78, 11.0), (167.11, -132.40, 2.4), (175.59, -132.21, 3.0), (183.25, -131.86, -5.4),   # backs to the windows
+          (158.11, -109.05, -179.0), (165.82, -109.08, 176.9), (174.07, -109.00, -177.2), (182.15, -108.91, 178.9)]   # backs to the wallpaper
 ARMCHAIRS = [((151.9, -120.6), +1), ((189.1, -120.3), -1)]          # head and foot of the table
 RUG = dict(x0=147.0, x1=192.3, z0=-136.5, z1=-102.0, border=4.0)
 CHANDELIER = dict(x=169.8, z=-120.5, bottom=17.7, arms_y=21.3, r=3.4, n=5)
@@ -55,21 +57,21 @@ PILLAR = dict(x0=205.4, z1=-95.3, top=17.2)   # in the far corner, against both 
 IRON = dict(z=-147.5, x0=138.2, x1=141.8, top=8.0)   # wrought-iron rack against the window wall
 
 # ----------------------------------------------------------------- colors (cartoon, measured original)
-# The woodwork is walnut rather than 1995's orange cherry (Steve's call); the rest follows the original.
+# The woodwork is oak, a little browner than 1995's orange (Steve's call); the rest follows the original.
 PAL = dict(
     stone=half('#4e4c56', (38, 36, 41)), grout=hexc('#1c1a20'),
     rug=half('#8a2aa0', (66, 22, 62)), rug_border=half('#5a5478', (51, 44, 56)), rug_motif=half('#8a84a8', (78, 72, 90)),
     curtain=half('#f2efe6', (73, 73, 68)), reveal=half('#a07856', (69, 51, 41)),
-    cushion=half('#c0262a', (56, 23, 22)), seatbox=hexc('#4c382a'),
+    cushion=half('#c0262a', (56, 23, 22)), seatbox=hexc('#5e4128'),
     paper=half('#9a8088', (80, 64, 66)), paper_low=half('#7a5458', (62, 44, 44)),
-    gold=half('#c89a2e', (84, 63, 24)), trim=hexc('#463325'),
-    timber=hexc('#523b2b'), ceiling=half('#9a9086', (84, 76, 66)),
-    table=hexc('#5c4433'), door=hexc('#54402f'), sideboard=hexc('#3f2e22'),
-    chair=hexc('#6a4f3c'), seat=half('#c42a16', (127, 28, 12)), back=half('#d0302a', (143, 33, 20)),
+    gold=half('#c89a2e', (84, 63, 24)), trim=hexc('#563b22'),
+    timber=hexc('#694a2c'), ceiling=half('#9a9086', (84, 76, 66)),
+    table=hexc('#74502e'), door=hexc('#6a4a2c'), sideboard=hexc('#573c23'),
+    chair=hexc('#80562f'), seat=half('#c42a16', (127, 28, 12)), back=half('#d0302a', (143, 33, 20)),
     web=half('#3e362c', (70, 62, 50)), skull=half('#e8c860', (165, 135, 64)), socket=hexc('#3a2a10'),
     claw=half('#efe6cc', (170, 160, 140)), iron=half('#1c1816', (30, 24, 18)), candle=hexc('#f4eedc'),
     flame=hexc('#ffd27a'), pillar=half('#7a6a58', (51, 43, 33)), cup=half('#9a9aa0', (90, 90, 96)),
-    frame=half('#d4a63a', (120, 92, 30)), glass_bar=hexc('#423024'))
+    frame=half('#d4a63a', (120, 92, 30)), glass_bar=hexc('#523822'))
 
 # ----------------------------------------------------------------- small helpers
 def to_world(plane, pts):
@@ -658,14 +660,10 @@ def build(out):
         scene.add_geometry(m, geom_name='chandelier_' + k, node_name='chandelier_' + k)
     chair = build_side_chair(); arm = build_armchair()
     print('side chair triangles', sum(len(m.faces) for m in chair.values()), '/ armchair', len(arm['lit'].faces) + len(arm['velvet'].faces))
-    i = 0
-    for row in (ROW1, ROW2):
-        yaw = 0.0 if row['facing'] > 0 else np.pi
-        for x in row['xs']:
-            for part, m in chair.items():
-                name = 'chair' if part == 'lit' else 'chair_' + part
-                scene.add_geometry(m, geom_name=name, node_name='%s_%02d' % (name, i), transform=place(x, row['z'], yaw))
-            i += 1
+    for i, (x, z, deg) in enumerate(CHAIRS):
+        for part, m in chair.items():
+            name = 'chair' if part == 'lit' else 'chair_' + part
+            scene.add_geometry(m, geom_name=name, node_name='%s_%02d' % (name, i), transform=place(x, z, np.radians(deg)))
     for k, ((x, z), facing) in enumerate(ARMCHAIRS):
         for part, m in arm.items():
             scene.add_geometry(m, geom_name='armchair_' + part, node_name='armchair_%s_%d' % (part, k), transform=place(x, z, np.pi / 2 * facing))

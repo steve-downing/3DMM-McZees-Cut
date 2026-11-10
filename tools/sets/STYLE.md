@@ -97,6 +97,12 @@ or smeared. The world should still read as the original set.
 - **Check shapes against the clearest camera.** The table's legs, the
   webs' extent and the stripes' direction were all clear in one view and
   wrong when guessed.
+- **Keep the set's own scatter.** The 1995 chairs aren't quite in line or
+  square to the table; measure each one (their finials, in every view)
+  rather than lining them up.
+- **Light for faces.** The actors stand in the room's light; when the lamps
+  near them are strong, their faces wash out. Let the main, distant light
+  (the moon) do most of the work and keep lamps near the action dim.
 - **Lighting is computed once.** Shadows are rendered a single time and
   frames are only drawn when something changes. Earlier versions made a
   MacBook run hot.
