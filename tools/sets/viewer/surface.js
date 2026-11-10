@@ -27,8 +27,15 @@ float sh_surf(vec2 p, float across, float along, float kind) {
   }
   if (kind < 2.5) return 1.0 + 0.42 * (sh_noise(p * 3.2) - 0.5) * sh_aa(p, 3.2) + 0.34 * (sh_fbm(p * 0.55) - 0.5);
   if (kind < 3.5) {
+    // fine grain lines that wander and change their spacing, broad lighter and darker
+    // stretches (no two boards alike), and the odd long dark streak
     float g = sh_fbm(vec2(along * 0.45, across * 5.0));
-    return 1.0 + 0.21 * sin(across * 10.0 + g * 6.0) * sh_aa(vec2(across), 10.0) + 0.17 * (g - 0.5);
+    float fig = sh_fbm(vec2(along * 0.07, across * 0.8) + 7.3);
+    float tone = sh_fbm(vec2(along * 0.11, across * 0.3) + 3.1);
+    float streak = sh_noise(vec2(along * 0.12, across * 11.0) + 1.7);
+    float lines = sin(across * (7.0 + 7.0 * fig) + g * 7.0 + fig * 12.0) * sh_aa(vec2(across), 14.0);
+    return 1.0 + 0.2 * lines + 0.14 * (g - 0.5) + 0.36 * (tone - 0.5)
+               - 0.17 * smoothstep(0.6, 0.85, streak) * sh_aa(vec2(across), 11.0);
   }
   if (kind < 4.5) return 1.0 + 0.21 * (sh_noise(vec2(along * 1.5, across * 60.0)) - 0.5) * sh_aa(vec2(across), 60.0);
   if (kind > 5.5 && kind < 6.5) {
@@ -97,7 +104,7 @@ float sh_surf(vec2 p, float across, float along, float kind) {
   diffuseColor.a = 1.0;
 }`);
   };
-  material.customProgramCacheKey = () => 'surface-texture-v8';
+  material.customProgramCacheKey = () => 'surface-texture-v9';
   return material;
 }
 

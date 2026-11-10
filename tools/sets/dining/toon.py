@@ -66,7 +66,7 @@ PAL = dict(
     timber=hexc('#523b2b'), ceiling=half('#9a9086', (84, 76, 66)),
     table=hexc('#5c4433'), door=hexc('#54402f'), sideboard=hexc('#3f2e22'),
     chair=hexc('#6a4f3c'), seat=half('#c42a16', (127, 28, 12)), back=half('#d0302a', (143, 33, 20)),
-    web=half('#d0bf90', (150, 136, 100)), skull=half('#e8c860', (165, 135, 64)), socket=hexc('#3a2a10'),
+    web=half('#3e362c', (70, 62, 50)), skull=half('#e8c860', (165, 135, 64)), socket=hexc('#3a2a10'),
     claw=half('#efe6cc', (170, 160, 140)), iron=half('#1c1816', (30, 24, 18)), candle=hexc('#f4eedc'),
     flame=hexc('#ffd27a'), pillar=half('#7a6a58', (51, 43, 33)), cup=half('#9a9aa0', (90, 90, 96)),
     frame=half('#d4a63a', (120, 92, 30)), glass_bar=hexc('#423024'))
@@ -398,7 +398,7 @@ def build_side_chair():
         for m in cabriole(sx * 2.3, 1.95, 4.0, 0.22, 0.48): b.add_mesh(m, PAL['chair'], kind=WOOD)
     b.add_mesh(cbox(-2.6, 2.6, 3.95, 4.4, -2.55, 2.45, 0.1), PAL['chair'], kind=WOOD)
     V, F = slab_with_holes(rounded_rect(-2.45, 2.45, -2.4, 2.35, 0.35), [], 4.4, 4.64, 0.08)
-    b.add(V, F, PAL['seat'], kind=FABRIC)
+    b.add(V, F, PAL['back'], group='velvet', kind=CARPET)      # the same crushed velvet as the armchairs
     # the crest rail: one carved piece, swept up into ears at the posts, a bat with
     # scalloped wings spread across the middle
     bottom = [(0, 9.12), (0.22, 9.36), (0.45, 9.52), (0.6, 9.64), (0.85, 9.5), (1.05, 9.64), (1.3, 9.48), (1.5, 9.62), (1.75, 9.44),
@@ -431,7 +431,7 @@ def build_side_chair():
             b.add_mesh(bar(W(ex, ey), W(x, y), 0.035), PAL['web'], kind=METAL)
     for sx in (-1, 1):
         add_parts(b, skull((sx * 2.95, 10.5 + 0.42 * 1.25 - 0.06, zb + float(lean(10.45)) - 0.12)), METAL)   # sitting on the post, above all the wood
-    return b.meshes()['lit']
+    return b.meshes()
 
 def build_armchair():
     """the carvers at the table's ends (measured from cameras 2, 8 and 9): a solid wooden
@@ -442,15 +442,16 @@ def build_armchair():
     b = Builder()
     lean = lambda y: -0.2 * (np.asarray(y) - 4.5)                   # 1.25 back over the back's height
     zb = -2.3
-    px = lambda y: 2.85 + 0.55 * (np.asarray(y) - 4.4) / 6.35       # the posts splay out toward the top
+    # the back tapers in toward the seat: the posts curve out as they rise
+    px = lambda y: 2.05 + 1.35 * np.clip((np.asarray(y) - 4.3) / 6.4, 0, 1) ** 1.4
     for sx in (-1, 1):
-        sweep(b, [(sx * px(y), y, zb + float(lean(y))) for y in np.linspace(4.3, 10.7, 5)], 0.52, 0.5, PAL['chair'])
+        sweep(b, [(sx * float(px(y)), y, zb + float(lean(y))) for y in np.linspace(4.3, 10.7, 9)], 0.52, 0.5, PAL['chair'])
         b.add_mesh(cbox(sx * 2.95 - 0.26, sx * 2.95 + 0.26, 0, 4.3, zb - 0.26, zb + 0.26, 0.06), PAL['chair'], kind=WOOD)
         for m in cabriole(sx * 2.95, 2.25, 3.95, 0.25, 0.55): b.add_mesh(m, PAL['chair'], kind=WOOD)
         b.add_mesh(sphere((sx * 2.95, 0.3, 2.45), 0.36, 1), PAL['claw'], kind=PLAIN)
-        # level arm from the post to the front, a little scroll where it ends
+        # level arm from the post, angling out to the front, a little scroll where it ends
         za = zb + float(lean(6.1))
-        b.add_mesh(cbox(sx * 3.2 - 0.2, sx * 3.2 + 0.2, 5.95, 6.25, za, 2.35, 0.08), PAL['chair'], kind=WOOD)
+        sweep(b, [(sx * float(px(6.1)), 6.1, za), (sx * 3.2, 6.1, za + 1.6), (sx * 3.2, 6.1, 2.42)], 0.4, 0.3, PAL['chair'])
         b.add_mesh(sphere((sx * 3.2, 6.0, 2.42), 0.24, 1, (0.85, 1, 1.1)), PAL['chair'], kind=WOOD)
         # front support: up from the seat's corner, bowing forward
         sweep(b, [(sx * 3.2, y, z) for y, z in bez((4.35, 2.1), (5.2, 2.75), (6.0, 2.3), 5)], 0.32, 0.32, PAL['chair'])
@@ -469,7 +470,7 @@ def build_armchair():
     b.add(V, F, PAL['back'], group='velvet', kind=CARPET)
     # the back: a solid board between the posts, flat-topped with a small crown in the middle
     top = [(px(10.25) - 0.25, 10.25), (1.05, 10.25), (0.8, 10.5), (0.6, 10.38), (0.35, 10.62), (0.18, 10.5), (0.0, 10.88)]
-    right = [(px(4.6) - 0.25, 4.6)] + top
+    right = [(float(px(y)) - 0.25, y) for y in np.linspace(4.6, 10.0, 7)] + top
     board = right + [(-x, y) for x, y in reversed(right)][1:]     # drop only the shared middle point
     back_extrude(b, board, lambda y: zb + lean(y), -0.18, 0.14, PAL['chair'], WOOD)
     # the velvet shield: wide at the top, narrowing down to a rounded point
@@ -656,12 +657,15 @@ def build(out):
     for k, m in build_chandelier().items():
         scene.add_geometry(m, geom_name='chandelier_' + k, node_name='chandelier_' + k)
     chair = build_side_chair(); arm = build_armchair()
-    print('side chair triangles', len(chair.faces), '/ armchair', len(arm['lit'].faces) + len(arm['velvet'].faces))
+    print('side chair triangles', sum(len(m.faces) for m in chair.values()), '/ armchair', len(arm['lit'].faces) + len(arm['velvet'].faces))
     i = 0
     for row in (ROW1, ROW2):
         yaw = 0.0 if row['facing'] > 0 else np.pi
         for x in row['xs']:
-            scene.add_geometry(chair, geom_name='chair', node_name='chair_%02d' % i, transform=place(x, row['z'], yaw)); i += 1
+            for part, m in chair.items():
+                name = 'chair' if part == 'lit' else 'chair_' + part
+                scene.add_geometry(m, geom_name=name, node_name='%s_%02d' % (name, i), transform=place(x, row['z'], yaw))
+            i += 1
     for k, ((x, z), facing) in enumerate(ARMCHAIRS):
         for part, m in arm.items():
             scene.add_geometry(m, geom_name='armchair_' + part, node_name='armchair_%s_%d' % (part, k), transform=place(x, z, np.pi / 2 * facing))
