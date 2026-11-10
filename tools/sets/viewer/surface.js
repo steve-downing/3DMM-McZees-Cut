@@ -83,11 +83,16 @@ float sh_surf(vec2 p, float across, float along, float kind) {
     motif = max(motif, leaf) * sh_aa(p, 1.2);
     float paper = 1.0 + 0.07 * (sh_noise(vec2(p.x * 40.0, p.y * 3.0)) - 0.5) * sh_aa(p, 40.0) + 0.1 * (sh_fbm(p * 0.6) - 0.5);
     if (sh_turn > 0.5) {
-      // turned (the paper below a dado): narrower stripes, no motifs
+      // turned (the paper below a dado): narrower stripes, a small quatrefoil repeating
+      // along each pale one and a dot between them in the dark ones
       float sy = mod(p.x, 2.4) - 1.2;
       float band = 1.0 - smoothstep(0.55, 0.65, abs(sy));
       float pin2 = 1.0 - smoothstep(0.02, 0.06, abs(abs(sy) - 0.85));
-      return (0.84 + 0.2 * band) * (1.0 - 0.22 * pin2 * sh_aa(p, 8.0)) * paper;
+      vec2 g = vec2(sy, mod(p.y, 1.6) - 0.8);
+      float qf = 1.0 - smoothstep(0.0, 0.05, length(g) - (0.24 + 0.09 * cos(4.0 * atan(g.y, g.x))));
+      float dt = 1.0 - smoothstep(0.05, 0.09, length(vec2(abs(sy) - 1.2, mod(p.y + 0.8, 1.6) - 0.8)));
+      return (0.84 + 0.2 * band) * (1.0 - 0.22 * pin2 * sh_aa(p, 8.0)) * (1.0 - 0.17 * qf * sh_aa(p, 3.0))
+             * (1.0 - 0.12 * dt * sh_aa(p, 6.0)) * paper;
     }
     return (0.82 + 0.22 * pale) * (1.0 - 0.36 * motif) * (1.0 - 0.25 * pin * sh_aa(p, 8.0)) * paper;
   }
@@ -117,7 +122,7 @@ float sh_surf(vec2 p, float across, float along, float kind) {
   diffuseColor.a = 1.0;
 }`);
   };
-  material.customProgramCacheKey = () => 'surface-texture-v10';
+  material.customProgramCacheKey = () => 'surface-texture-v11';
   return material;
 }
 

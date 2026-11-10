@@ -54,7 +54,7 @@ RUG = dict(x0=147.0, x1=192.3, z0=-136.5, z1=-102.0, border=4.0)
 CHANDELIER = dict(x=169.8, z=-120.5, bottom=17.7, arms_y=21.3, r=3.4, n=5)
 SIDEBOARD = dict(x0=136.8, x1=143.95, z0=-129.6, z1=-109.5, top=9.5)
 PAINTING = dict(canvas_z=(-127.2, -114.0), canvas_y=(14.6, 23.0))   # the frame round it is 0.9 wide (drawn thinner than 1995's)
-PILLAR = dict(x0=205.4, z1=-95.3, top=17.2)   # in the far corner, against both walls
+ARMOIRE = dict(x0=205.4, z1=-95.3, top=17.2)   # in the far corner, against both walls; its doors face the table
 IRON = dict(z=-147.5, x0=138.2, x1=141.8, top=8.0)   # wrought-iron rack against the window wall
 
 # ----------------------------------------------------------------- colors (cartoon, measured original)
@@ -344,11 +344,6 @@ def build_room():
     rug(b)
     # painting frame (the canvas is a separate, textured mesh)
     ornate_frame(b, dend)
-    # corner pillar: base, shaft, cap
-    p = PILLAR
-    b.add_mesh(cbox(p['x0'] - 0.3, X1, 0, 1.2, Z1 - 0.01 - (Z1 - p['z1']) - 0.3, Z1, 0.1), PAL['pillar'] * 0.85, kind=HAMMERED)
-    b.add_mesh(cbox(p['x0'], X1, 1.2, p['top'] - 1.0, p['z1'], Z1, 0.15), PAL['pillar'], kind=HAMMERED)
-    b.add_mesh(cbox(p['x0'] - 0.35, X1, p['top'] - 1.0, p['top'], p['z1'] - 0.35, Z1, 0.12), PAL['pillar'] * 1.1, kind=HAMMERED)
     return b
 
 # ----------------------------------------------------------------- furniture
@@ -535,14 +530,34 @@ def build_sideboard():
     b.add_mesh(cbox(s['x0'], s['x1'] - 0.4, s['top'] - 1.35, s['top'] - 0.45, s['z0'] + 0.4, s['z1'] - 0.4, 0.08), PAL['sideboard'] * 0.85, kind=WOOD)
     for x, z in ((s['x0'] + 0.6, s['z0'] + 0.7), (s['x1'] - 0.8, s['z0'] + 0.7), (s['x0'] + 0.6, s['z1'] - 0.7), (s['x1'] - 0.8, s['z1'] - 0.7)):
         for m in cabriole(x, z, s['top'] - 0.45, 0.3 * np.sign(z - (s['z0'] + s['z1']) / 2), 0.6): b.add_mesh(m, PAL['sideboard'], kind=WOOD)
-    # a candle on a brass dish where 1995 has a small pale something (camera 2 sees it)
+    # a candle (unlit) on a brass dish where 1995 has a small pale something (camera 2 sees it)
     cx, cz, y = 140.6, -122.8, s['top']
     b.add_mesh(prism(cx, cz, 0.62, y, y + 0.12, 14), PAL['gilt'], kind=METAL)
     b.add_mesh(prism(cx, cz, 0.18, y + 0.12, y + 0.4, 10), PAL['gilt'] * 0.85, kind=METAL)
     b.add_mesh(prism(cx, cz, 0.3, y + 0.4, y + 1.45, 10), PAL['candle'])
     b.add_mesh(sphere((cx + 0.22, y + 1.15, cz + 0.1), 0.09, 0, (1, 2.0, 1)), PAL['candle'])    # a drip
-    b.add_mesh(sphere((cx, y + 1.72, cz), 0.11, 1, (1, 2.2, 1)), PAL['flame'], group='glow')
+    b.add_mesh(bar((cx, y + 1.45, cz), (cx + 0.02, y + 1.68, cz), 0.035), PAL['iron'])          # the wick
     return b.meshes()
+
+def build_armoire():
+    """the tall cabinet in the far corner: a plinth, a carcase with a pair of panelled doors
+    toward the table and a panel on its open side, knobs at the meeting stiles, and a
+    stepped crown"""
+    b = Builder(); a = ARMOIRE; x0, z1, top = a['x0'], a['z1'], a['top']
+    wood = PAL['sideboard']; up = WOOD + TURNED
+    b.add_mesh(cbox(x0 - 0.2, X1, 0, 1.0, z1 - 0.2, Z1, 0.08), wood * 0.8, kind=WOOD)            # plinth
+    b.add_mesh(cbox(x0, X1, 1.0, top - 1.3, z1, Z1, 0.06), wood, kind=up)                       # carcase
+    for y0, y1, o, sh in ((top - 1.3, top - 0.95, 0.22, 0.9), (top - 0.95, top - 0.35, 0.42, 1.0), (top - 0.35, top, 0.28, 0.85)):
+        b.add_mesh(cbox(x0 - o, X1, y0, y1, z1 - o, Z1, 0.06), wood * sh, kind=WOOD)            # crown
+    xm = (x0 + X1) / 2; ya, yb = 1.6, top - 1.8
+    for k, (u0, u1) in enumerate(((x0 + 0.3, xm - 0.03), (xm + 0.03, X1 - 0.3))):
+        b.add_mesh(cbox(u0, u1, ya, yb, z1 - 0.1, z1 + 0.05, 0.03), wood * (1.06 if k else 1.0), kind=up)      # door
+        for py0, py1 in ((ya + 0.5, 6.6), (7.4, yb - 0.5)):                                          # its two panels
+            b.add_mesh(cbox(u0 + 0.35, u1 - 0.35, py0, py1, z1 - 0.2, z1 - 0.05, 0.08), wood * 1.1, kind=up)
+        b.add_mesh(sphere((xm + (0.3 if k else -0.3), 7.0, z1 - 0.25), 0.16, 1), PAL['gilt'], kind=METAL)
+    for py0, py1 in ((1.9, 6.6), (7.4, top - 2.1)):                                                  # the open side
+        b.add_mesh(cbox(x0 - 0.12, x0 + 0.05, py0, py1, z1 + 0.6, Z1 - 0.6, 0.08), wood * 1.1, kind=up)
+    return b.meshes()['lit']
 
 def build_chandelier():
     """wrought iron: a canopy and a chain from the ceiling, a crown of spikes, a turned
@@ -665,6 +680,7 @@ def build(out):
     scene.add_geometry(table, geom_name='table', node_name='table', transform=at)
     scene.add_geometry(rug_mesh(), geom_name='rug_textured', node_name='rug_textured')
     scene.add_geometry(build_outside(), geom_name='outside', node_name='outside')
+    scene.add_geometry(build_armoire(), geom_name='armoire', node_name='armoire')
     for k, m in build_sideboard().items():
         name = 'sideboard' if k == 'lit' else 'sideboard_' + k
         scene.add_geometry(m, geom_name=name, node_name=name)
