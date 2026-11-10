@@ -6,9 +6,12 @@ comes with a depth buffer and the camera's position. These tools turn that
 into real 3D sets you can walk around in: first to measure the set from the
 pictures, then to rebuild it as a clean, low-poly "cartoon" model for VR.
 
-Done so far: the airplane cabin (`AD-Airplane Background`, background 10)
-and the mansion dining room (`HH-Dining Background`, background 8,
-`dining/toon.py`, built in 3DMM's own world units).
+Done so far: the airplane cabin (`AD-Airplane Background`, background 10),
+the mansion dining room (`HH-Dining Background`, background 8,
+`dining/toon.py`, built in 3DMM's own world units) and the mad scientist's
+lab (`HH-Lab Background`, background 9, `lab/toon.py`, which borrows the
+dining room's helpers and palette; `lab/textures.py` draws its plaster and
+rock).
 
 - `STYLE.md` covers how the rebuilt sets should look, plus the review
   checklist to run before showing a new version. Read it before starting

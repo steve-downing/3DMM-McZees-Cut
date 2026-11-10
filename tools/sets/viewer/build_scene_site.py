@@ -24,7 +24,7 @@ import sys, os, shutil, base64, json, html
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 # background number -> rebuilt set (a folder next to this one)
-SETS = {10: 'airplane', 8: 'dining'}
+SETS = {10: 'airplane', 8: 'dining', 9: 'lab'}
 BLACK = 11
 
 

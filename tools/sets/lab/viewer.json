@@ -1,0 +1,93 @@
+{
+  "where": "in the rebuilt mad scientist's lab",
+  "sky": "night",
+  "vr": {
+    "pos": [
+      0.5,
+      0,
+      1.6
+    ],
+    "yaw": 0.0
+  },
+  "lights": {
+    "hemi": [
+      "#c8cce4",
+      "#4a3a30",
+      1.35
+    ],
+    "sun": {
+      "pos": [
+        -40,
+        45,
+        -75
+      ],
+      "target": [
+        -6,
+        0,
+        -10
+      ],
+      "color": "#a8b8ff",
+      "intensity": 0.6,
+      "extent": 45
+    },
+    "lamps": [
+      {
+        "pos": [
+          1.0,
+          21.6,
+          2.5
+        ],
+        "color": "#ffd49a",
+        "intensity": 150,
+        "distance": 140
+      },
+      {
+        "pos": [
+          -11.3,
+          10.2,
+          -24.5
+        ],
+        "color": "#ffa040",
+        "intensity": 10,
+        "distance": 30
+      },
+      {
+        "pos": [
+          -1.8,
+          9.4,
+          -18.1
+        ],
+        "color": "#ffc98a",
+        "intensity": 6,
+        "distance": 25
+      },
+      {
+        "pos": [
+          28.15,
+          18.2,
+          15.1
+        ],
+        "color": "#ffc98a",
+        "intensity": 10,
+        "distance": 30
+      }
+    ]
+  },
+  "actor": {
+    "x": 0.5,
+    "z": 14.0,
+    "yaw": 3.14159
+  },
+  "explorer": {
+    "name": "the lab",
+    "title": "Mad scientist's lab, in 3D",
+    "tag": "3D Movie Maker \u00b7 HH-Lab background",
+    "blurb": "Rebuilt from measurements off the eight camera angles and their depth buffers: the tilting operating table with its straps, the lab table of glassware under the hanging lamp, the riveted column and the domed boiler under the round window, the wardrobe and cabinets, and the trapdoor. Swipe at any original camera to see the 1995 render."
+  },
+  "floor": [
+    -29.0,
+    -19.0,
+    29.0,
+    25.5
+  ]
+}
