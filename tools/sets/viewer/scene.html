@@ -377,6 +377,7 @@ window.__look = (p, t, fov) => {                            // stand at p, look 
   const d = new THREE.Vector3(t[0] - p[0], t[1] - p[1], t[2] - p[2]).normalize();
   yaw = Math.atan2(-d.x, -d.z); pitch = Math.asin(d.y); roll = 0;
   camera.fov = fov || 60; camera.near = 0.05; camera.updateProjectionMatrix();
+  invalidate();
 };
 function setFollow(on) {
   followMovie = on;
