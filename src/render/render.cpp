@@ -97,6 +97,7 @@ RAPP::RAPP(void)
     _pglpbmdlPoses = pvNil;
     _pglpbmtlPoses = pvNil;
     _pgllwTboxPoses = pvNil;
+    _luPalPoses = 0;
     _prgsnapPrev = pvNil;
     _prgsnapCur = pvNil;
     _csnapPrev = _csnapCur = _csnapMax = 0;
@@ -1123,9 +1124,10 @@ PTBXB RAPP::_PtbxbVisible(long itbox, RC *prcBox)
     it's see-through). It's drawn twice, over two different colors: a pixel
     that took the backdrop's color both times is see-through, anything else
     is the box's own (so text in either backdrop color still comes through).
-    The caller frees the result.
+    The caller frees the result (and *pprgbIndex: the palette index of each
+    pixel, if asked for).
 ***************************************************************************/
-byte *RAPP::_PrgbTextBox(PTBXB ptbxb, long dxp, long dyp)
+byte *RAPP::_PrgbTextBox(PTBXB ptbxb, long dxp, long dyp, byte **pprgbIndex)
 {
     PGPT pgpt;
     RC rc;
@@ -1172,6 +1174,11 @@ byte *RAPP::_PrgbTextBox(PTBXB ptbxb, long dxp, long dyp)
         prgbRgba[ib * 4 + 3] = fClear ? 0 : 255;
     }
     fOk = fTrue;
+    if (pvNil != pprgbIndex)
+    {
+        *pprgbIndex = prgbPass[0];
+        prgbPass[0] = pvNil;
+    }
 LDone:
     if (pvNil != prgbPass[0])
         free(prgbPass[0]);
@@ -1675,7 +1682,7 @@ bool RAPP::_FEmitFrame(byte *prgb, ulong dtsOut)
         M <model> <vertices> <faces>, then "x y z u v" per vertex and
           "a b c smoothing" per face (model space)
         T <material> <cno, or -1> <palette base> <palette range>
-        I <image> <width> <height> <RGBA, base64>: a text box's picture
+        C <palette> and I <image> ...: text box pictures (_CTextBoxImages)
 
     A frame that never got screen time is written again with the same
     number: the last block for a frame wins.
@@ -1840,24 +1847,31 @@ void RAPP::_WritePoses(long ifrm, ulong dtsOut)
 /***************************************************************************
     The visible 2-D text boxes, each drawn by itself (as 3DMM draws it, fonts
     and all) into an image with transparency. An image not seen before is
-    written to the poses file:
+    written to the poses file, cropped to what's not see-through:
 
-        I <image> <width> <height> <RGBA rows, top first, base64>
+        C <palette: 256 RGB triples, base64>, when it changes
+        I <image> <width> <height> <crop left> <top> <width> <height> <rows>
+
+    The rows (base64) are runs, row by row across the crop: a see-through
+    count, then a count of pixels and their palette indexes, again until the
+    row is full (counts are LEB128 varints). Credits scroll, so each scroll
+    position is its own image; this keeps them small.
 
     Returns how many boxes are showing; for each, its image number and its
     rectangle in the movie view (prcView gets the view's own rectangle).
 ***************************************************************************/
 long RAPP::_CTextBoxImages(long *prgimg, RC *prgrc, long cimgMax, RC *prcView)
 {
-    static const char kszB64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     PMVU pmvu;
     PTBXB ptbxb;
-    RC rcBox;
-    byte *prgbRgba;
-    long itbox, cimg = 0, cb, ib, imgHash;
+    RC rcBox, rcCrop;
+    byte *prgbRgba, *prgbIndex = pvNil, *prgbRle;
+    long itbox, cimg = 0, cpx, ib, imgHash, dxp, dyp, xp, yp, xpRun, cbRle;
     ulong luHash;
+    CLR *prgclr;
 
-    if (pvNil == _pmvie || pvNil == _pmvie->Pscen() || pvNil == (pmvu = _pmvie->PmvuCur()) || pvNil == _pgllwTboxPoses)
+    if (pvNil == _pmvie || pvNil == _pmvie->Pscen() || pvNil == (pmvu = _pmvie->PmvuCur()) ||
+        pvNil == _pgllwTboxPoses || pvNil == _pglclrActive)
     {
         return 0;
     }
@@ -1867,49 +1881,131 @@ long RAPP::_CTextBoxImages(long *prgimg, RC *prgrc, long cimgMax, RC *prcView)
     {
         if (pvNil == (ptbxb = _PtbxbVisible(itbox, &rcBox)))
             continue;
-        if (pvNil == (prgbRgba = _PrgbTextBox(ptbxb, rcBox.Dxp(), rcBox.Dyp())))
+        dxp = rcBox.Dxp();
+        dyp = rcBox.Dyp();
+        if (pvNil == (prgbRgba = _PrgbTextBox(ptbxb, dxp, dyp, &prgbIndex)))
             continue;
-        cb = rcBox.Dxp() * rcBox.Dyp() * 4;
-        luHash = 2166136261UL ^ (ulong)rcBox.Dxp() ^ ((ulong)rcBox.Dyp() << 16);
-        for (ib = 0; ib < cb; ib++)
+        cpx = dxp * dyp;
+        luHash = 2166136261UL ^ (ulong)dxp ^ ((ulong)dyp << 16);
+        for (ib = 0; ib < cpx * 4; ib++)
             luHash = (luHash ^ prgbRgba[ib]) * 16777619UL;
         for (imgHash = 0; imgHash < _pgllwTboxPoses->IvMac(); imgHash++)
         {
             if (*(ulong *)_pgllwTboxPoses->QvGet(imgHash) == luHash)
                 break;
         }
-        if (imgHash == _pgllwTboxPoses->IvMac())
+        if (imgHash == _pgllwTboxPoses->IvMac() && _pgllwTboxPoses->FAdd(&luHash, &imgHash))
         {
-            if (!_pgllwTboxPoses->FAdd(&luHash, &imgHash))
+            // the palette, when it's changed
+            ulong luPal = 2166136261UL;
+            byte rgbPal[256 * 3];
+            prgclr = (CLR *)_pglclrActive->QvGet(0);
+            for (ib = 0; ib < 256; ib++)
             {
-                free(prgbRgba);
-                continue;
+                rgbPal[ib * 3] = prgclr[ib].bRed;
+                rgbPal[ib * 3 + 1] = prgclr[ib].bGreen;
+                rgbPal[ib * 3 + 2] = prgclr[ib].bBlue;
             }
-            fprintf(_pfilePoses, "I %ld %ld %ld ", imgHash, rcBox.Dxp(), rcBox.Dyp());
-            for (ib = 0; ib < cb; ib += 3)
+            for (ib = 0; ib < 256 * 3; ib++)
+                luPal = (luPal ^ rgbPal[ib]) * 16777619UL;
+            if (luPal != _luPalPoses)
             {
-                ulong lu = (ulong)prgbRgba[ib] << 16;
-                long cbIn = LwMin(3, cb - ib);
-                char rgch[5];
-                if (cbIn > 1)
-                    lu |= (ulong)prgbRgba[ib + 1] << 8;
-                if (cbIn > 2)
-                    lu |= prgbRgba[ib + 2];
-                rgch[0] = kszB64[(lu >> 18) & 63];
-                rgch[1] = kszB64[(lu >> 12) & 63];
-                rgch[2] = cbIn > 1 ? kszB64[(lu >> 6) & 63] : '=';
-                rgch[3] = cbIn > 2 ? kszB64[lu & 63] : '=';
-                rgch[4] = 0;
-                fputs(rgch, _pfilePoses);
+                fprintf(_pfilePoses, "C ");
+                _WriteBase64(rgbPal, 256 * 3);
+                fputc('\n', _pfilePoses);
+                _luPalPoses = luPal;
             }
+
+            // the crop: what isn't see-through
+            rcCrop.Set(dxp, dyp, 0, 0);
+            for (yp = 0; yp < dyp; yp++)
+            {
+                for (xp = 0; xp < dxp; xp++)
+                {
+                    if (prgbRgba[(yp * dxp + xp) * 4 + 3] == 0)
+                        continue;
+                    rcCrop.xpLeft = LwMin(rcCrop.xpLeft, xp);
+                    rcCrop.ypTop = LwMin(rcCrop.ypTop, yp);
+                    rcCrop.xpRight = LwMax(rcCrop.xpRight, xp + 1);
+                    rcCrop.ypBottom = LwMax(rcCrop.ypBottom, yp + 1);
+                }
+            }
+            if (rcCrop.xpLeft >= rcCrop.xpRight)
+                rcCrop.Set(0, 0, 0, 0);
+            fprintf(_pfilePoses, "I %ld %ld %ld %ld %ld %ld %ld ", imgHash, dxp, dyp, rcCrop.xpLeft, rcCrop.ypTop,
+                    rcCrop.Dxp(), rcCrop.Dyp());
+
+            // runs (at worst 2 varints of up to 3 bytes plus the pixels, per pixel)
+            prgbRle = (byte *)malloc(LwMax(1, rcCrop.Dxp() * rcCrop.Dyp() * 7));
+            cbRle = 0;
+            for (yp = rcCrop.ypTop; pvNil != prgbRle && yp < rcCrop.ypBottom; yp++)
+            {
+                for (xp = rcCrop.xpLeft; xp < rcCrop.xpRight;)
+                {
+                    long rgc[2], irun, c;
+                    for (irun = 0; irun < 2; irun++)
+                    {
+                        // irun 0: see-through pixels, 1: pixels with color
+                        for (xpRun = xp;
+                             xpRun < rcCrop.xpRight && (prgbRgba[(yp * dxp + xpRun) * 4 + 3] != 0) == (irun == 1);
+                             xpRun++)
+                        {
+                        }
+                        rgc[irun] = xpRun - xp;
+                        for (c = rgc[irun]; c >= 0x80; c >>= 7)
+                            prgbRle[cbRle++] = (byte)(0x80 | (c & 0x7f));
+                        prgbRle[cbRle++] = (byte)c;
+                        if (irun == 1)
+                        {
+                            for (; xp < xpRun; xp++)
+                                prgbRle[cbRle++] = prgbIndex[yp * dxp + xp];
+                        }
+                        xp = xpRun;
+                    }
+                }
+            }
+            if (cbRle > 0)
+                _WriteBase64(prgbRle, cbRle);
+            else
+                fputc('-', _pfilePoses);
             fputc('\n', _pfilePoses);
+            if (pvNil != prgbRle)
+                free(prgbRle);
         }
         free(prgbRgba);
+        if (pvNil != prgbIndex)
+            free(prgbIndex);
+        prgbIndex = pvNil;
+        if (imgHash >= _pgllwTboxPoses->IvMac())
+            continue;
         prgimg[cimg] = imgHash;
         prgrc[cimg] = rcBox;
         cimg++;
     }
     return cimg;
+}
+
+void RAPP::_WriteBase64(byte *prgb, long cb)
+{
+    static const char kszB64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    long ib, cbIn;
+    char rgch[5];
+
+    for (ib = 0; ib < cb; ib += 3)
+    {
+        ulong lu = (ulong)prgb[ib] << 16;
+        cbIn = LwMin(3, cb - ib);
+        if (cbIn > 1)
+            lu |= (ulong)prgb[ib + 1] << 8;
+        if (cbIn > 2)
+            lu |= prgb[ib + 2];
+        rgch[0] = kszB64[(lu >> 18) & 63];
+        rgch[1] = kszB64[(lu >> 12) & 63];
+        rgch[2] = cbIn > 1 ? kszB64[(lu >> 6) & 63] : '=';
+        rgch[3] = cbIn > 2 ? kszB64[lu & 63] : '=';
+        rgch[4] = 0;
+        fputs(rgch, _pfilePoses);
+    }
 }
 
 void RAPP::_FinishTimeline(ulong dtsOutEnd)

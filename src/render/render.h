@@ -181,6 +181,7 @@ class RAPP : public RAPP_PAR
     PGL _pglpbmdlPoses;  // models written to the poses file so far (kept alive)
     PGL _pglpbmtlPoses;  // materials written so far (kept alive)
     PGL _pgllwTboxPoses; // text box images written so far (their hashes)
+    ulong _luPalPoses;   // the palette last written to the poses file (a hash)
     long _cfrmTotal;
     long _pctLast;
     BMAT34 _bmat34Stereo;
@@ -230,7 +231,8 @@ class RAPP : public RAPP_PAR
     void _DrawFlatStereo(PMVU pmvu);
     void _DrawViewOnly(PMVU pmvu);
     void _OverlayTextBoxes(long dxpPop);
-    byte *_PrgbTextBox(PTBXB ptbxb, long dxp, long dyp);
+    byte *_PrgbTextBox(PTBXB ptbxb, long dxp, long dyp, byte **pprgbIndex = pvNil);
+    void _WriteBase64(byte *prgb, long cb);
     PTBXB _PtbxbVisible(long itbox, RC *prcBox);
     void _LogTextBoxes(void);
     void _DumpStereoDebug(PBWLD pbwld);

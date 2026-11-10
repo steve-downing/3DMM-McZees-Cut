@@ -42,7 +42,7 @@ def read_poses(path):
         text = open(path, encoding='latin1').read()
     lines = text.splitlines(); i = 0
     models, mats, frames, images = {}, {}, {}, {}
-    cur = None
+    cur = pal = None
     while i < len(lines):
         p = lines[i].split(); i += 1
         if not p: continue
@@ -61,17 +61,43 @@ def read_poses(path):
             cur['actors'].append(dict(arid=int(p[1]), sid=int(p[2]), cno=int(p[3]), parts=[]))
         elif k == 'P':
             cur['actors'][-1]['parts'].append((int(p[2]), int(p[3]), [float(x) for x in p[4:16]]))
+        elif k == 'C':
+            pal = np.frombuffer(base64.b64decode(p[1]), np.uint8).reshape(256, 3)
         elif k == 'I':
-            images[int(p[1])] = (int(p[2]), int(p[3]), p[4])
+            images[int(p[1])] = text_image([int(x) for x in p[2:8]], p[8], pal)
         elif k == 'X':
             cur.setdefault('texts', []).append([int(x) for x in p[1:8]])
     return models, mats, [frames[k] for k in sorted(frames)], images
 
 
-def text_png(w, h, b64):
-    """a text box's picture (RGBA rows, base64) as a PNG data URL"""
+def text_image(dims, b64, pal):
+    """a text box's picture from the capture (see _CTextBoxImages in render.cpp):
+    the box's size, the crop's place and size, then runs across the crop's rows
+    (a see-through count, a count of pixels and their palette indexes, ...)"""
     from PIL import Image
-    im = Image.frombytes('RGBA', (w, h), base64.b64decode(b64))
+    w, h, x0, y0, cw, ch = dims
+    rgba = np.zeros((h, w, 4), np.uint8)
+    if cw and ch:
+        d = base64.b64decode(b64); i = 0
+        def varint():
+            nonlocal i
+            v = sh = 0
+            while True:
+                b = d[i]; i += 1; v |= (b & 0x7f) << sh; sh += 7
+                if b < 0x80: return v
+        for y in range(y0, y0 + ch):
+            x = x0
+            while x < x0 + cw:
+                x += varint()
+                n = varint()
+                idx = np.frombuffer(d, np.uint8, n, i); i += n
+                rgba[y, x:x + n, :3] = pal[idx]; rgba[y, x:x + n, 3] = 255
+                x += n
+    return Image.fromarray(rgba, 'RGBA')
+
+
+def text_png(im):
+    """a text box's picture as a PNG data URL"""
     buf = io.BytesIO(); im.save(buf, 'PNG', optimize=True)
     return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
 
@@ -175,8 +201,10 @@ def export(poses, scene_no, out, video=None, name=None):
                 ids_bytes=len(ids) * 2, xf_offset=len(blob) - len(xf) * 4)
     if tused_img:
         meta['view'] = view
-        meta['texts'] = [text_png(*images[i]) for i in sorted(tused_img, key=tused_img.get)]
+        meta['texts'] = [text_png(images[i]) for i in sorted(tused_img, key=tused_img.get)]
     json.dump(meta, open(os.path.join(out, 'scene.json'), 'w'), separators=(',', ':'))
+    if not sc.geometry:   # a scene with no actors (titles, say): glTF needs something in it
+        sc.add_geometry(trimesh.Trimesh(np.zeros((3, 3)) + [0, -50, 0], [[0, 1, 2]], process=False), geom_name='stub', node_name='stub')
     glb = sc.export(file_type='glb')
     open(os.path.join(out, 'scene.glb.txt'), 'w').write(base64.b64encode(glb).decode())
     open(os.path.join(out, 'scene.bin.txt'), 'w').write(base64.b64encode(blob).decode())

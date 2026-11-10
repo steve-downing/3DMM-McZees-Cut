@@ -102,7 +102,7 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
         # a summary and the start of the pose capture, for a look
         $kinds = @{}
         foreach ($l in [IO.File]::ReadLines("$rawMode/poses.txt")) {
-            if ($l.Length -gt 1 -and $l[1] -eq ' ' -and "FAPMTIX".Contains($l[0])) { $kinds[$l[0]] = 1 + $kinds[$l[0]] }
+            if ($l.Length -gt 1 -and $l[1] -eq ' ' -and "FAPMTIXC".Contains($l[0])) { $k = [string]$l[0]; $kinds[$k] = 1 + $kinds[$k] }
         }
         "frames $($kinds['F']) actors $($kinds['A']) parts $($kinds['P']) models $($kinds['M']) materials $($kinds['T']); " +
             "text pictures $($kinds['I']) text showings $($kinds['X']); " +

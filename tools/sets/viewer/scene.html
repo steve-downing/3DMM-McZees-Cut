@@ -26,6 +26,10 @@ body { background: var(--ink); color: var(--fg); font-family: var(--body); overf
 
 .hud { position: fixed; z-index: 2; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+/* while it plays, the panels step aside after a moment so nothing covers the picture
+   (3DMM's text often sits along the bottom); any touch, move or key brings them back */
+.hud { transition: opacity .4s; }
+body.idle .hud { opacity: 0; pointer-events: none; }
 #title { top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px));
   padding: 10px 14px; max-width: min(420px, calc(100% - 32px)); }
 #title h1 { margin: 0; font: 700 1.25rem/1.1 var(--display); letter-spacing: 0.01em; text-wrap: balance; }
@@ -508,4 +512,11 @@ Promise.all([text('set.json').then(JSON.parse).catch(() => ({ where: 'on an empt
   $('start').hidden = false; $('start-btn').focus();
 }).catch(err => { loadingEl.textContent = "Couldn't load the scene: " + err.message; });
 $('start-btn').addEventListener('click', () => { $('start').hidden = true; setPlaying(true); });
+let idleTimer = 0;
+function wake() {
+  document.body.classList.remove('idle'); clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => { if (playing && !renderer.xr.isPresenting) document.body.classList.add('idle'); }, 3000);
+}
+for (const ev of ['pointermove', 'pointerdown', 'keydown', 'wheel', 'focusin']) addEventListener(ev, wake, { passive: true });
+wake();
 </script>
