@@ -1,0 +1,7 @@
+movie: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\test-movies\Venus31.3mm
+content root: D:\a\3DMM-McZees-Cut\3DMM-McZees-Cut\build\stage
+fonts: 177 TrueType faces available
+scenes: 10
+audio: 34 sounds, 93 cues
+done: 1890 frames, 211.79 seconds
+exit code 0

@@ -1,0 +1,18 @@
+     0.000 transition cut
+     0.000 sound s000 vlm=65536 loops=2147483647 offset=0
+     0.000 play
+     0.020 transition dissolve
+     4.195 textbox story "The Entrance to the city "
+     9.525 textbox story "The Market "
+    15.695 textbox story "The Alley "
+    20.695 textbox story "The Cafe "
+    22.360 textbox story "The Mall "
+    24.025 textbox story "The Park "
+    30.695 textbox story "The Restaurant "
+    35.695 textbox story "The Mall "
+    38.860 textbox story "The Mall "
+    38.860 transition dissolve
+    52.865 textbox story "The Mall "
+    52.865 transition dissolve
+    63.540 textbox story "The End "
+    68.370 end
