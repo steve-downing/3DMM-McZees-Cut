@@ -238,7 +238,19 @@ python viewer/build_scene_site.py scene site
 The capture (`3dmm-render --poses`) records what 3DMM's own engine drew,
 frame by frame: every actor's every body part, its model, material and
 place. So stock actors, add-on actors and 3D text all play back exactly,
-smooth mode included. `build_scene_site.py` picks the set from the scene's
-background (its `SETS` table); each rebuilt set has a `viewer.json` with
-where VR starts, its lights and a few camera fixes.
+smooth mode included. 2-D text boxes come as pictures 3DMM drew; the player
+hangs each as a card a little way in front of the movie's camera, so from
+that camera it sits where 3DMM put it. `build_scene_site.py` picks the set
+from the scene's background (its `SETS` table); each rebuilt set has a
+`viewer.json` with where VR starts, where you may teleport (`floor`), its
+lights and a few camera fixes.
+
+In VR you're about an actor's size (3DMM's units are about 10 cm). Right
+stick: aim a teleport, let go to jump (flick it sideways to turn); left
+stick: walk; A play/pause; B go to the movie camera's spot; X follow the
+director; Y the director's monitor. Staying put (the default), cuts don't
+move you and the monitor on your left hand shows the movie's own shot.
+Following the director, each shot of 1.5 s or more moves you, in a quick
+blink, to the floor under its camera, turned its way but never tilted. A
+scene starting over blinks too.
 

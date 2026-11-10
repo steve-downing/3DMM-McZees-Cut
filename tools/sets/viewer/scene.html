@@ -198,6 +198,7 @@ async function loadSet(cfg, meta) {
   if (cfg.sky) world.add(cfg.sky === 'night' ? makeNightSky(THREE) : makeSky(THREE));
   $('where').textContent = cfg.where;
   NEAR = cfg.near || {};
+  FLOOR = floorBounds(cfg, meta);
   if (!cfg.model) { emptyStage(meta); return; }
   const g = await loader.parseAsync(b64bytes(await text(cfg.model)).buffer, '');
   g.scene.traverse(o => {
@@ -262,6 +263,7 @@ async function loadScene() {
   $('tag').textContent = '3D Movie Maker · scene ' + meta.scene + ' · ' + meta.actors.map(a => a.name).join(', ');
   document.title = meta.name + ' in 3D';
   initTexts(meta);
+  measureShots(meta);
 }
 
 // ---- 2-D text ---------------------------------------------------------------------
@@ -426,44 +428,263 @@ cv.addEventListener('wheel', e => { e.preventDefault(); leaveMovieCam();
   camera.position.addScaledVector(new THREE.Vector3(0, 0, -1).applyEuler(camera.rotation), -e.deltaY * 0.01); invalidate(); }, { passive: false });
 
 // ---- VR -------------------------------------------------------------------------------
-// The world shrinks to meters, you stand where the set says (the cabin: in the aisle), and the left stick walks.
+// The world shrinks to meters: 3DMM's units are about 10 cm, so the actors stand about your
+// height. You start where the set says (or under the movie's first camera).
+//   Right stick: push it to aim a teleport (the way you push is the way you'll face when you
+//   land), let go to jump; flick it left or right to turn. Left stick: walk.
+//   A: play / pause.  B: go to the movie camera's spot now.
+//   X: follow the director on / off.  Y: the director's monitor on / off.
+// Two ways to watch. Stay put (the default): cuts don't move you, and the director's monitor
+// on your left hand shows the movie's own shot, cuts and 2-D text and all. Follow the
+// director: each shot that lasts long enough (FOLLOW_MIN) moves you, in a quick blink, to the
+// floor under its camera, turned the way it looks, never tilted; shorter cutaways only show
+// on the monitor. Every move is a blink: a moment of black, never a glide.
+const FOLLOW_MIN = 1500, BLINK = 110, LOOP_BLINK = 300;
 const vrBtn = $('vr');
 if (navigator.xr) navigator.xr.isSessionSupported('immersive-vr').then(ok => { vrBtn.hidden = !ok; }).catch(() => {});
 let xrSession = null;
+const VR = { follow: false, monitor: true, atCam: -1, blink: null, aim: null, hands: {}, pressed: {}, lastFrame: -1, monitorFrame: -1, ticks: 0 };
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
+
+// the blink: a black shell around your head
+const fadeMesh = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 8),
+  new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, side: THREE.BackSide, depthTest: false, depthWrite: false }));
+fadeMesh.renderOrder = 10000; fadeMesh.visible = false; camera.add(fadeMesh);
+// The world shrinks by 10 in VR; lights that fall off with distance, and the sun's shadow box,
+// have to shrink with it or the candles come out 40 times brighter.
+function scaleLights(k) {
+  world.traverse(o => {
+    if (o.isPointLight) { o.distance *= k; o.intensity *= Math.pow(k, o.decay); }
+  });
+  if (sun && sun.shadow) {
+    const c = sun.shadow.camera;
+    c.left *= k; c.right *= k; c.top *= k; c.bottom *= k; c.near *= k; c.far *= k; c.updateProjectionMatrix();
+    sun.shadow.bias *= k;
+  }
+  renderer.shadowMap.needsUpdate = true;
+}
+function blink(action, ms = BLINK, why = '') { VR.blink = { t0: performance.now(), half: ms / 2, action, done: false }; VR.why = why; }
+function stepBlink(t) {
+  const b = VR.blink; if (!b) return;
+  const p = (t - b.t0) / b.half;
+  if (p >= 1 && !b.done) { b.done = true; b.action(); }
+  const o = p < 1 ? p : Math.max(0, 2 - p);
+  fadeMesh.material.opacity = o; fadeMesh.visible = o > 0;
+  if (p >= 2) { VR.blink = null; fadeMesh.visible = false; }
+}
+
+// where you may stand: the set's floor (set.json "floor", in 3DMM units), else around the actors
+let FLOOR = null;
+function floorBounds(cfg, meta) {
+  if (cfg.floor) return cfg.floor;
+  const c = meta.center; return [c[0] - 40, c[2] - 40, c[0] + 40, c[2] + 40];
+}
+const inFloor = (x, z, m = 0.25) => FLOOR && x > FLOOR[0] * 0.1 + m && x < FLOOR[2] * 0.1 - m && z > FLOOR[1] * 0.1 + m && z < FLOOR[3] * 0.1 - m;
+const clampFloor = (x, z, m = 0.25) => FLOOR ? [Math.min(Math.max(x, FLOOR[0] * 0.1 + m), FLOOR[2] * 0.1 - m), Math.min(Math.max(z, FLOOR[1] * 0.1 + m), FLOOR[3] * 0.1 - m)] : [x, z];
+
+// put your head over (x, z) (meters), facing yaw: the rig turns and moves, your own height stays
+function placeHead(x, z, yawWanted) {
+  const hl = camera.position.clone(); hl.y = 0;                     // your head, within the rig
+  const f = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  const ry = yawWanted - Math.atan2(-f.x, -f.z);
+  rig.rotation.set(0, ry, 0);
+  hl.applyAxisAngle(Y_AXIS, ry);
+  rig.position.set(x - hl.x, 0, z - hl.z);
+}
+function camSpot(i) {
+  const c = CAMS[i], fw = new THREE.Vector3(...c.rot[2]).negate();
+  const [x, z] = clampFloor(c.pos[0] * 0.1, c.pos[2] * 0.1);
+  return { x, z, yaw: Math.atan2(-fw.x, -fw.z) };
+}
+function goToCam(i) { const p = camSpot(i); placeHead(p.x, p.z, p.yaw); VR.atCam = i; }
+
+// how long each frame's shot lasts (from the shot's first frame to the next cut)
+let SHOT = [];
+function measureShots(meta) {
+  const fr = meta.frames; SHOT = new Array(fr.length);
+  let start = 0;
+  for (let i = 1; i <= fr.length; i++) {
+    if (i === fr.length || fr[i].cam !== fr[start].cam) {
+      const len = (i === fr.length ? meta.duration : fr[i].t) - fr[start].t;
+      for (let k = start; k < i; k++) SHOT[k] = len;
+      start = i;
+    }
+  }
+}
+
+// the director's monitor: the movie's camera, drawn into a little screen on your left hand
+const dirCam = new THREE.PerspectiveCamera(60, 16 / 9, 0.05, 400); dirCam.rotation.order = 'YXZ';
+world.add(dirCam);
+const monitorRT = new THREE.WebGLRenderTarget(512, 288); monitorRT.texture.colorSpace = THREE.SRGBColorSpace;
+const monitor = new THREE.Group();
+{
+  const bezel = new THREE.Mesh(new THREE.PlaneGeometry(0.25, 0.15), new THREE.MeshBasicMaterial({ color: 0x15131c }));
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.135), new THREE.MeshBasicMaterial({ map: monitorRT.texture, toneMapped: false }));
+  screen.position.z = 0.001; monitor.add(bezel, screen);
+  monitor.position.set(0, 0.07, -0.1); monitor.rotation.x = -0.75;
+}
+// a little sign by your left hand, for the controls and for what a button just did
+const signCanvas = document.createElement('canvas'); signCanvas.width = 512; signCanvas.height = 256;
+const signTex = new THREE.CanvasTexture(signCanvas); signTex.colorSpace = THREE.SRGBColorSpace;
+const sign = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.1), new THREE.MeshBasicMaterial({ map: signTex, transparent: true, toneMapped: false, depthTest: false }));
+sign.renderOrder = 9000; sign.position.set(0, 0.2, -0.1); sign.rotation.x = -0.5; sign.visible = false;
+let signUntil = 0;
+function showSign(lines, ms = 2500) {
+  const g = signCanvas.getContext('2d');
+  g.clearRect(0, 0, 512, 256); g.fillStyle = 'rgba(20,18,28,0.88)'; g.beginPath(); g.roundRect(4, 4, 504, 248, 22); g.fill();
+  g.fillStyle = '#f4ead2'; g.font = '600 30px system-ui, sans-serif'; g.textBaseline = 'top';
+  lines.slice(0, 6).forEach((l, k) => g.fillText(l, 24, 20 + k * 38));
+  signTex.needsUpdate = true; sign.visible = true; signUntil = performance.now() + ms;
+}
+
+// the teleport arc and where you'd land
+const ARC_N = 48;
+const arcLine = new THREE.InstancedMesh(new THREE.SphereGeometry(0.014, 8, 6),
+  new THREE.MeshBasicMaterial({ color: 0x8fd0ff, transparent: true, opacity: 0.9, depthTest: false }), ARC_N);
+arcLine.frustumCulled = false; arcLine.visible = false; arcLine.renderOrder = 9500;
+const marker = new THREE.Group();
+{
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.2, 0.25, 32).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x8fd0ff, transparent: true, opacity: 0.85, depthTest: false }));
+  const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.18, 12).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x8fd0ff, depthTest: false }));
+  arrow.position.set(0, 0.02, -0.36); marker.add(ring, arrow); marker.visible = false;
+  ring.renderOrder = arrow.renderOrder = 9500;
+}
+scene.add(arcLine, marker);
+
+function setupHands() {
+  for (let i = 0; i < 2; i++) {
+    const ctrl = renderer.xr.getController(i);
+    ctrl.addEventListener('connected', e => {
+      VR.hands[e.data.handedness] = { ctrl, src: e.data };
+      if (e.data.handedness === 'left') { ctrl.add(monitor, sign); monitor.visible = VR.monitor; }
+    });
+    ctrl.addEventListener('disconnected', () => { for (const h in VR.hands) if (VR.hands[h].ctrl === ctrl) delete VR.hands[h]; });
+    rig.add(ctrl);
+  }
+}
+setupHands();
+
 vrBtn.addEventListener('click', async () => {
   if (xrSession) { xrSession.end(); return; }
   try {
     xrSession = await navigator.xr.requestSession('immersive-vr', { optionalFeatures: ['local-floor'] });
     renderer.xr.setReferenceSpaceType('local-floor');
     await renderer.xr.setSession(xrSession);
-    world.scale.setScalar(0.1);
-    if (SET.vr) { rig.position.set(...SET.vr.pos); rig.rotation.set(0, SET.vr.yaw || 0, 0); }
-    else {   // where the movie's first camera stands, on the floor, facing the way it looks
-      const c = CAMS[0], f = new THREE.Vector3(...c.rot[2]).negate();
-      rig.position.set(c.pos[0] * 0.1, 0, c.pos[2] * 0.1); rig.rotation.set(0, Math.atan2(-f.x, -f.z), 0);
-    }
+    world.scale.setScalar(0.1); scaleLights(0.1);
+    camera.position.set(0, 0, 0); camera.rotation.set(0, 0, 0);
+    if (SET.vr) placeHead(SET.vr.pos[0], SET.vr.pos[2], SET.vr.yaw || 0);
+    else goToCam(S.meta.frames[0].cam >= 0 ? S.meta.frames[0].cam : 0);
+    VR.atCam = -1; VR.lastFrame = -1;
     vrBtn.textContent = 'Exit VR';
     if (!playing) setPlaying(true);
+    showSign(['Right stick: aim, let go to jump', '  (flick sideways to turn)', 'Left stick: walk', 'A play/pause   B go to camera',
+              'X follow the director', 'Y director\'s monitor'], 9000);
     xrSession.addEventListener('end', () => {
-      xrSession = null; world.scale.setScalar(1); rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0);
-      vrBtn.textContent = 'Enter VR'; resize(); invalidate();
+      xrSession = null; world.scale.setScalar(1); scaleLights(10); rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0);
+      arcLine.visible = marker.visible = sign.visible = fadeMesh.visible = false; VR.blink = null;
+      vrBtn.textContent = 'Enter VR'; resize(); setFollow(followMovie); invalidate();
     });
   } catch (err) { console.error(err); xrSession = null; }
 });
-function vrMove(dt) {
-  const s = renderer.xr.getSession(); if (!s) return;
-  for (const src of s.inputSources) {
-    const gp = src.gamepad; if (!gp || gp.axes.length < 4) continue;
-    const x = gp.axes[2], y = gp.axes[3];
-    if (src.handedness === 'left' && Math.hypot(x, y) > 0.15) {
-      const head = renderer.xr.getCamera(); const d = new THREE.Vector3(); head.getWorldDirection(d); d.y = 0; d.normalize();
+
+function press(hand, src, k) {   // a button's press, once
+  const b = src.gamepad && src.gamepad.buttons[k], key = hand + k, down = !!(b && b.pressed);
+  const edge = down && !VR.pressed[key]; VR.pressed[key] = down; return edge;
+}
+function vrInput(dt, t) {
+  const L = VR.hands.left, R = VR.hands.right;
+  // left stick walks, the way you're looking
+  if (L && L.src.gamepad && L.src.gamepad.axes.length >= 4) {
+    const x = L.src.gamepad.axes[2], y = L.src.gamepad.axes[3];
+    if (Math.hypot(x, y) > 0.15) {
+      const d = new THREE.Vector3(); renderer.xr.getCamera().getWorldDirection(d); d.y = 0; d.normalize();
       const side = new THREE.Vector3(-d.z, 0, d.x);
       rig.position.addScaledVector(d, -y * 1.4 * dt).addScaledVector(side, x * 1.4 * dt);
     }
-    if (src.handedness === 'right' && Math.abs(x) > 0.6) {
-      if (!src._turned) { rig.rotation.y -= Math.sign(x) * Math.PI / 6; src._turned = true; }
-    } else if (src.handedness === 'right') src._turned = false;
   }
+  if (R && R.src.gamepad && R.src.gamepad.axes.length >= 4) {
+    const x = R.src.gamepad.axes[2], y = R.src.gamepad.axes[3], mag = Math.hypot(x, y);
+    if (!VR.aim && y < -0.6) VR.aim = { yaw: 0, ok: false, x: 0, z: 0 };
+    if (VR.aim) {
+      if (mag > 0.3) aimArc(R.ctrl, x, y);
+      else {                                                  // let go: jump
+        const a = VR.aim; VR.aim = null; arcLine.visible = marker.visible = false;
+        if (a.ok) blink(() => placeHead(a.x, a.z, a.yaw), BLINK, 'teleport');
+      }
+    } else if (Math.abs(x) > 0.7 && Math.abs(y) < 0.5) {
+      if (!R.turned) {                                        // snap turn, about where you stand
+        const hp = new THREE.Vector3(); camera.getWorldPosition(hp);
+        const ang = -Math.sign(x) * Math.PI / 6;
+        rig.position.sub(hp).applyAxisAngle(Y_AXIS, ang).add(hp); rig.position.y = 0; rig.rotation.y += ang;
+        R.turned = true;
+      }
+    } else R.turned = false;
+    if (press('right', R.src, 4)) setPlaying(!playing);
+    if (press('right', R.src, 5) && S) { const c = S.meta.frames[S.frame].cam; if (c >= 0) blink(() => goToCam(c)); }
+  }
+  if (L) {
+    if (press('left', L.src, 4)) {
+      VR.follow = !VR.follow; VR.atCam = -1;
+      showSign([VR.follow ? 'Following the director' : 'Staying put', VR.follow ? 'Each shot moves you to its camera' : 'Cuts show on the monitor']);
+    }
+    if (press('left', L.src, 5)) { VR.monitor = !VR.monitor; monitor.visible = VR.monitor; }
+  }
+}
+const _p = new THREE.Vector3(), _d = new THREE.Vector3(), _q = new THREE.Quaternion();
+function aimArc(ctrl, sx, sy) {
+  ctrl.getWorldPosition(_p); ctrl.getWorldQuaternion(_q); _d.set(0, 0, -1).applyQuaternion(_q);
+  const v = _d.clone().multiplyScalar(6.5), m4 = new THREE.Matrix4();
+  let x = _p.x, y = _p.y, z = _p.z, n = 0, hit = false;
+  for (; n < ARC_N; n++) {
+    arcLine.setMatrixAt(n, m4.makeTranslation(x, y, z));
+    if (y <= 0 && n > 0) { hit = true; n++; break; }
+    const dt = 0.03; x += v.x * dt; y += v.y * dt; z += v.z * dt; v.y -= 9.8 * dt;
+  }
+  arcLine.count = n; arcLine.instanceMatrix.needsUpdate = true;
+  const ctrlYaw = Math.atan2(-_d.x, -_d.z);
+  const a = VR.aim; a.x = x; a.z = z; a.yaw = ctrlYaw + Math.atan2(-sx, -sy); a.ok = hit && inFloor(x, z);
+  const col = a.ok ? 0x8fd0ff : 0xff7a6a;
+  arcLine.material.color.setHex(col); marker.children.forEach(m => m.material.color.setHex(col));
+  marker.position.set(x, 0.01, z); marker.rotation.set(0, a.yaw, 0);
+  arcLine.visible = true; marker.visible = hit;
+}
+function vrDirector(t) {
+  if (!S || S.frame < 0) return;
+  const i = S.frame, f = S.meta.frames[i];
+  // the scene starting over (looping): a slower blink, and back to the start
+  if (VR.lastFrame >= 0 && i < VR.lastFrame - 5 && !VR.blink) blink(() => { if (VR.follow && f.cam >= 0) goToCam(f.cam); }, LOOP_BLINK, 'loop');
+  VR.lastFrame = i;
+  if (VR.follow && !VR.blink && f.cam >= 0 && f.cam !== VR.atCam && SHOT[i] >= FOLLOW_MIN) { const c = f.cam; VR.atCam = c; blink(() => goToCam(c), BLINK, 'follow'); }
+}
+function renderMonitor() {
+  if (!VR.monitor || !monitor.parent || !S || S.frame < 0) return;
+  const f = S.meta.frames[S.frame];
+  // redraw when the movie moves on, and now and then for the lights' sake
+  if (S.frame === VR.monitorFrame && (VR.ticks++ % 6)) return;
+  VR.monitorFrame = S.frame;
+  if (f.cam >= 0 && CAMS[f.cam]) {
+    const c = CAMS[f.cam], r = c.rot;
+    dirCam.position.set(...c.pos);
+    dirCam.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(...r[0]), new THREE.Vector3(...r[1]), new THREE.Vector3(...r[2])));
+    dirCam.fov = c.fov; dirCam.near = NEAR[f.cam] || 0.05; dirCam.updateProjectionMatrix();
+  }
+  const hide = [monitor, arcLine, marker, fadeMesh, sign].map(o => [o, o.visible]);
+  hide.forEach(([o]) => { o.visible = false; });
+  const xrOn = renderer.xr.enabled; renderer.xr.enabled = false;
+  renderer.setRenderTarget(monitorRT); renderer.render(scene, dirCam); renderer.setRenderTarget(null);
+  renderer.xr.enabled = xrOn;
+  hide.forEach(([o, v]) => { o.visible = v; });
+}
+window.__vr = () => ({ rig: rig.position.toArray(), yaw: rig.rotation.y, atCam: VR.atCam, follow: VR.follow, aim: VR.aim, blink: VR.blink && [VR.why, Math.round(performance.now() - VR.blink.t0), VR.blink.done], frame: S && S.frame, xrFrames: VR.n });   // for tests
+function vrFrame(dt) {
+  const t = performance.now();   // (an XR frame's own time can run on another clock)
+  VR.n = (VR.n || 0) + 1;
+  vrInput(dt, t);
+  vrDirector(t);
+  stepBlink(t);
+  if (sign.visible && t > signUntil) sign.visible = false;
+  renderMonitor();
+  renderer.render(scene, camera);
 }
 
 // ---- the loop -------------------------------------------------------------------------
@@ -480,7 +701,7 @@ function frame(t) {
     const tt = fmt(Math.min(ms, S.meta.duration)) + ' / ' + fmt(S.meta.duration);
     if (tt !== lastTime) { $('time').textContent = tt; lastTime = tt; }
   }
-  if (renderer.xr.isPresenting) { vrMove(dt); renderer.render(scene, camera); return; }
+  if (renderer.xr.isPresenting) { vrFrame(dt); return; }
   const mv = new THREE.Vector3(
     (keys.has('KeyD') || keys.has('ArrowRight')) - (keys.has('KeyA') || keys.has('ArrowLeft')),
     keys.has('KeyE') - keys.has('KeyQ'),

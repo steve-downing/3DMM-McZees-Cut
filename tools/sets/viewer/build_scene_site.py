@@ -15,6 +15,7 @@ A set's viewer.json (all optional):
   vr      {"pos": [x, y, z] meters, "yaw": radians}: where VR starts
   sky     true (or "night"): show the sky outside (windows)
   shadows false: no cast shadows (a set lit from everywhere, like the cabin)
+  floor   [x0, z0, x1, z1]: where you may teleport to in VR (3DMM units)
   lights  {"hemi": [sky color, ground color, intensity],
            "sun": {"pos", "target", "color", "intensity", "extent"},
            "lamps": [{"pos", "color", "intensity", "distance"}]}
