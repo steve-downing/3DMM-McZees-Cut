@@ -27,7 +27,7 @@
         -118
       ],
       "color": "#c8d0ff",
-      "intensity": 0.9,
+      "intensity": 1.4,
       "extent": 48
     },
     "lamps": [
@@ -38,7 +38,7 @@
           -117.1
         ],
         "color": "#ffc98a",
-        "intensity": 70,
+        "intensity": 28,
         "distance": 80
       },
       {
@@ -48,7 +48,7 @@
           -119.449
         ],
         "color": "#ffc98a",
-        "intensity": 70,
+        "intensity": 28,
         "distance": 80
       },
       {
@@ -58,7 +58,7 @@
           -123.251
         ],
         "color": "#ffc98a",
-        "intensity": 70,
+        "intensity": 28,
         "distance": 80
       },
       {
@@ -68,7 +68,7 @@
           -123.251
         ],
         "color": "#ffc98a",
-        "intensity": 70,
+        "intensity": 28,
         "distance": 80
       },
       {
@@ -78,7 +78,7 @@
           -119.449
         ],
         "color": "#ffc98a",
-        "intensity": 70,
+        "intensity": 28,
         "distance": 80
       }
     ]
