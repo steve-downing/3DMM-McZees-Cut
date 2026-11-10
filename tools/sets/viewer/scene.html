@@ -430,10 +430,16 @@ cv.addEventListener('wheel', e => { e.preventDefault(); leaveMovieCam();
 // ---- VR -------------------------------------------------------------------------------
 // The world shrinks to meters: 3DMM's units are about 10 cm, so the actors stand about your
 // height. You start where the set says (or under the movie's first camera).
+// Controllers with thumbsticks (Quest, Index):
 //   Right stick: push it to aim a teleport (the way you push is the way you'll face when you
 //   land), let go to jump; flick it left or right to turn. Left stick: walk.
-//   A: play / pause.  B: go to the movie camera's spot now.
-//   X: follow the director on / off.  Y: the director's monitor on / off.
+//   A (right): play / pause.  B (right): go to the movie camera's spot now.
+//   X / left A: follow the director on / off.  Y / left B: the director's monitor on / off.
+// Vive wands (touchpads):
+//   Right pad: press and hold to aim (where your thumb sits is the way you'll face), let go
+//   to jump; press its left or right edge to turn. Left pad: press and hold to walk.
+//   Right grip: play / pause.  Right trigger: go to the movie camera's spot now.
+//   Left grip: follow the director on / off.  Left trigger: the director's monitor on / off.
 // Two ways to watch. Stay put (the default): cuts don't move you, and the director's monitor
 // on your left hand shows the movie's own shot, cuts and 2-D text and all. Follow the
 // director: each shot that lasts long enough (FOLLOW_MIN) moves you, in a quick blink, to the
@@ -557,6 +563,7 @@ function setupHands() {
     ctrl.addEventListener('connected', e => {
       VR.hands[e.data.handedness] = { ctrl, src: e.data };
       if (e.data.handedness === 'left') { ctrl.add(monitor, sign); monitor.visible = VR.monitor; }
+      if (xrSession) helpSign();   // (controllers can connect after the session starts)
     });
     ctrl.addEventListener('disconnected', () => { for (const h in VR.hands) if (VR.hands[h].ctrl === ctrl) delete VR.hands[h]; });
     rig.add(ctrl);
@@ -577,8 +584,7 @@ vrBtn.addEventListener('click', async () => {
     VR.atCam = -1; VR.lastFrame = -1;
     vrBtn.textContent = 'Exit VR';
     if (!playing) setPlaying(true);
-    showSign(['Right stick: aim, let go to jump', '  (flick sideways to turn)', 'Left stick: walk', 'A play/pause   B go to camera',
-              'X follow the director', 'Y director\'s monitor'], 9000);
+    helpSign();
     xrSession.addEventListener('end', () => {
       xrSession = null; world.scale.setScalar(1); scaleLights(10); rig.position.set(0, 0, 0); rig.rotation.set(0, 0, 0);
       arcLine.visible = marker.visible = sign.visible = fadeMesh.visible = false; VR.blink = null;
@@ -591,44 +597,64 @@ function press(hand, src, k) {   // a button's press, once
   const b = src.gamepad && src.gamepad.buttons[k], key = hand + k, down = !!(b && b.pressed);
   const edge = down && !VR.pressed[key]; VR.pressed[key] = down; return edge;
 }
+// a hand's stick, or a wand's touchpad (which counts only while pressed)
+function isWand(src) { return !src.profiles.some(p => /thumbstick/.test(p)) && src.profiles.some(p => /touchpad/.test(p)); }
+function stick(src) {
+  const gp = src.gamepad; if (!gp) return null;
+  if (isWand(src)) {
+    const b = gp.buttons[2], down = !!(b && b.pressed);
+    return { x: down ? gp.axes[0] || 0 : 0, y: down ? gp.axes[1] || 0 : 0, down, wand: true };
+  }
+  if (gp.axes.length < 4) return null;
+  const x = gp.axes[2], y = gp.axes[3];
+  return { x, y, down: Math.hypot(x, y) > 0.3, wand: false };
+}
 function vrInput(dt, t) {
   const L = VR.hands.left, R = VR.hands.right;
-  // left stick walks, the way you're looking
-  if (L && L.src.gamepad && L.src.gamepad.axes.length >= 4) {
-    const x = L.src.gamepad.axes[2], y = L.src.gamepad.axes[3];
-    if (Math.hypot(x, y) > 0.15) {
-      const d = new THREE.Vector3(); renderer.xr.getCamera().getWorldDirection(d); d.y = 0; d.normalize();
-      const side = new THREE.Vector3(-d.z, 0, d.x);
-      rig.position.addScaledVector(d, -y * 1.4 * dt).addScaledVector(side, x * 1.4 * dt);
-    }
+  // left: walk, the way you're looking
+  const ls = L && stick(L.src);
+  if (ls && Math.hypot(ls.x, ls.y) > 0.15) {
+    const d = new THREE.Vector3(); renderer.xr.getCamera().getWorldDirection(d); d.y = 0; d.normalize();
+    const side = new THREE.Vector3(-d.z, 0, d.x);
+    rig.position.addScaledVector(d, -ls.y * 1.4 * dt).addScaledVector(side, ls.x * 1.4 * dt);
   }
-  if (R && R.src.gamepad && R.src.gamepad.axes.length >= 4) {
-    const x = R.src.gamepad.axes[2], y = R.src.gamepad.axes[3], mag = Math.hypot(x, y);
-    if (!VR.aim && y < -0.6) VR.aim = { yaw: 0, ok: false, x: 0, z: 0 };
+  const rs = R && stick(R.src);
+  if (rs) {
+    const { x, y } = rs, edge = Math.abs(x) > 0.6 && Math.abs(y) < 0.5;
+    // start aiming: a stick pushed forward, or a pad pressed anywhere but its side edges
+    if (!VR.aim && !R.turned && (rs.wand ? rs.down && !edge : y < -0.6)) VR.aim = { yaw: 0, ok: false, x: 0, z: 0 };
     if (VR.aim) {
-      if (mag > 0.3) aimArc(R.ctrl, x, y);
+      if (rs.down) aimArc(R.ctrl, Math.hypot(x, y) > 0.4 ? x : 0, Math.hypot(x, y) > 0.4 ? y : -1);
       else {                                                  // let go: jump
         const a = VR.aim; VR.aim = null; arcLine.visible = marker.visible = false;
         if (a.ok) blink(() => placeHead(a.x, a.z, a.yaw), BLINK, 'teleport');
       }
-    } else if (Math.abs(x) > 0.7 && Math.abs(y) < 0.5) {
+    } else if (rs.down && edge) {
       if (!R.turned) {                                        // snap turn, about where you stand
         const hp = new THREE.Vector3(); camera.getWorldPosition(hp);
         const ang = -Math.sign(x) * Math.PI / 6;
         rig.position.sub(hp).applyAxisAngle(Y_AXIS, ang).add(hp); rig.position.y = 0; rig.rotation.y += ang;
         R.turned = true;
       }
-    } else R.turned = false;
-    if (press('right', R.src, 4)) setPlaying(!playing);
-    if (press('right', R.src, 5) && S) { const c = S.meta.frames[S.frame].cam; if (c >= 0) blink(() => goToCam(c)); }
+    } else if (!rs.down) R.turned = false;
   }
-  if (L) {
-    if (press('left', L.src, 4)) {
-      VR.follow = !VR.follow; VR.atCam = -1;
-      showSign([VR.follow ? 'Following the director' : 'Staying put', VR.follow ? 'Each shot moves you to its camera' : 'Cuts show on the monitor']);
-    }
-    if (press('left', L.src, 5)) { VR.monitor = !VR.monitor; monitor.visible = VR.monitor; }
+  // buttons: A/B and X/Y (or left A/B) on stick controllers; grips and triggers on wands
+  const wand = (R && isWand(R.src)) || (L && isWand(L.src));
+  const [kPlay, kCam, kFollow, kMonitor] = wand ? [1, 0, 1, 0] : [4, 5, 4, 5];
+  if (R && press('right', R.src, kPlay)) setPlaying(!playing);
+  if (R && press('right', R.src, kCam) && S) { const c = S.meta.frames[S.frame].cam; if (c >= 0) blink(() => goToCam(c)); }
+  if (L && press('left', L.src, kFollow)) {
+    VR.follow = !VR.follow; VR.atCam = -1;
+    showSign([VR.follow ? 'Following the director' : 'Staying put', VR.follow ? 'Each shot moves you to its camera' : 'Cuts show on the monitor']);
   }
+  if (L && press('left', L.src, kMonitor)) { VR.monitor = !VR.monitor; monitor.visible = VR.monitor; }
+}
+function helpSign() {
+  const w = Object.values(VR.hands).some(h => isWand(h.src));
+  showSign(w ? ['Right pad: hold to aim, let go to jump', '  (press its edge to turn)', 'Left pad: hold to walk',
+                'R grip play/pause   R trigger: camera', 'L grip: follow the director', 'L trigger: director\'s monitor']
+             : ['Right stick: aim, let go to jump', '  (flick sideways to turn)', 'Left stick: walk', 'A play/pause   B go to camera',
+                'X follow the director', 'Y director\'s monitor'], 9000);
 }
 const _p = new THREE.Vector3(), _d = new THREE.Vector3(), _q = new THREE.Quaternion();
 function aimArc(ctrl, sx, sy) {

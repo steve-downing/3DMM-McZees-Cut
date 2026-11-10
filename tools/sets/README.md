@@ -245,10 +245,14 @@ from the scene's background (its `SETS` table); each rebuilt set has a
 `viewer.json` with where VR starts, where you may teleport (`floor`), its
 lights and a few camera fixes.
 
-In VR you're about an actor's size (3DMM's units are about 10 cm). Right
-stick: aim a teleport, let go to jump (flick it sideways to turn); left
-stick: walk; A play/pause; B go to the movie camera's spot; X follow the
-director; Y the director's monitor. Staying put (the default), cuts don't
+In VR you're about an actor's size (3DMM's units are about 10 cm). With
+thumbstick controllers (Quest, Index): right stick aims a teleport, let go
+to jump (flick it sideways to turn); left stick walks; A play/pause; B go
+to the movie camera's spot; X (or left A) follow the director; Y (or left
+B) the director's monitor. With Vive wands: hold the right pad to aim, let
+go to jump (press its edge to turn); hold the left pad to walk; right grip
+play/pause; right trigger go to the camera's spot; left grip follow the
+director; left trigger the monitor. Staying put (the default), cuts don't
 move you and the monitor on your left hand shows the movie's own shot.
 Following the director, each shot of 1.5 s or more moves you, in a quick
 blink, to the floor under its camera, turned its way but never tilted. A
