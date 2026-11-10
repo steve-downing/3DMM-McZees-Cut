@@ -1019,16 +1019,171 @@ void RAPP::_DrawFrame(PMVU pmvu)
         return;
     }
 
+    // The eyes are drawn without the 2-D text boxes, which go on afterward: drawn
+    // into each eye, they would be slid apart with the picture and land at the
+    // far depth, behind actors they cover. Laid on after the slide they sit at
+    // the near limit instead, in front of everything (as they're drawn).
     for (ieye = 0; ieye < 2; ieye++)
     {
         double dxr = (ieye == 0) ? -_dxrEye / 2 : _dxrEye / 2;
         if (!pbwld->FRenderEye(dxr, _dxpFocal))
             _Log("stereo: eye render failed; using mono for this eye");
-        pmvu->DrawTree(_pgptCapture, pvNil, pvNil, fgobNil);
+        _DrawViewOnly(pmvu);
         _ConvertCapture(_prgbEye);
         _PlaceEye(_prgbEye, _prgbCur, ieye, (ieye == 0) ? -_dxpShift : _dxpShift);
     }
     pbwld->EndStereo();
+    _OverlayTextBoxes((long)(_pctPop / 100.0 * kdxpRender / 2 + 0.5));
+}
+
+/***************************************************************************
+    The movie view's 3-D picture alone, without the 2-D text boxes (its
+    children) that DrawTree would add.
+***************************************************************************/
+void RAPP::_DrawViewOnly(PMVU pmvu)
+{
+    RC rc;
+
+    pmvu->GetRc(&rc, cooLocal);
+    GNV gnv(_pgptCapture);
+    gnv.SetRcSrc(&rc);
+    gnv.SetRcDst(&rc);
+    pmvu->Draw(&gnv, &rc);
+}
+
+/***************************************************************************
+    Lay the visible 2-D text boxes onto both eyes of a stereo frame, dxpPop
+    pixels toward each other (crossed: in front of the screen).
+***************************************************************************/
+void RAPP::_OverlayTextBoxes(long dxpPop)
+{
+    PTBXB ptbxb;
+    RC rcBox;
+    byte *prgbRgba;
+    long itbox, ieye, xp, yp, xpDst, dxp, dyp;
+    long cbRowFrame = _DxpOut() * 3;
+
+    for (itbox = 0; pvNil != _pmvie->Pscen() && pvNil != _pmvie->Pscen()->PtboxFromItbox(itbox); itbox++)
+    {
+        if (pvNil == (ptbxb = _PtbxbVisible(itbox, &rcBox)))
+            continue;
+        dxp = rcBox.Dxp();
+        dyp = rcBox.Dyp();
+        if (pvNil == (prgbRgba = _PrgbTextBox(ptbxb, dxp, dyp)))
+            continue;
+        for (ieye = 0; ieye < 2; ieye++)
+        {
+            for (yp = 0; yp < dyp; yp++)
+            {
+                if (rcBox.ypTop + yp < 0 || rcBox.ypTop + yp >= kdypRender)
+                    continue;
+                for (xp = 0; xp < dxp; xp++)
+                {
+                    byte *pbSrc = prgbRgba + (yp * dxp + xp) * 4;
+                    xpDst = rcBox.xpLeft + xp + (ieye == 0 ? dxpPop : -dxpPop);
+                    if (pbSrc[3] == 0 || xpDst < 0 || xpDst >= kdxpRender)
+                        continue;
+                    CopyPb(pbSrc, _prgbCur + (rcBox.ypTop + yp) * cbRowFrame + (ieye * kdxpRender + xpDst) * 3, 3);
+                }
+            }
+        }
+        free(prgbRgba);
+    }
+}
+
+/***************************************************************************
+    The ith text box in the scene, if it's showing: its border gob (which
+    draws the box) and its rectangle in the movie view.
+***************************************************************************/
+PTBXB RAPP::_PtbxbVisible(long itbox, RC *prcBox)
+{
+    PTBOX ptbox;
+    PTBXG ptbxg;
+    PTBXB ptbxb;
+    PMVU pmvu;
+    RC rcView;
+
+    if (pvNil == _pmvie || pvNil == _pmvie->Pscen() || pvNil == (pmvu = _pmvie->PmvuCur()) ||
+        pvNil == (ptbox = _pmvie->Pscen()->PtboxFromItbox(itbox)))
+    {
+        return pvNil;
+    }
+    if (!ptbox->FIsVisible() || pvNil == (ptbxg = (PTBXG)ptbox->PddgGet(0)) || pvNil == (ptbxb = ptbxg->Ptbxb()))
+        return pvNil;
+    pmvu->GetRc(&rcView, cooGpt);
+    ptbxb->GetRc(prcBox, cooGpt);
+    prcBox->Offset(-rcView.xpLeft, -rcView.ypTop);
+    if (prcBox->Dxp() <= 0 || prcBox->Dyp() <= 0)
+        return pvNil;
+    return ptbxb;
+}
+
+/***************************************************************************
+    One text box drawn by itself, as 3DMM draws it, into RGBA (alpha 0 where
+    it's see-through). It's drawn twice, over two different colors: a pixel
+    that took the backdrop's color both times is see-through, anything else
+    is the box's own (so text in either backdrop color still comes through).
+    The caller frees the result.
+***************************************************************************/
+byte *RAPP::_PrgbTextBox(PTBXB ptbxb, long dxp, long dyp)
+{
+    PGPT pgpt;
+    RC rc;
+    byte *prgbPass[2] = {pvNil, pvNil};
+    byte *prgbRgba = pvNil, *pbSrc;
+    CLR *prgclr;
+    long ipass, yp, ib, cb = dxp * dyp;
+    bool fOk = fFalse;
+    const byte kiscrKey[2] = {0, 255};
+
+    if (pvNil == _pglclrActive)
+        return pvNil;
+    rc.Set(0, 0, dxp, dyp);
+    if (pvNil == (pgpt = GPT::PgptNewOffscreen(&rc, 8)))
+        return pvNil;
+    prgbPass[0] = (byte *)malloc(cb);
+    prgbPass[1] = (byte *)malloc(cb);
+    prgbRgba = (byte *)malloc(cb * 4);
+    if (pvNil == prgbPass[0] || pvNil == prgbPass[1] || pvNil == prgbRgba)
+        goto LDone;
+    for (ipass = 0; ipass < 2; ipass++)
+    {
+        {
+            GNV gnv(pgpt);
+            ACR acrKey(kiscrKey[ipass]);
+            gnv.FillRc(&rc, acrKey);
+        }
+        ptbxb->DrawTree(pgpt, pvNil, pvNil, fgobNil);
+        if (pvNil == (pbSrc = pgpt->PrgbLockPixels()))
+            goto LDone;
+        for (yp = 0; yp < dyp; yp++)
+            CopyPb(pbSrc + yp * pgpt->CbRow(), prgbPass[ipass] + yp * dxp, dxp);
+        pgpt->Unlock();
+    }
+    prgclr = (CLR *)_pglclrActive->QvGet(0);
+    for (ib = 0; ib < cb; ib++)
+    {
+        byte iscr = prgbPass[0][ib];
+        bool fClear = (iscr == kiscrKey[0] && prgbPass[1][ib] == kiscrKey[1]);
+        CLR clr = prgclr[iscr];
+        prgbRgba[ib * 4] = fClear ? 0 : clr.bRed;
+        prgbRgba[ib * 4 + 1] = fClear ? 0 : clr.bGreen;
+        prgbRgba[ib * 4 + 2] = fClear ? 0 : clr.bBlue;
+        prgbRgba[ib * 4 + 3] = fClear ? 0 : 255;
+    }
+    fOk = fTrue;
+LDone:
+    if (pvNil != prgbPass[0])
+        free(prgbPass[0]);
+    if (pvNil != prgbPass[1])
+        free(prgbPass[1]);
+    if (!fOk && pvNil != prgbRgba)
+    {
+        free(prgbRgba);
+        prgbRgba = pvNil;
+    }
+    ReleasePpo(&pgpt);
+    return prgbRgba;
 }
 
 // both eyes the same picture (no 3-D world, or no usable depth)
@@ -1691,81 +1846,33 @@ void RAPP::_WritePoses(long ifrm, ulong dtsOut)
 
     Returns how many boxes are showing; for each, its image number and its
     rectangle in the movie view (prcView gets the view's own rectangle).
-    Each box is drawn twice, over two different colors: a pixel that took
-    the backdrop's color both times is see-through, anything else is the
-    box's own (so text in either backdrop color still comes through).
 ***************************************************************************/
 long RAPP::_CTextBoxImages(long *prgimg, RC *prgrc, long cimgMax, RC *prcView)
 {
     static const char kszB64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    PSCEN pscen;
     PMVU pmvu;
-    PTBOX ptbox;
-    PTBXG ptbxg;
     PTBXB ptbxb;
-    PGPT pgpt;
-    RC rc, rcBox;
-    byte *prgbPass[2] = {pvNil, pvNil};
-    byte *prgbRgba, *pbSrc;
-    CLR *prgclr;
-    long itbox, cimg = 0, ipass, dxp, dyp, cb, xp, yp, ib, imgHash;
+    RC rcBox;
+    byte *prgbRgba;
+    long itbox, cimg = 0, cb, ib, imgHash;
     ulong luHash;
-    const byte kiscrKey[2] = {0, 255};
 
-    if (pvNil == _pmvie || pvNil == (pscen = _pmvie->Pscen()) || pvNil == (pmvu = _pmvie->PmvuCur()) ||
-        pvNil == _pgllwTboxPoses || pvNil == _pglclrActive)
+    if (pvNil == _pmvie || pvNil == _pmvie->Pscen() || pvNil == (pmvu = _pmvie->PmvuCur()) || pvNil == _pgllwTboxPoses)
     {
         return 0;
     }
     pmvu->GetRc(prcView, cooGpt);
-    prgclr = (CLR *)_pglclrActive->QvGet(0);
 
-    for (itbox = 0; cimg < cimgMax && pvNil != (ptbox = pscen->PtboxFromItbox(itbox)); itbox++)
+    for (itbox = 0; cimg < cimgMax && pvNil != _pmvie->Pscen()->PtboxFromItbox(itbox); itbox++)
     {
-        if (!ptbox->FIsVisible() || pvNil == (ptbxg = (PTBXG)ptbox->PddgGet(0)) || pvNil == (ptbxb = ptbxg->Ptbxb()))
+        if (pvNil == (ptbxb = _PtbxbVisible(itbox, &rcBox)))
             continue;
-        ptbxb->GetRc(&rcBox, cooGpt);
-        rcBox.Offset(-prcView->xpLeft, -prcView->ypTop);
-        dxp = rcBox.Dxp();
-        dyp = rcBox.Dyp();
-        if (dxp <= 0 || dyp <= 0)
+        if (pvNil == (prgbRgba = _PrgbTextBox(ptbxb, rcBox.Dxp(), rcBox.Dyp())))
             continue;
-        rc.Set(0, 0, dxp, dyp);
-        if (pvNil == (pgpt = GPT::PgptNewOffscreen(&rc, 8)))
-            continue;
-        cb = dxp * dyp;
-        prgbPass[0] = (byte *)malloc(cb);
-        prgbPass[1] = (byte *)malloc(cb);
-        prgbRgba = (byte *)malloc(cb * 4);
-        if (pvNil == prgbPass[0] || pvNil == prgbPass[1] || pvNil == prgbRgba)
-            goto LNext;
-        for (ipass = 0; ipass < 2; ipass++)
-        {
-            {
-                GNV gnv(pgpt);
-                ACR acrKey(kiscrKey[ipass]);
-                gnv.FillRc(&rc, acrKey);
-            }
-            ptbxb->DrawTree(pgpt, pvNil, pvNil, fgobNil);
-            if (pvNil == (pbSrc = pgpt->PrgbLockPixels()))
-                goto LNext;
-            for (yp = 0; yp < dyp; yp++)
-                CopyPb(pbSrc + yp * pgpt->CbRow(), prgbPass[ipass] + yp * dxp, dxp);
-            pgpt->Unlock();
-        }
-        luHash = 2166136261UL ^ (ulong)dxp ^ ((ulong)dyp << 16);
+        cb = rcBox.Dxp() * rcBox.Dyp() * 4;
+        luHash = 2166136261UL ^ (ulong)rcBox.Dxp() ^ ((ulong)rcBox.Dyp() << 16);
         for (ib = 0; ib < cb; ib++)
-        {
-            byte iscr = prgbPass[0][ib];
-            bool fClear = (iscr == kiscrKey[0] && prgbPass[1][ib] == kiscrKey[1]);
-            CLR clr = prgclr[iscr];
-            prgbRgba[ib * 4] = fClear ? 0 : clr.bRed;
-            prgbRgba[ib * 4 + 1] = fClear ? 0 : clr.bGreen;
-            prgbRgba[ib * 4 + 2] = fClear ? 0 : clr.bBlue;
-            prgbRgba[ib * 4 + 3] = fClear ? 0 : 255;
-            for (xp = 0; xp < 4; xp++)
-                luHash = (luHash ^ prgbRgba[ib * 4 + xp]) * 16777619UL;
-        }
+            luHash = (luHash ^ prgbRgba[ib]) * 16777619UL;
         for (imgHash = 0; imgHash < _pgllwTboxPoses->IvMac(); imgHash++)
         {
             if (*(ulong *)_pgllwTboxPoses->QvGet(imgHash) == luHash)
@@ -1774,12 +1881,15 @@ long RAPP::_CTextBoxImages(long *prgimg, RC *prgrc, long cimgMax, RC *prcView)
         if (imgHash == _pgllwTboxPoses->IvMac())
         {
             if (!_pgllwTboxPoses->FAdd(&luHash, &imgHash))
-                goto LNext;
-            fprintf(_pfilePoses, "I %ld %ld %ld ", imgHash, dxp, dyp);
-            for (ib = 0; ib < cb * 4; ib += 3)
+            {
+                free(prgbRgba);
+                continue;
+            }
+            fprintf(_pfilePoses, "I %ld %ld %ld ", imgHash, rcBox.Dxp(), rcBox.Dyp());
+            for (ib = 0; ib < cb; ib += 3)
             {
                 ulong lu = (ulong)prgbRgba[ib] << 16;
-                long cbIn = LwMin(3, cb * 4 - ib);
+                long cbIn = LwMin(3, cb - ib);
                 char rgch[5];
                 if (cbIn > 1)
                     lu |= (ulong)prgbRgba[ib + 1] << 8;
@@ -1794,19 +1904,10 @@ long RAPP::_CTextBoxImages(long *prgimg, RC *prgrc, long cimgMax, RC *prcView)
             }
             fputc('\n', _pfilePoses);
         }
+        free(prgbRgba);
         prgimg[cimg] = imgHash;
         prgrc[cimg] = rcBox;
         cimg++;
-    LNext:
-        if (pvNil != prgbPass[0])
-            free(prgbPass[0]);
-        if (pvNil != prgbPass[1])
-            free(prgbPass[1]);
-        if (pvNil != prgbRgba)
-            free(prgbRgba);
-        prgbPass[0] = prgbPass[1] = pvNil;
-        prgbRgba = pvNil;
-        ReleasePpo(&pgpt);
     }
     return cimg;
 }

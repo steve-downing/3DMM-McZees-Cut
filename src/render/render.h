@@ -228,6 +228,10 @@ class RAPP : public RAPP_PAR
     void _PlaceEye(byte *prgbEye, byte *prgbFrame, long ieye, long dxpShift);
     void _DrawFrame(PMVU pmvu);
     void _DrawFlatStereo(PMVU pmvu);
+    void _DrawViewOnly(PMVU pmvu);
+    void _OverlayTextBoxes(long dxpPop);
+    byte *_PrgbTextBox(PTBXB ptbxb, long dxp, long dyp);
+    PTBXB _PtbxbVisible(long itbox, RC *prcBox);
     void _LogTextBoxes(void);
     void _DumpStereoDebug(PBWLD pbwld);
     bool _FSnapshot(PBWLD pbwld, SNAPA *prgsnap, long *pcsnap);

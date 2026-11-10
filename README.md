@@ -23,7 +23,8 @@ out the way 3DMM played them. Then the export goes further than 3DMM could:
   blends every actor's motion between those frames and exports at 24.
 - **Stereo 3D.** Side-by-side 3D for VR headsets and 3D TVs, red/cyan
   anaglyph, or plain 2D. Actors are rendered twice for real. The
-  pre-rendered sets are reprojected from their depth maps.
+  pre-rendered sets are reprojected from their depth maps. 2-D text
+  floats just in front of everything.
 - **CRT looks.** A 4K version that looks like a mid-90s monitor, a
   Trinitron or a TV, with an HDR option.
 - **Sound.** 5.1 Dolby Digital with dialogue in the center, plus stereo.
