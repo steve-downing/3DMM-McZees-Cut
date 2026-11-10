@@ -1,6 +1,8 @@
 // Subtle procedural surface texture for the cartoon sets. Each face's kind
-// rides in its vertex color alpha: 0 plain, 1 fabric, 2 carpet, 3 wood, 4 metal,
-// 5 hammered metal, 6 flagstone, 7 striped damask wallpaper.
+// rides in its vertex color alpha (32 * kind + 16, or + 8 for a pattern turned a
+// quarter turn on the face): 0 plain, 1 fabric, 2 carpet, 3 wood, 4 metal,
+// 5 hammered metal, 6 flagstone, 7 striped damask wallpaper (turned: plain
+// horizontal stripes, for below a dado).
 // Patterns are triplanar in object space (every seat copy matches) and fade
 // out where they'd be smaller than a pixel.
 export function addSurfaceTexture(material) {
@@ -19,7 +21,9 @@ float sh_noise(vec2 p) {
 float sh_fbm(vec2 p) { float v = 0.0, a = 0.5; for (int i = 0; i < 3; i++) { v += a * sh_noise(p); p *= 2.03; a *= 0.5; } return v; }
 float sh_aa(vec2 p, float freq) { return clamp(1.0 - length(fwidth(p)) * freq * 0.35, 0.0, 1.0); }
 // across = coordinate that changes across the grain/weave, along = along it
+float sh_turn = 0.0;
 float sh_surf(vec2 p, float across, float along, float kind) {
+  if (sh_turn > 0.5) { p = p.yx; float a_ = across; across = along; along = a_; }
   if (kind < 0.5) return 1.0 + 0.21 * (sh_fbm(p * 0.8) - 0.5) + 0.13 * (sh_noise(p * 10.0) - 0.5) * sh_aa(p, 10.0);
   if (kind < 1.5) {
     float w = sin(p.x * 26.0) * sin(p.y * 26.0);
@@ -78,6 +82,13 @@ float sh_surf(vec2 p, float across, float along, float kind) {
     float leaf = 1.0 - smoothstep(0.32, 0.42, length(vec2(abs(f.x) - 0.9, f.y + 1.3) / vec2(0.5, 0.28)));
     motif = max(motif, leaf) * sh_aa(p, 1.2);
     float paper = 1.0 + 0.07 * (sh_noise(vec2(p.x * 40.0, p.y * 3.0)) - 0.5) * sh_aa(p, 40.0) + 0.1 * (sh_fbm(p * 0.6) - 0.5);
+    if (sh_turn > 0.5) {
+      // turned (the paper below a dado): narrower stripes, no motifs
+      float sy = mod(p.x, 2.4) - 1.2;
+      float band = 1.0 - smoothstep(0.55, 0.65, abs(sy));
+      float pin2 = 1.0 - smoothstep(0.02, 0.06, abs(abs(sy) - 0.85));
+      return (0.84 + 0.2 * band) * (1.0 - 0.22 * pin2 * sh_aa(p, 8.0)) * paper;
+    }
     return (0.82 + 0.22 * pale) * (1.0 - 0.36 * motif) * (1.0 - 0.25 * pin * sh_aa(p, 8.0)) * paper;
   }
   // hammered metal (the door): big soft dents plus fine speckle
@@ -88,7 +99,9 @@ float sh_surf(vec2 p, float across, float along, float kind) {
   vec3 fn = normalize(cross(dFdx(vOPos), dFdy(vOPos)));
   vec3 bw = pow(abs(fn), vec3(4.0)); bw /= (bw.x + bw.y + bw.z + 1e-5);
 #ifdef USE_COLOR_ALPHA
-  float kind = floor(vColor.a * 255.0 / 32.0 + 0.01);
+  float a8 = vColor.a * 255.0;
+  float kind = floor(a8 / 32.0 + 0.01);
+  sh_turn = step(mod(a8 + 0.5, 32.0), 12.0);
 #else
   float kind = 0.0;
 #endif
@@ -104,7 +117,7 @@ float sh_surf(vec2 p, float across, float along, float kind) {
   diffuseColor.a = 1.0;
 }`);
   };
-  material.customProgramCacheKey = () => 'surface-texture-v9';
+  material.customProgramCacheKey = () => 'surface-texture-v10';
   return material;
 }
 

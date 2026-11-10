@@ -19,6 +19,7 @@ import sys, os
 import numpy as np
 import trimesh
 from shapely.geometry import Polygon, box, Point
+from shapely import affinity
 from shapely.ops import unary_union
 from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -62,16 +63,16 @@ PAL = dict(
     stone=half('#4e4c56', (38, 36, 41)), grout=hexc('#1c1a20'),
     rug=half('#8a2aa0', (66, 22, 62)), rug_border=half('#5a5478', (51, 44, 56)), rug_motif=half('#8a84a8', (78, 72, 90)),
     curtain=half('#f2efe6', (73, 73, 68)), reveal=half('#a07856', (69, 51, 41)),
-    cushion=half('#c0262a', (56, 23, 22)), seatbox=hexc('#5e4128'),
-    paper=half('#9a8088', (80, 64, 66)), paper_low=half('#7a5458', (62, 44, 44)),
-    gold=half('#c89a2e', (84, 63, 24)), trim=hexc('#563b22'),
-    timber=hexc('#694a2c'), ceiling=half('#9a9086', (84, 76, 66)),
-    table=hexc('#74502e'), door=hexc('#6a4a2c'), sideboard=hexc('#573c23'),
-    chair=hexc('#80562f'), seat=half('#c42a16', (127, 28, 12)), back=half('#d0302a', (143, 33, 20)),
-    web=half('#3e362c', (70, 62, 50)), skull=half('#e8c860', (165, 135, 64)), socket=hexc('#3a2a10'),
+    cushion=half('#c0262a', (56, 23, 22)), seatbox=hexc('#513620'),
+    paper=half('#9a8088', (80, 64, 66)), paper_low=half('#6c3f72', (60, 40, 64)),
+    gold=half('#c89a2e', (84, 63, 24)), gilt=half('#d6b04c', (122, 102, 50)), trim=hexc('#4a321c'),
+    timber=hexc('#5c3f24'), ceiling=half('#9a9086', (84, 76, 66)),
+    table=hexc('#643f24'), door=hexc('#5c3e22'), sideboard=hexc('#4b331d'),
+    chair=hexc('#6e4a28'), seat=half('#c42a16', (127, 28, 12)), back=half('#d0302a', (143, 33, 20)),
+    web=half('#9a8540', (112, 98, 50)), skull=half('#e8c860', (165, 135, 64)), socket=hexc('#3a2a10'),
     claw=half('#efe6cc', (170, 160, 140)), iron=half('#1c1816', (30, 24, 18)), candle=hexc('#f4eedc'),
     flame=hexc('#ffd27a'), pillar=half('#7a6a58', (51, 43, 33)), cup=half('#9a9aa0', (90, 90, 96)),
-    frame=half('#d4a63a', (120, 92, 30)), glass_bar=hexc('#523822'))
+    frame=half('#d4a63a', (120, 92, 30)), glass_bar=hexc('#47301c'))
 
 # ----------------------------------------------------------------- small helpers
 def to_world(plane, pts):
@@ -134,9 +135,20 @@ def wall_layers(b, plane, u0, u1, holes, paper=True, pleats=False):
     all cut around the openings (shapely polygons in (u, y))"""
     cut = unary_union(holes) if holes else Polygon()
     if paper:
-        flat_poly(b, plane, box(u0, BASE[1], u1, DADO[0]).difference(cut), 0, PAL['paper_low'], DAMASK)
+        # below the dado: a deeper purple, striped across instead of up
+        flat_poly(b, plane, box(u0, BASE[1], u1, DADO[0]).difference(cut), 0, PAL['paper_low'], DAMASK + TURNED)
         flat_poly(b, plane, box(u0, DADO[1], u1, WALL_TOP).difference(cut), 0, PAL['paper'], DAMASK)
-        extrude_poly(b, plane, box(u0, DADO[0], u1, DADO[1]).difference(cut), 0, DADO[2], PAL['gold'], METAL)
+        # the dado rail: gilt, a bead below and a cap above a frieze of egg-and-dart
+        y0, y1, d = DADO
+        extrude_poly(b, plane, box(u0, y0, u1, y1).difference(cut), 0, d, PAL['gilt'] * 0.8, METAL)
+        extrude_poly(b, plane, box(u0, y0 - 0.12, u1, y0 + 0.22).difference(cut), 0, d + 0.16, PAL['gilt'], METAL)
+        extrude_poly(b, plane, box(u0, y1 - 0.25, u1, y1 + 0.1).difference(cut), 0, d + 0.2, PAL['gilt'], METAL)
+        ym, hh = (y0 + 0.22 + y1 - 0.25) / 2, (y1 - 0.25 - y0 - 0.22) / 2
+        orn = []
+        for u in np.arange(u0 + 0.6, u1 - 0.4, 1.1):
+            orn.append(affinity.scale(Point(u, ym).buffer(1, 4), 0.36, hh * 0.82))
+            orn.append(Polygon([(u + 0.55, ym + hh * 0.75), (u + 0.65, ym), (u + 0.55, ym - hh * 0.75), (u + 0.45, ym)]))
+        extrude_poly(b, plane, unary_union(orn).difference(cut), d, d + 0.14, PAL['gilt'] * 1.12, METAL)
     else:
         # the window wall is hung with white curtains: soft vertical folds, 1.0 apart
         w = box(u0, BASE[1], u1, WALL_TOP).difference(cut)
@@ -144,11 +156,13 @@ def wall_layers(b, plane, u0, u1, holes, paper=True, pleats=False):
         strips = [w.intersection(box(u, BASE[1], min(u + 0.27, u1), WALL_TOP)) for u in np.arange(u0, u1, 0.27)]
         fold = lambda u, y: -0.09 * (1 - np.cos(2 * np.pi * (u - u0) / 1.62))
         for s in strips: flat_poly(b, plane, s, 0, PAL['curtain'], FABRIC, warp=fold)
-    extrude_poly(b, plane, box(u0, BASE[0], u1, BASE[1]).difference(cut), 0, BASE[2], PAL['trim'], WOOD)
+    extrude_poly(b, plane, box(u0, BASE[0], u1, BASE[1]).difference(cut), 0, BASE[2], PAL['gilt'] * 0.85, METAL)
+    extrude_poly(b, plane, box(u0, BASE[1] - 0.25, u1, BASE[1] + 0.05).difference(cut), 0, BASE[2] + 0.12, PAL['gilt'], METAL)
     # the cornice: a deep, stepped molding: bead, frieze, ovolo, crown, top fillet
-    for y0, y1, dd, col, kind in ((24.9, 25.15, 0.3, PAL['gold'], METAL), (25.15, 25.75, 0.2, PAL['trim'], WOOD),
-                                  (25.75, 26.15, 0.55, PAL['gold'], METAL), (26.15, 26.55, 0.72, PAL['trim'], WOOD),
-                                  (26.55, CORNICE[1], CORNICE[2], PAL['gold'], METAL)):
+    # (gilt throughout, the recessed steps a little darker)
+    for y0, y1, dd, col, kind in ((24.9, 25.15, 0.3, PAL['gilt'], METAL), (25.15, 25.75, 0.2, PAL['gilt'] * 0.75, METAL),
+                                  (25.75, 26.15, 0.55, PAL['gilt'], METAL), (26.15, 26.55, 0.72, PAL['gilt'] * 0.8, METAL),
+                                  (26.55, CORNICE[1], CORNICE[2], PAL['gilt'], METAL)):
         extrude_poly(b, plane, box(u0, y0, u1, y1).difference(cut), 0, dd, col, kind)
 
 def ceiling(b):
@@ -190,45 +204,40 @@ def window_bay(b, plane, c, hw, y_bottom, spring, depth, muntins, seat):
     outline = unary_union([box(c - seat['hw'], 0, c + seat['hw'], seat['front']), box(c - hw, -depth, c + hw, 0.01)])
     outline = outline.buffer(0.0)
     # box (in plan: u along the wall, d out from it)
-    def plan_solid(poly, y0, y1, color, kind, bevel=0.0):
+    def plan_solid(poly, y0, y1, color, kind, group='lit'):
         V2, T = tri_poly(poly)
-        top_pts = [(u, y1, d) for u, d in V2]; bot_pts = [(u, y0, d) for u, d in V2]
-        b.add(to_world(plane, top_pts), T, color, kind=kind)
+        top_pts = [(u, y1, d) for u, d in V2]
+        b.add(to_world(plane, top_pts), T, color, kind=kind, group=group)
         ring = np.asarray(poly.exterior.coords)
         for i in range(len(ring) - 1):
             (ua, da), (ub, db) = ring[i], ring[i + 1]
-            b.add(to_world(plane, [(ua, y0, da), (ub, y0, db), (ub, y1, db), (ua, y1, da)]), [[0, 1, 2], [0, 2, 3]], color, kind=kind)
+            b.add(to_world(plane, [(ua, y0, da), (ub, y0, db), (ub, y1, db), (ua, y1, da)]), [[0, 1, 2], [0, 2, 3]], color, kind=kind, group=group)
     plan_solid(outline, 0, sh, PAL['seatbox'], WOOD)
-    plan_solid(outline.buffer(-0.12, join_style=1).union(outline.buffer(0.08, join_style=1).intersection(box(c - seat['hw'] - 1, 0.5, c + seat['hw'] + 1, seat['front'] + 0.2))), sh, st, PAL['cushion'], FABRIC)
-    # a raised panel on the seat front
-    p = (c - seat['hw'] + 0.7, c + seat['hw'] - 0.7)
-    q = [(p[0], 1.0, seat['front'] + 0.08), (p[1], 1.0, seat['front'] + 0.08), (p[1], sh - 0.9, seat['front'] + 0.08), (p[0], sh - 0.9, seat['front'] + 0.08)]
-    b.add(to_world(plane, q), [[0, 1, 2], [0, 2, 3]], half('#8a5824', (55, 35, 12)), kind=WOOD)
+    cush = outline.buffer(-0.12, join_style=1).union(outline.buffer(0.08, join_style=1).intersection(box(c - seat['hw'] - 1, 0.5, c + seat['hw'] + 1, seat['front'] + 0.2)))
+    plan_solid(cush, sh, st, PAL['cushion'], CARPET, group='velvet')
     return opening
 
 def door(b, plane):
-    """the arched plank door, a little back from the wall face, with its trim and a ring pull"""
+    """the arched door, a little back from the wall face: a pair of solid oak leaves meeting
+    in the middle, a knob on each beside the meeting stiles, and its trim"""
     z0, z1, top, inset = DOOR['z0'], DOOR['z1'], DOOR['top'], DOOR['inset']
     r = (z1 - z0) / 2; spring = top - r
     opening = arch(z0, z1, 0, spring)
-    # planks: vertical strips with a dark seam between
-    nplank = 7; w = (z1 - z0) / nplank
-    for i in range(nplank):
-        s = opening.intersection(box(z0 + i * w + 0.05, 0, z0 + (i + 1) * w - 0.05, top + 1))
-        shade = PAL['door'] * (0.92 + 0.16 * ((i * 37) % 5) / 4)
-        flat_poly(b, plane, s, -inset, shade, WOOD)
-    flat_poly(b, plane, opening, -inset - 0.06, PAL['door'] * 0.45)
+    zm = (z0 + z1) / 2
+    for k, (a_, b_) in enumerate(((z0, zm - 0.04), (zm + 0.04, z1))):
+        leaf = opening.intersection(box(a_, 0, b_, top + 1))
+        extrude_poly(b, plane, leaf, -inset, -inset + 0.12, PAL['door'] * (1.0 if k else 0.94), WOOD + TURNED)   # grain runs up
+    flat_poly(b, plane, opening, -inset - 0.06, PAL['door'] * 0.35)
     # reveal between the wall face and the door
     ring = np.asarray(opening.exterior.coords)
     for i in range(len(ring) - 1):
         (ua, ya), (ub, yb) = ring[i], ring[i + 1]
         if ya < 0.01 and yb < 0.01: continue
         b.add(to_world(plane, [(ua, ya, 0), (ub, yb, 0), (ub, yb, -inset), (ua, ya, -inset)]), [[0, 1, 2], [0, 2, 3]], PAL['trim'], kind=WOOD)
-    # iron straps and the ring pull
-    for y in (4.5, 13.5):
-        extrude_poly(b, plane, box(z0 + 0.4, y - 0.25, z1 - 0.4, y + 0.25), -inset, -inset + 0.08, PAL['iron'], HAMMERED)
-    knob = to_world(plane, [(z1 - 1.5, 10.5, -inset + 0.25)])[0]
-    b.add_mesh(sphere(knob, 0.42, 1), PAL['gold'], kind=METAL)
+    for u in (zm - 0.75, zm + 0.75):
+        knob = to_world(plane, [(u, 9.6, -inset + 0.45)])[0]
+        b.add_mesh(sphere(knob, 0.36, 1), PAL['gilt'], kind=METAL)
+        b.add_mesh(bar(to_world(plane, [(u, 9.6, -inset + 0.1)])[0], knob, 0.12), PAL['gilt'] * 0.8, kind=METAL)
     # trim on the wall face
     band = arch(z0 - 0.7, z1 + 0.7, 0, spring).difference(arch(z0, z1, -1, spring))
     extrude_poly(b, plane, band, 0, 0.3, PAL['trim'], WOOD)
@@ -492,7 +501,7 @@ def build_armchair():
 
 def build_table():
     """the long table: a thick top; at each end two shaped legs that flare at the foot and
-    scroll out under the top, joined by a cross-rail; a stretcher runs between the ends.
+    scroll out under the top, joined by a cross-rail (nothing runs along its length).
     Built in world coordinates, then returned in a local frame with its length along z
     (so the wood grain runs the table's length) and the transform that puts it back."""
     b = Builder(); t = TABLE
@@ -515,8 +524,6 @@ def build_table():
                 b.add([(x - 0.5, ya, Z(oa)), (x + 0.5, ya, Z(oa)), (x + 0.5, yb, Z(ob)), (x - 0.5, yb, Z(ob))], [[0, 1, 2], [0, 2, 3]], PAL['table'] * 0.9, kind=WOOD)
         b.add_mesh(cbox(x - 0.35, x + 0.35, 1.5, 2.3, zc - t['leg_off'] + 0.4, zc + t['leg_off'] - 0.4, 0.08), PAL['table'] * 0.85, kind=WOOD)   # cross-rail
         b.add_mesh(cbox(x - 0.7, x + 0.7, under - 0.5, under, zc - t['leg_off'] - 1.2, zc + t['leg_off'] + 1.2, 0.1), PAL['table'] * 0.85, kind=WOOD)   # cleat
-    a, c = t['legs']
-    b.add_mesh(cbox(a, c, 1.6, 2.2, zc - 0.35, zc + 0.35, 0.08), PAL['table'] * 0.85, kind=WOOD)
     m = b.meshes()['lit']
     to_local = np.linalg.inv(place(cx, zc, np.pi / 2))
     m.apply_transform(to_local)
@@ -528,10 +535,14 @@ def build_sideboard():
     b.add_mesh(cbox(s['x0'], s['x1'] - 0.4, s['top'] - 1.35, s['top'] - 0.45, s['z0'] + 0.4, s['z1'] - 0.4, 0.08), PAL['sideboard'] * 0.85, kind=WOOD)
     for x, z in ((s['x0'] + 0.6, s['z0'] + 0.7), (s['x1'] - 0.8, s['z0'] + 0.7), (s['x0'] + 0.6, s['z1'] - 0.7), (s['x1'] - 0.8, s['z1'] - 0.7)):
         for m in cabriole(x, z, s['top'] - 0.45, 0.3 * np.sign(z - (s['z0'] + s['z1']) / 2), 0.6): b.add_mesh(m, PAL['sideboard'], kind=WOOD)
-    # a pewter cup on top (camera 2 sees it)
-    b.add_mesh(prism(140.6, -122.8, 0.45, s['top'], s['top'] + 1.2, 10), PAL['cup'], kind=METAL)
-    b.add_mesh(prism(140.6, -122.8, 0.55, s['top'] + 1.1, s['top'] + 1.4, 10), PAL['cup'], kind=METAL)
-    return b.meshes()['lit']
+    # a candle on a brass dish where 1995 has a small pale something (camera 2 sees it)
+    cx, cz, y = 140.6, -122.8, s['top']
+    b.add_mesh(prism(cx, cz, 0.62, y, y + 0.12, 14), PAL['gilt'], kind=METAL)
+    b.add_mesh(prism(cx, cz, 0.18, y + 0.12, y + 0.4, 10), PAL['gilt'] * 0.85, kind=METAL)
+    b.add_mesh(prism(cx, cz, 0.3, y + 0.4, y + 1.45, 10), PAL['candle'])
+    b.add_mesh(sphere((cx + 0.22, y + 1.15, cz + 0.1), 0.09, 0, (1, 2.0, 1)), PAL['candle'])    # a drip
+    b.add_mesh(sphere((cx, y + 1.72, cz), 0.11, 1, (1, 2.2, 1)), PAL['flame'], group='glow')
+    return b.meshes()
 
 def build_chandelier():
     """wrought iron: a canopy and a chain from the ceiling, a crown of spikes, a turned
@@ -654,7 +665,9 @@ def build(out):
     scene.add_geometry(table, geom_name='table', node_name='table', transform=at)
     scene.add_geometry(rug_mesh(), geom_name='rug_textured', node_name='rug_textured')
     scene.add_geometry(build_outside(), geom_name='outside', node_name='outside')
-    scene.add_geometry(build_sideboard(), geom_name='sideboard', node_name='sideboard')
+    for k, m in build_sideboard().items():
+        name = 'sideboard' if k == 'lit' else 'sideboard_' + k
+        scene.add_geometry(m, geom_name=name, node_name=name)
     scene.add_geometry(build_iron_rack(), geom_name='iron_rack', node_name='iron_rack')
     for k, m in build_chandelier().items():
         scene.add_geometry(m, geom_name='chandelier_' + k, node_name='chandelier_' + k)

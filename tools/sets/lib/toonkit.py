@@ -10,6 +10,7 @@ CARTOON = 0.10   # how far colors lean toward the cartoon palette (0 = original,
 
 # surface kinds (vertex-color alpha) understood by viewer/surface.js
 PLAIN, FABRIC, CARPET, WOOD, METAL, HAMMERED, STONE, DAMASK = range(8)
+TURNED = 0.5    # add to a kind to turn its pattern a quarter turn (vertical wood grain, horizontal stripes)
 def toon(rgb):
     """brighter, more saturated version of an original color"""
     r, g, b = [c / 255.0 for c in rgb]
@@ -65,8 +66,10 @@ class Builder:
             C = np.where(C <= 0.04045, C / 12.92, ((C + 0.055) / 1.055) ** 2.4)          # linear for glTF
             V = T.reshape(-1, 3); F = np.arange(len(V)).reshape(-1, 3)
             N = smooth_normals(T)
-            # alpha carries the surface kind for the viewer's shader: 0 plain, 1 fabric, 2 carpet, 3 wood, 4 metal
-            vc = np.repeat(np.c_[np.round(C * 255), 16 + 32 * Kd].astype(np.uint8), 3, axis=0)
+            # alpha carries the surface kind for the viewer's shader (32 * kind + 16; + 8 instead
+            # of + 16 when the pattern is turned): 0 plain, 1 fabric, 2 carpet, 3 wood, 4 metal, ...
+            Ki = np.floor(Kd); turned = (Kd - Ki) > 0.25
+            vc = np.repeat(np.c_[np.round(C * 255), 32 * Ki + np.where(turned, 8, 16)].astype(np.uint8), 3, axis=0)
             m = trimesh.Trimesh(V, F, vertex_normals=N, process=False); m.visual = trimesh.visual.ColorVisuals(m, vertex_colors=vc)
             out[k] = m
         return out
