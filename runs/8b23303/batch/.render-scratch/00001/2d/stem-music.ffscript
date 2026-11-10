@@ -1,0 +1,3 @@
+anullsrc=r=44100:cl=stereo,atrim=duration=71.370,aformat=sample_fmts=fltp[base];
+amovie='sounds/s000.mid.wav':loop=2,atrim=start=0.000:duration=68.370,asetpts=PTS-STARTPTS,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,volume=1.33352,adelay=delays=0:all=1[a0];
+[base][a0]amix=inputs=2:normalize=0:duration=first[aout]

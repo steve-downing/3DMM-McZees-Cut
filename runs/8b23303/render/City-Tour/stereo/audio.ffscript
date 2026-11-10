@@ -1,0 +1,3 @@
+anullsrc=r=44100:cl=stereo,atrim=duration=71.370,aformat=sample_fmts=fltp[base];
+amovie='sounds/s000.mid.wav':loop=2,atrim=start=0.000:duration=68.370,asetpts=PTS-STARTPTS,aresample=44100,aformat=sample_fmts=fltp:channel_layouts=stereo,volume=1.0000,adelay=delays=0:all=1[a0];
+[base][a0]amix=inputs=2:normalize=0:duration=first,volume='if(lt(t,65.370),1.0000,if(lt(t,65.620),0.9167,if(lt(t,65.870),0.8333,if(lt(t,66.120),0.7500,if(lt(t,66.370),0.6667,if(lt(t,66.620),0.5834,if(lt(t,66.870),0.5000,if(lt(t,67.120),0.4167,if(lt(t,67.370),0.3334,if(lt(t,67.620),0.2500,if(lt(t,67.870),0.1667,if(lt(t,68.120),0.0834,if(lt(t,68.370),0.0001,if(lt(t,68.370),0.0000,1.0000))))))))))))))':eval=frame[aout]

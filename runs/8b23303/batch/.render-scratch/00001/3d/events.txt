@@ -1,0 +1,48 @@
+     0.000 stereo view: converge=61.9 near=47.2 far=909.0 focal=349px eye=2.587 shift=7px
+     0.000 transition cut
+     0.000 sound s000 vlm=65536 loops=2147483647 offset=0
+     0.000 play
+     0.020 transition dissolve
+     4.195 textbox story "The Entrance to the city "
+     5.525 stereo view: converge=108.0 near=54.6 far=310.5 focal=290px eye=3.112 shift=4px
+     7.195 stereo view: converge=169.3 near=53.0 far=948.5 focal=421px eye=1.495 shift=2px
+     8.860 stereo view: converge=129.3 near=70.9 far=436.7 focal=479px eye=2.669 shift=5px
+     9.525 textbox story "The Market "
+    10.525 stereo view: converge=131.6 near=28.8 far=788.7 focal=313px eye=0.960 shift=1px
+    12.195 stereo view: converge=68.6 near=34.3 far=141.2 focal=294px eye=1.904 shift=4px
+    13.860 stereo view: converge=65.2 near=36.0 far=661.4 focal=403px eye=1.625 shift=5px
+    15.525 stereo view: converge=64.5 near=3.9 far=179.5 focal=373px eye=0.091 shift=0px
+    15.695 textbox story "The Alley "
+    17.195 stereo view: converge=122.7 near=62.2 far=188.3 focal=724px eye=1.423 shift=4px
+    18.860 stereo view: converge=84.9 near=28.4 far=99.2 focal=562px eye=0.618 shift=2px
+    20.525 stereo view: converge=96.4 near=22.6 far=196.8 focal=507px eye=0.474 shift=1px
+    20.695 textbox story "The Cafe "
+    22.195 stereo view: converge=139.4 near=50.5 far=629.6 focal=369px eye=1.749 shift=2px
+    22.360 textbox story "The Mall "
+    23.860 stereo view: converge=122.5 near=19.8 far=536.8 focal=328px eye=0.586 shift=1px
+    24.025 textbox story "The Park "
+    25.525 stereo view: converge=177.1 near=58.4 far=507.7 focal=448px eye=1.586 shift=2px
+    27.195 stereo view: converge=70.6 near=29.6 far=112.4 focal=420px eye=0.991 shift=3px
+    28.860 stereo view: converge=179.0 near=62.7 far=1234.2 focal=457px eye=1.721 shift=2px
+    30.525 stereo view: converge=178.6 near=33.6 far=500.0 focal=724px eye=0.466 shift=1px
+    30.695 textbox story "The Restaurant "
+    32.195 stereo view: converge=76.4 near=51.5 far=150.0 focal=320px eye=4.032 shift=8px
+    33.860 stereo view: converge=146.3 near=63.3 far=668.1 focal=369px eye=2.462 shift=3px
+    35.525 stereo view: converge=139.4 near=50.5 far=629.6 focal=369px eye=1.749 shift=2px
+    35.695 textbox story "The Mall "
+    37.195 stereo view: converge=78.0 near=54.3 far=419.9 focal=270px eye=4.829 shift=8px
+    38.860 stereo view: converge=144.0 near=53.2 far=177.6 focal=390px eye=1.768 shift=2px
+    38.860 transition dissolve
+    44.365 stereo view: converge=92.0 near=27.4 far=159.1 focal=323px eye=0.982 shift=2px
+    46.035 stereo view: converge=80.5 near=46.6 far=130.5 focal=411px eye=2.190 shift=6px
+    47.700 stereo view: converge=84.7 near=62.8 far=143.1 focal=434px eye=4.586 shift=12px
+    49.365 stereo view: converge=140.3 near=10.5 far=193.3 focal=350px eye=0.264 shift=0px
+    51.035 stereo view: converge=165.1 near=62.8 far=211.4 focal=350px eye=2.367 shift=3px
+    52.865 stereo view: converge=78.0 near=54.3 far=419.9 focal=270px eye=4.829 shift=8px
+    52.865 transition dissolve
+    58.370 stereo view: converge=139.4 near=50.5 far=629.6 focal=369px eye=1.749 shift=2px
+    60.040 stereo view: converge=131.6 near=28.8 far=788.7 focal=313px eye=0.960 shift=1px
+    61.705 stereo view: converge=131.3 near=48.6 far=436.7 focal=434px eye=1.453 shift=2px
+    63.370 stereo view: converge=81.7 near=47.2 far=921.8 focal=349px eye=2.614 shift=6px
+    63.540 textbox story "The End "
+    68.370 end
