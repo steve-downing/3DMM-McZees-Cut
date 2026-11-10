@@ -180,6 +180,7 @@ class RAPP : public RAPP_PAR
     FILE *_pfilePoses;
     PGL _pglpbmdlPoses; // models written to the poses file so far (kept alive)
     PGL _pglpbmtlPoses; // materials written so far (kept alive)
+    PGL _pgllwTboxPoses; // text box images written so far (their hashes)
     long _cfrmTotal;
     long _pctLast;
     BMAT34 _bmat34Stereo;
@@ -258,6 +259,7 @@ class RAPP : public RAPP_PAR
     void _WritePoses(long ifrm, ulong dtsOut);
     long _IPoseModel(BACT *pbact);
     long _IPoseMaterial(BACT *pbact);
+    long _CTextBoxImages(long *prgimg, RC *prgrc, long cimgMax, RC *prcView);
     void _LogEngineErrors(PSZ pszContext);
     void _Event(PSZ pszFormat, ...);
 

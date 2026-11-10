@@ -257,6 +257,50 @@ async function loadScene() {
   $('name').textContent = meta.name;
   $('tag').textContent = '3D Movie Maker · scene ' + meta.scene + ' · ' + meta.actors.map(a => a.name).join(', ');
   document.title = meta.name + ' in 3D';
+  initTexts(meta);
+}
+
+// ---- 2-D text ---------------------------------------------------------------------
+// 3DMM draws a text box flat over the picture. Here each one is a card in the room,
+// a little way in front of the movie's camera for that shot and filling exactly the
+// part of the view the box covers, so from the movie's camera it looks as in 3DMM
+// and from anywhere else it's a card hanging near where that camera stands. Cards
+// draw over everything (as 3DMM's text does), lit by nothing.
+const TEXT_DIST = 6;          // in front of the camera, in 3DMM units (about 60 cm)
+let TEXTS = null;
+function initTexts(meta) {
+  if (!meta.texts || !meta.texts.length) return;
+  const loader = new THREE.TextureLoader();
+  TEXTS = { tex: meta.texts.map(url => { const t = loader.load(url, invalidate); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }),
+            group: new THREE.Group(), cards: [] };
+  TEXTS.group.matrixAutoUpdate = false;
+  world.add(TEXTS.group);
+}
+function textCard(k) {
+  let c = TEXTS.cards[k];
+  if (!c) {
+    c = new THREE.Mesh(new THREE.PlaneGeometry(1, 1),
+      new THREE.MeshBasicMaterial({ transparent: true, depthTest: false, depthWrite: false, toneMapped: false }));
+    c.renderOrder = 1000; TEXTS.group.add(c); TEXTS.cards[k] = c;
+  }
+  return c;
+}
+function showTexts(f) {
+  if (!TEXTS) return;
+  const list = f.texts || [], cam = CAMS[f.cam];
+  TEXTS.cards.forEach(c => { c.visible = false; });
+  if (!list.length || !cam) return;
+  const r = cam.rot;
+  TEXTS.group.matrix.makeBasis(new THREE.Vector3(...r[0]), new THREE.Vector3(...r[1]), new THREE.Vector3(...r[2])).setPosition(...cam.pos);
+  TEXTS.group.matrixWorldNeedsUpdate = true;
+  const [vw, vh] = S.meta.view, hh = TEXT_DIST * Math.tan(cam.fov * Math.PI / 360), hw = hh * vw / vh;
+  list.forEach(([img, l, t, rr, b], k) => {
+    const c = textCard(k);
+    if (c.material.map !== TEXTS.tex[img]) { c.material.map = TEXTS.tex[img]; c.material.needsUpdate = true; }
+    c.position.set(((l + rr) / vw - 1) * hw, (1 - (t + b) / vh) * hh, -TEXT_DIST);
+    c.scale.set((rr - l) / vw * 2 * hw, (b - t) / vh * 2 * hh, 1);
+    c.visible = true;
+  });
 }
 
 // ---- playing --------------------------------------------------------------------
@@ -287,6 +331,7 @@ function showFrame(i) {
       r++;
     }
   }
+  showTexts(f);
   renderer.shadowMap.needsUpdate = true; invalidate();
   if (followMovie && !renderer.xr.isPresenting && f.cam >= 0 && f.cam < CAMS.length) setCam(f.cam);
 }

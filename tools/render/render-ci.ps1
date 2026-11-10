@@ -102,12 +102,15 @@ foreach ($movie in Get-ChildItem $MovieDir -Filter *.3mm) {
         # a summary and the start of the pose capture, for a look
         $kinds = @{}
         foreach ($l in [IO.File]::ReadLines("$rawMode/poses.txt")) {
-            if ($l.Length -gt 1 -and $l[1] -eq ' ' -and "FAPMT".Contains($l[0])) { $kinds[$l[0]] = 1 + $kinds[$l[0]] }
+            if ($l.Length -gt 1 -and $l[1] -eq ' ' -and "FAPMTIX".Contains($l[0])) { $kinds[$l[0]] = 1 + $kinds[$l[0]] }
         }
         "frames $($kinds['F']) actors $($kinds['A']) parts $($kinds['P']) models $($kinds['M']) materials $($kinds['T']); " +
+            "text pictures $($kinds['I']) text showings $($kinds['X']); " +
             "$([Math]::Round((Get-Item "$rawMode/poses.txt").Length / 1MB, 1)) MB" | Set-Content "$keepMode/poses-summary.txt"
-        Get-Content "$rawMode/poses.txt" -TotalCount 60 | Add-Content "$keepMode/poses-summary.txt"
-        if ($movie.BaseName -eq "Venus31") {   # has cabin scenes: kept whole, to develop the 3D scene player with
+        Get-Content "$rawMode/poses.txt" -TotalCount 60 | ForEach-Object { if ($_.Length -gt 200) { $_.Substring(0, 200) + "..." } else { $_ } } |
+            Add-Content "$keepMode/poses-summary.txt"
+        # kept whole, to develop the 3D scene player with: Venus31 has cabin scenes, City Tour 2-D text
+        if ($movie.BaseName -eq "Venus31" -or $movie.BaseName -eq "City Tour") {
             Compress-Archive -Force -Path "$rawMode/poses.txt" -DestinationPath "$keepMode/poses.zip"
         }
     }

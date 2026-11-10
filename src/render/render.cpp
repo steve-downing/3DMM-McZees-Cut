@@ -96,6 +96,7 @@ RAPP::RAPP(void)
     _pfilePoses = pvNil;
     _pglpbmdlPoses = pvNil;
     _pglpbmtlPoses = pvNil;
+    _pgllwTboxPoses = pvNil;
     _prgsnapPrev = pvNil;
     _prgsnapCur = pvNil;
     _csnapPrev = _csnapCur = _csnapMax = 0;
@@ -1509,6 +1510,9 @@ bool RAPP::_FEmitFrame(byte *prgb, ulong dtsOut)
         F <frame> <ms> <scene> <background cno> <camera>
         A <actor id> <template sid> <template cno> <parts>
         P <part> <model> <material> <world matrix: 4 rows of 3>
+        X <image> <left> <top> <right> <bottom> <view width> <view height>
+          (a 2-D text box showing: its picture and where it sits in the
+          movie's view, in pixels)
 
     Models and materials are numbered as they're first seen, and written
     once, before the frame that first uses them:
@@ -1516,6 +1520,7 @@ bool RAPP::_FEmitFrame(byte *prgb, ulong dtsOut)
         M <model> <vertices> <faces>, then "x y z u v" per vertex and
           "a b c smoothing" per face (model space)
         T <material> <cno, or -1> <palette base> <palette range>
+        I <image> <width> <height> <RGBA, base64>: a text box's picture
 
     A frame that never got screen time is written again with the same
     number: the last block for a frame wins.
@@ -1605,7 +1610,8 @@ void RAPP::_WritePoses(long ifrm, ulong dtsOut)
         _pfilePoses = fopen(_stnPoses.Psz(), "w");
         _pglpbmdlPoses = GL::PglNew(size(br_model *));
         _pglpbmtlPoses = GL::PglNew(size(br_material *));
-        if (pvNil == _pfilePoses || pvNil == _pglpbmdlPoses || pvNil == _pglpbmtlPoses)
+        _pgllwTboxPoses = GL::PglNew(size(ulong));
+        if (pvNil == _pfilePoses || pvNil == _pglpbmdlPoses || pvNil == _pglpbmtlPoses || pvNil == _pgllwTboxPoses)
         {
             _Log("can't write poses to %s", _stnPoses.Psz());
             _stnPoses.SetNil();
@@ -1630,6 +1636,12 @@ void RAPP::_WritePoses(long ifrm, ulong dtsOut)
             _IPoseMaterial(pbody->PbactPart(ipart));
         }
     }
+
+    // 2-D text boxes: their pictures (each written once), then where they are
+    const long kcimgMax = 16;
+    long rgimg[kcimgMax], cimg, iimg;
+    RC rgrc[kcimgMax], rcView;
+    cimg = _CTextBoxImages(rgimg, rgrc, kcimgMax, &rcView);
 
     fprintf(_pfilePoses, "F %ld %lu %ld %ld %ld\n", ifrm, dtsOut, _pmvie->Iscen(),
             pvNil == pscen->Pbkgd() ? -1L : (long)pscen->Pbkgd()->Cno(),
@@ -1663,6 +1675,140 @@ void RAPP::_WritePoses(long ifrm, ulong dtsOut)
             fprintf(_pfilePoses, "\n");
         }
     }
+    for (iimg = 0; iimg < cimg; iimg++)
+    {
+        fprintf(_pfilePoses, "X %ld %ld %ld %ld %ld %ld %ld\n", rgimg[iimg], rgrc[iimg].xpLeft, rgrc[iimg].ypTop,
+                rgrc[iimg].xpRight, rgrc[iimg].ypBottom, rcView.Dxp(), rcView.Dyp());
+    }
+}
+
+/***************************************************************************
+    The visible 2-D text boxes, each drawn by itself (as 3DMM draws it, fonts
+    and all) into an image with transparency. An image not seen before is
+    written to the poses file:
+
+        I <image> <width> <height> <RGBA rows, top first, base64>
+
+    Returns how many boxes are showing; for each, its image number and its
+    rectangle in the movie view (prcView gets the view's own rectangle).
+    Each box is drawn twice, over two different colors: a pixel that took
+    the backdrop's color both times is see-through, anything else is the
+    box's own (so text in either backdrop color still comes through).
+***************************************************************************/
+long RAPP::_CTextBoxImages(long *prgimg, RC *prgrc, long cimgMax, RC *prcView)
+{
+    static const char kszB64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    PSCEN pscen;
+    PMVU pmvu;
+    PTBOX ptbox;
+    PTBXG ptbxg;
+    PTBXB ptbxb;
+    PGPT pgpt;
+    RC rc, rcBox;
+    byte *prgbPass[2] = {pvNil, pvNil};
+    byte *prgbRgba, *pbSrc;
+    CLR *prgclr;
+    long itbox, cimg = 0, ipass, dxp, dyp, cb, xp, yp, ib, imgHash;
+    ulong luHash;
+    const byte kiscrKey[2] = {0, 255};
+
+    if (pvNil == _pmvie || pvNil == (pscen = _pmvie->Pscen()) || pvNil == (pmvu = _pmvie->PmvuCur()) ||
+        pvNil == _pgllwTboxPoses || pvNil == _pglclrActive)
+    {
+        return 0;
+    }
+    pmvu->GetRc(prcView, cooGpt);
+    prgclr = (CLR *)_pglclrActive->QvGet(0);
+
+    for (itbox = 0; cimg < cimgMax && pvNil != (ptbox = pscen->PtboxFromItbox(itbox)); itbox++)
+    {
+        if (!ptbox->FIsVisible() || pvNil == (ptbxg = (PTBXG)ptbox->PddgGet(0)) || pvNil == (ptbxb = ptbxg->Ptbxb()))
+            continue;
+        ptbxb->GetRc(&rcBox, cooGpt);
+        rcBox.Offset(-prcView->xpLeft, -prcView->ypTop);
+        dxp = rcBox.Dxp();
+        dyp = rcBox.Dyp();
+        if (dxp <= 0 || dyp <= 0)
+            continue;
+        rc.Set(0, 0, dxp, dyp);
+        if (pvNil == (pgpt = GPT::PgptNewOffscreen(&rc, 8)))
+            continue;
+        cb = dxp * dyp;
+        prgbPass[0] = (byte *)malloc(cb);
+        prgbPass[1] = (byte *)malloc(cb);
+        prgbRgba = (byte *)malloc(cb * 4);
+        if (pvNil == prgbPass[0] || pvNil == prgbPass[1] || pvNil == prgbRgba)
+            goto LNext;
+        for (ipass = 0; ipass < 2; ipass++)
+        {
+            {
+                GNV gnv(pgpt);
+                ACR acrKey(kiscrKey[ipass]);
+                gnv.FillRc(&rc, acrKey);
+            }
+            ptbxb->DrawTree(pgpt, pvNil, pvNil, fgobNil);
+            if (pvNil == (pbSrc = pgpt->PrgbLockPixels()))
+                goto LNext;
+            for (yp = 0; yp < dyp; yp++)
+                CopyPb(pbSrc + yp * pgpt->CbRow(), prgbPass[ipass] + yp * dxp, dxp);
+            pgpt->Unlock();
+        }
+        luHash = 2166136261UL ^ (ulong)dxp ^ ((ulong)dyp << 16);
+        for (ib = 0; ib < cb; ib++)
+        {
+            byte iscr = prgbPass[0][ib];
+            bool fClear = (iscr == kiscrKey[0] && prgbPass[1][ib] == kiscrKey[1]);
+            CLR clr = prgclr[iscr];
+            prgbRgba[ib * 4] = fClear ? 0 : clr.bRed;
+            prgbRgba[ib * 4 + 1] = fClear ? 0 : clr.bGreen;
+            prgbRgba[ib * 4 + 2] = fClear ? 0 : clr.bBlue;
+            prgbRgba[ib * 4 + 3] = fClear ? 0 : 255;
+            for (xp = 0; xp < 4; xp++)
+                luHash = (luHash ^ prgbRgba[ib * 4 + xp]) * 16777619UL;
+        }
+        for (imgHash = 0; imgHash < _pgllwTboxPoses->IvMac(); imgHash++)
+        {
+            if (*(ulong *)_pgllwTboxPoses->QvGet(imgHash) == luHash)
+                break;
+        }
+        if (imgHash == _pgllwTboxPoses->IvMac())
+        {
+            if (!_pgllwTboxPoses->FAdd(&luHash, &imgHash))
+                goto LNext;
+            fprintf(_pfilePoses, "I %ld %ld %ld ", imgHash, dxp, dyp);
+            for (ib = 0; ib < cb * 4; ib += 3)
+            {
+                ulong lu = (ulong)prgbRgba[ib] << 16;
+                long cbIn = LwMin(3, cb * 4 - ib);
+                char rgch[5];
+                if (cbIn > 1)
+                    lu |= (ulong)prgbRgba[ib + 1] << 8;
+                if (cbIn > 2)
+                    lu |= prgbRgba[ib + 2];
+                rgch[0] = kszB64[(lu >> 18) & 63];
+                rgch[1] = kszB64[(lu >> 12) & 63];
+                rgch[2] = cbIn > 1 ? kszB64[(lu >> 6) & 63] : '=';
+                rgch[3] = cbIn > 2 ? kszB64[lu & 63] : '=';
+                rgch[4] = 0;
+                fputs(rgch, _pfilePoses);
+            }
+            fputc('\n', _pfilePoses);
+        }
+        prgimg[cimg] = imgHash;
+        prgrc[cimg] = rcBox;
+        cimg++;
+    LNext:
+        if (pvNil != prgbPass[0])
+            free(prgbPass[0]);
+        if (pvNil != prgbPass[1])
+            free(prgbPass[1]);
+        if (pvNil != prgbRgba)
+            free(prgbRgba);
+        prgbPass[0] = prgbPass[1] = pvNil;
+        prgbRgba = pvNil;
+        ReleasePpo(&pgpt);
+    }
+    return cimg;
 }
 
 void RAPP::_FinishTimeline(ulong dtsOutEnd)

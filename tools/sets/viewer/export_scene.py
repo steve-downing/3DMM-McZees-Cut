@@ -17,6 +17,10 @@ the scene's number as 3DMM counts it, from 1. Writes into <out dir>:
                   4 rows of 3), base64
   scene.mp3.txt   the scene's soundtrack, cut from --video, base64
 
+2-D text boxes come as 3DMM drew them: each different picture once (scene.json
+"texts", PNG data URLs), and per frame which are showing and where, in pixels of
+the movie's view ("view").
+
 Everything is read from what 3DMM itself drew, so stock actors, add-on actors
 and 3D text all come out the same way. Materials are looked up by chunk number
 in the game's content files.
@@ -37,7 +41,7 @@ def read_poses(path):
     else:
         text = open(path, encoding='latin1').read()
     lines = text.splitlines(); i = 0
-    models, mats, frames = {}, {}, {}
+    models, mats, frames, images = {}, {}, {}, {}
     cur = None
     while i < len(lines):
         p = lines[i].split(); i += 1
@@ -57,7 +61,19 @@ def read_poses(path):
             cur['actors'].append(dict(arid=int(p[1]), sid=int(p[2]), cno=int(p[3]), parts=[]))
         elif k == 'P':
             cur['actors'][-1]['parts'].append((int(p[2]), int(p[3]), [float(x) for x in p[4:16]]))
-    return models, mats, [frames[k] for k in sorted(frames)]
+        elif k == 'I':
+            images[int(p[1])] = (int(p[2]), int(p[3]), p[4])
+        elif k == 'X':
+            cur.setdefault('texts', []).append([int(x) for x in p[1:8]])
+    return models, mats, [frames[k] for k in sorted(frames)], images
+
+
+def text_png(w, h, b64):
+    """a text box's picture (RGBA rows, base64) as a PNG data URL"""
+    from PIL import Image
+    im = Image.frombytes('RGBA', (w, h), base64.b64decode(b64))
+    buf = io.BytesIO(); im.save(buf, 'PNG', optimize=True)
+    return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
 
 
 class Content(Template):
@@ -68,7 +84,7 @@ class Content(Template):
 
 
 def export(poses, scene_no, out, video=None, name=None):
-    models, mats, frames = read_poses(poses)
+    models, mats, frames, images = read_poses(poses)
     iscen = scene_no - 1
     sel = [f for f in frames if f['scene'] == iscen]
     if not sel: raise SystemExit('no frames in scene %d (the capture has scenes %s)' % (scene_no, sorted({f['scene'] for f in frames})))
@@ -123,6 +139,7 @@ def export(poses, scene_no, out, video=None, name=None):
 
     # the frames
     ids, xf, fmeta = [], [], []
+    tused_img, view = {}, None
     for f in sel:
         on = []
         for a in f['actors']:
@@ -130,7 +147,14 @@ def export(poses, scene_no, out, video=None, name=None):
             for m, t, M in a['parts']:
                 ids += [mused.get(m, -1), tused.get(t, -1)]
                 xf += M
-        fmeta.append(dict(t=f['dts'] - t0, cam=f['cam'], actors=on))
+        fm = dict(t=f['dts'] - t0, cam=f['cam'], actors=on)
+        if f.get('texts'):
+            fm['texts'] = []
+            for img, l, t, r, b, vw, vh in f['texts']:
+                if img not in images: continue
+                if img not in tused_img: tused_img[img] = len(tused_img)
+                fm['texts'].append([tused_img[img], l, t, r, b]); view = [vw, vh]
+        fmeta.append(fm)
     blob = np.array(ids, '<i2').tobytes()
     blob += b'\0' * (-len(blob) % 4) + np.array(xf, '<f4').tobytes()
 
@@ -149,6 +173,9 @@ def export(poses, scene_no, out, video=None, name=None):
                 bkgd_name=sets.c.name('BKGD', bk), cams=cams, lights=lights, center=center,
                 actors=actors, mats=matinfo, models=len(mused), frames=fmeta,
                 ids_bytes=len(ids) * 2, xf_offset=len(blob) - len(xf) * 4)
+    if tused_img:
+        meta['view'] = view
+        meta['texts'] = [text_png(*images[i]) for i in sorted(tused_img, key=tused_img.get)]
     json.dump(meta, open(os.path.join(out, 'scene.json'), 'w'), separators=(',', ':'))
     glb = sc.export(file_type='glb')
     open(os.path.join(out, 'scene.glb.txt'), 'w').write(base64.b64encode(glb).decode())
@@ -158,8 +185,8 @@ def export(poses, scene_no, out, video=None, name=None):
         subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-ss', '%.3f' % (t0 / 1000), '-t', '%.3f' % ((t1 - t0) / 1000),
                         '-i', video, '-vn', '-ac', '2', '-c:a', 'libmp3lame', '-b:a', '128k', mp3], check=True)
         open(os.path.join(out, 'scene.mp3.txt'), 'w').write(base64.b64encode(open(mp3, 'rb').read()).decode())
-    print('%s: %d frames, %.1f s, actors %s, %d models, %d materials -> %s' % (
-        meta['name'], len(sel), (t1 - t0) / 1000, [a['name'] for a in actors], len(mused), len(tused), out))
+    print('%s: %d frames, %.1f s, actors %s, %d models, %d materials, %d text pictures -> %s' % (
+        meta['name'], len(sel), (t1 - t0) / 1000, [a['name'] for a in actors], len(mused), len(tused), len(tused_img), out))
     return meta
 
 
